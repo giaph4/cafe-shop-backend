@@ -15,6 +15,8 @@ public class OrderCreateRequestDTO {
     @NotBlank(message = "Order type is required")
     private String type; // Loại đơn hàng: AT_TABLE, TAKE_AWAY, DELIVERY
 
+    private Long customerId;
+
     @NotEmpty(message = "Order must contain at least one item")
     @Valid
     private List<OrderDetailRequestDTO> items;

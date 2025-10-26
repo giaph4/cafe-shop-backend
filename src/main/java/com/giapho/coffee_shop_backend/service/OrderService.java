@@ -1,11 +1,7 @@
 package com.giapho.coffee_shop_backend.service;
 
 import com.giapho.coffee_shop_backend.domain.entity.*;
-import com.giapho.coffee_shop_backend.domain.repository.CafeTableRepository;
-import com.giapho.coffee_shop_backend.domain.repository.OrderDetailRepository;
-import com.giapho.coffee_shop_backend.domain.repository.ProductRepository;
-import com.giapho.coffee_shop_backend.domain.repository.UserRepository;
-import com.giapho.coffee_shop_backend.domain.repository.OrderRepository;
+import com.giapho.coffee_shop_backend.domain.repository.*;
 import com.giapho.coffee_shop_backend.dto.*;
 import com.giapho.coffee_shop_backend.mapper.OrderDetailMapper;
 import com.giapho.coffee_shop_backend.mapper.OrderMapper;
@@ -20,10 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +29,9 @@ public class OrderService {
     private final UserRepository userRepository; // Để lấy user đang đăng nhập
     private final OrderMapper orderMapper;
     private final OrderDetailMapper orderDetailMapper;
+    private final ProductIngredientRepository productIngredientRepository;
+    private final IngredientRepository ingredientRepository;
+    private final CustomerRepository customerRepository;
 
     /**
      * Lấy danh sách Order (có phân trang)
@@ -66,6 +62,12 @@ public class OrderService {
         User currentUser = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new EntityNotFoundException("Current user not found"));
 
+        Customer customer = null;
+        if (request.getCustomerId() != null) {
+            customer = customerRepository.findById(request.getCustomerId())
+                    .orElseThrow(() -> new EntityNotFoundException("Customer not found with id: " + request.getCustomerId()));
+        }
+
         // --- 2. Kiểm tra và lấy thông tin Bàn (nếu có) ---
         CafeTable table;
         if (request.getTableId() != null) {
@@ -93,6 +95,7 @@ public class OrderService {
                 .cafeTable(table)
                 .type(request.getType())
                 .status("PENDING") // Mặc định là PENDING
+                .customer(customer)
                 .subTotal(BigDecimal.ZERO)
                 .discountAmount(BigDecimal.ZERO)
                 .totalAmount(BigDecimal.ZERO)
@@ -290,46 +293,122 @@ public class OrderService {
 
 
     /**
-     * (Thêm sau) Thanh toán Order
+     * Thanh toán một Order đang PENDING
+     * (CẬP NHẬT ĐỂ TRỪ KHO)
      */
     @Transactional
     public OrderResponseDTO payOrder(Long orderId, PaymentRequestDTO paymentRequest) {
         // 1. Tìm Order đang PENDING
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new EntityNotFoundException("Order not found with Id: " + orderId));
+                .orElseThrow(() -> new EntityNotFoundException("Order not found with id: " + orderId));
 
         if (!"PENDING".equals(order.getStatus())) {
-            throw new IllegalArgumentException("Order is not pending");
+            throw new IllegalArgumentException("Order is not in PENDING status. Current status: " + order.getStatus());
         }
 
-        // 2. Chuẩn hoá và kiểm tra phương thức thanh toán
+        // 2. Chuẩn hóa và kiểm tra phương thức thanh toán
         String paymentMethod = paymentRequest.getPaymentMethod().toUpperCase();
-        if (!paymentMethod.equals("CASH") &&  !paymentMethod.equals("TRANSFER") && !paymentMethod.equals("CARD")) {
-            throw new IllegalArgumentException("Payment method not supported");
+        if (!paymentMethod.equals("CASH") && !paymentMethod.equals("TRANSFER") && !paymentMethod.equals("CARD")) {
+            throw new IllegalArgumentException("Invalid payment method. Supported methods: CASH, TRANSFER, CARD");
         }
 
+        // ---------- BƯỚC 3: XỬ LÝ TRỪ KHO TRƯỚC KHI LƯU ORDER ----------
+        subtractInventoryForOrder(order);
+        // -----------------------------------------------------------
+
+        // 4. Cập nhật trạng thái, thời gian và phương thức thanh toán
         order.setStatus("PAID");
-        order.setPaymentMethod(paymentMethod);
         order.setPaidAt(LocalDateTime.now());
+        order.setPaymentMethod(paymentMethod);
 
-        Order updatedOrder = orderRepository.save(order);
+        // 5. Lưu lại Order (Việc trừ kho đã diễn ra, giờ lưu trạng thái PAID)
+        orderRepository.save(order); // Lưu thay đổi cho Order
 
-        if (updatedOrder.getCafeTable() != null) {
-            CafeTable cafeTable = updatedOrder.getCafeTable();
-            if ("SERVING".equals(cafeTable.getStatus())) {
-                cafeTable.setStatus("EMPTY");
-                cafeTableRepository.save(cafeTable);
+        // 6. Cập nhật trạng thái bàn (nếu có)
+        if (order.getCafeTable() != null) {
+            CafeTable table = order.getCafeTable();
+            if ("SERVING".equals(table.getStatus())) {
+                table.setStatus("EMPTY");
+                cafeTableRepository.save(table);
             }
         }
 
+        // 7. Cộng điểm khách hàng (nếu có - thêm sau)
+        if (order.getCustomer() != null) {
+            addLoyaltyPoints(order); // Gọi hàm helper cộng điểm
+            // Hoặc gọi service: customerService.addPoints(order.getCustomer().getId(), points);
+        }
+
+        // 8. Trả về DTO (Fetch lại để đảm bảo dữ liệu mới nhất)
         Order fetchedPaidOrder = orderRepository.findById(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("Failed to fetch paid order with id: " + orderId));
-        // --- (PHẦN NÂNG CAO - SẼ LÀM SAU) ---
-        // 6. Trừ kho nguyên vật liệu
-        // 7. Cộng điểm khách hàng (nếu có)
-        // ------------------------------------
-
         return orderMapper.entityToResponse(fetchedPaidOrder);
+    }
+
+    //--- HÀM HELPER CỘNG ĐIỂM ---
+    private void addLoyaltyPoints(Order order) {
+        // Logic tính điểm: Ví dụ: 10,000 VND = 1 điểm
+        // (Chỉ tính trên subTotal hoặc totalAmount tùy quy định)
+        if (order.getTotalAmount() != null && order.getTotalAmount().compareTo(BigDecimal.ZERO) > 0) {
+            int pointsToAdd = order.getTotalAmount().divide(BigDecimal.valueOf(10000), 0, BigDecimal.ROUND_DOWN).intValue();
+
+            if (pointsToAdd > 0) {
+                Customer customer = order.getCustomer();
+                // Lấy lại customer từ DB để đảm bảo tính nhất quán (tùy chọn nhưng an toàn hơn)
+                Customer currentCustomer = customerRepository.findById(customer.getId())
+                        .orElseThrow(() -> new EntityNotFoundException("Customer disappeared during point calculation")); // Lỗi nghiêm trọng
+
+                currentCustomer.setLoyaltyPoints(currentCustomer.getLoyaltyPoints() + pointsToAdd);
+                // Không cần customerRepository.save() vì là managed entity trong transaction
+                System.out.println(">>> Added " + pointsToAdd + " points to customer " + currentCustomer.getPhone());
+            }
+        }
+    }
+
+    /**
+     * Hàm helper để trừ kho nguyên vật liệu cho một Order
+     */
+    private void subtractInventoryForOrder(Order order) {
+        if (order.getOrderDetails() == null) {
+            return; // Không có gì để trừ
+        }
+
+        for (OrderDetail detail : order.getOrderDetails()) {
+            Product product = detail.getProduct();
+            int orderQuantity = detail.getQuantity();
+
+            // Lấy công thức định lượng của sản phẩm
+            List<ProductIngredient> recipe = productIngredientRepository.findByProductId(product.getId());
+
+            if (recipe.isEmpty()) {
+                // Có thể bỏ qua nếu sản phẩm không cần quản lý kho (ví dụ: Dịch vụ)
+                // Hoặc ném lỗi nếu bắt buộc phải có định lượng
+                System.out.println("WARN: No recipe found for product ID: " + product.getId() + ", Name: " + product.getName() + ". Skipping stock deduction.");
+                continue; // Bỏ qua sản phẩm này
+            }
+
+            for (ProductIngredient pi : recipe) {
+                Ingredient ingredient = pi.getIngredient();
+                BigDecimal quantityNeededPerProduct = pi.getQuantityNeeded();
+                BigDecimal totalQuantityToSubtract = quantityNeededPerProduct.multiply(BigDecimal.valueOf(orderQuantity));
+
+                // Lấy tồn kho hiện tại (đảm bảo lấy từ DB để tránh dirty read)
+                Ingredient currentIngredient = ingredientRepository.findById(ingredient.getId())
+                        .orElseThrow(() -> new EntityNotFoundException("Ingredient not found during stock deduction: ID " + ingredient.getId())); // Lỗi nghiêm trọng nếu ingredient biến mất
+
+                BigDecimal currentStock = currentIngredient.getQuantityOnHand();
+
+                // Kiểm tra tồn kho
+                if (currentStock.compareTo(totalQuantityToSubtract) < 0) {
+                    throw new IllegalArgumentException("Not enough stock for ingredient: " + currentIngredient.getName()
+                            + ". Required: " + totalQuantityToSubtract + ", Available: " + currentStock);
+                }
+
+                // Trừ kho
+                currentIngredient.setQuantityOnHand(currentStock.subtract(totalQuantityToSubtract));
+                // Không cần save ở đây, Hibernate sẽ tự quản lý trong transaction
+            }
+        }
     }
 
     /**

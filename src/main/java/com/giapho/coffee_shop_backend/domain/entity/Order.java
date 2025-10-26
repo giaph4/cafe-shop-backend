@@ -35,7 +35,10 @@ public class Order {
     @ToString.Exclude
     private User user;
 
-    // (Chúng ta sẽ thêm 'customer' sau)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id") // Khóa ngoại customer_id (cho phép NULL)
+    @ToString.Exclude
+    private Customer customer;
 
     @Column(nullable = false, length = 20)
     private String type; // Loại đơn: AT_TABLE, TAKE_AWAY, DELIVERY

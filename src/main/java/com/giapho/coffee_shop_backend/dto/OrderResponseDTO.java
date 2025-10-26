@@ -17,6 +17,9 @@ public class OrderResponseDTO {
     private BigDecimal subTotal;
     private BigDecimal discountAmount;
     private BigDecimal totalAmount;
+    private Long customerId;    // ID khách hàng
+    private String customerName;  // Tên khách hàng
+    private String customerPhone; // SĐT khách hàng
     private LocalDateTime createdAt;
     private LocalDateTime paidAt;
     private String paymentMethod;

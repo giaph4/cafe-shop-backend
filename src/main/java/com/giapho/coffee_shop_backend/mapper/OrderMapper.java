@@ -1,6 +1,7 @@
 package com.giapho.coffee_shop_backend.mapper;
 
 import com.giapho.coffee_shop_backend.domain.entity.CafeTable;
+import com.giapho.coffee_shop_backend.domain.entity.Customer;
 import com.giapho.coffee_shop_backend.domain.entity.Order;
 import com.giapho.coffee_shop_backend.domain.entity.User;
 import com.giapho.coffee_shop_backend.dto.OrderResponseDTO;
@@ -14,7 +15,9 @@ public interface OrderMapper {
     // Chuyển từ Entity sang Response DTO
     @Mapping(source = "cafeTable", target = "tableName", qualifiedByName = "tableToTableName")
     @Mapping(source = "user", target = "staffUsername", qualifiedByName = "userToUsername")
-//    @Mapping(source = "paymentMethod", target = "paymentMethod", qualifiedByName = "userToUsername")
+    @Mapping(source = "customer.id", target = "customerId")
+    @Mapping(source = "customer", target = "customerName", qualifiedByName = "customerToName")
+    @Mapping(source = "customer.phone", target = "customerPhone")
     @Mapping(source = "orderDetails", target = "orderDetails") // Tự động dùng OrderDetailMapper
     OrderResponseDTO entityToResponse(Order order);
 
@@ -29,5 +32,10 @@ public interface OrderMapper {
     @Named("userToUsername")
     default String userToUsername(User user) {
         return (user != null) ? user.getUsername() : null;
+    }
+
+    @Named("customerToName")
+    default String customerToName(Customer customer) {
+        return (customer != null) ? customer.getFullName() : null;
     }
 }
