@@ -4,13 +4,18 @@ import com.giapho.coffee_shop_backend.domain.entity.Ingredient;
 import com.giapho.coffee_shop_backend.domain.repository.IngredientRepository;
 import com.giapho.coffee_shop_backend.dto.IngredientRequestDTO;
 import com.giapho.coffee_shop_backend.dto.IngredientResponseDTO;
+import com.giapho.coffee_shop_backend.dto.InventoryAdjustmentRequestDTO;
 import com.giapho.coffee_shop_backend.mapper.IngredientMapper;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -97,6 +102,42 @@ public class IngredientService {
         ingredientRepository.deleteById(id);
     }
 
-    // --- CÁC NGHIỆP VỤ LIÊN QUAN TỒN KHO SẼ THÊM SAU ---
-    // Ví dụ: Cập nhật tồn kho khi nhập hàng, trừ kho khi bán hàng...
+    /**
+     * Điều chỉnh số lượng tồn kho của một nguyên vật liệu
+     * @param request DTO chứa ID nguyên liệu, số lượng mới và lý do
+     * @return Thông tin nguyên vật liệu sau khi cập nhật
+     */
+    @Transactional
+    public IngredientResponseDTO adjustInventory(InventoryAdjustmentRequestDTO request) {
+        // 1. Tìm nguyên vật liệu
+        Ingredient ingredient = ingredientRepository.findById(request.getIngredientId())
+                .orElseThrow(() -> new EntityNotFoundException("Ingredient not found with id: " + request.getIngredientId()));
+
+        // 2. Lấy số lượng cũ (để ghi log nếu cần)
+        BigDecimal oldQuantity = ingredient.getQuantityOnHand();
+        BigDecimal newQuantity = request.getNewQuantityOnHand();
+
+        // 3. Cập nhật số lượng tồn kho mới
+        ingredient.setQuantityOnHand(newQuantity);
+
+        // 4. (Tùy chọn) Ghi log về việc điều chỉnh này
+        // Có thể tạo một bảng riêng 'inventory_logs' hoặc ghi vào log file thông thường
+        String currentUser = SecurityContextHolder.getContext().getAuthentication().getName(); // Lấy user hiện tại
+        System.out.println(String.format(
+                "[%s] Inventory Adjusted: Ingredient ID=%d (%s), Old Qty=%.3f, New Qty=%.3f, Reason: %s, By: %s",
+                LocalDateTime.now(),
+                ingredient.getId(),
+                ingredient.getName(),
+                oldQuantity,
+                newQuantity,
+                request.getReason() != null ? request.getReason() : "N/A",
+                currentUser
+        ));
+
+        // 5. Lưu thay đổi
+        Ingredient updatedIngredient = ingredientRepository.save(ingredient);
+
+        // 6. Trả về DTO
+        return ingredientMapper.entityToResponse(updatedIngredient);
+    }
 }

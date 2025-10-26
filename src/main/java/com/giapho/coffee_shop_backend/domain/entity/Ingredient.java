@@ -32,7 +32,7 @@ public class Ingredient {
     private BigDecimal quantityOnHand = BigDecimal.ZERO;
 
     @Column(name = "reorder_level")
-    private BigDecimal reOrderLevel; // Ngưỡng hết hàng
+    private BigDecimal reorderLevel; // Ngưỡng hết hàng
 
     // --- (Quan hệ Many-to-Many với Product và One-to-Many với PurchaseOrderDetail sẽ thêm sau) ---
 

@@ -46,8 +46,8 @@ public class ApplicationConfig {
      * 1. Lấy thông tin user (dùng userDetailsService() ở trên).
      * 2. So sánh mật khẩu (dùng passwordEncoder() ở trên).
      */
-
     @Bean
+    @SuppressWarnings("deprecation")
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
         authProvider.setUserDetailsService(userDetailsService()); // Cung cấp dịch vụ tìm user

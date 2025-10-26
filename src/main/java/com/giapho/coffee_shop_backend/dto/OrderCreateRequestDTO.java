@@ -17,6 +17,8 @@ public class OrderCreateRequestDTO {
 
     private Long customerId;
 
+    private String voucherCode;
+
     @NotEmpty(message = "Order must contain at least one item")
     @Valid
     private List<OrderDetailRequestDTO> items;

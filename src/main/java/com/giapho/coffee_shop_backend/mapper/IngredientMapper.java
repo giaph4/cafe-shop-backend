@@ -12,6 +12,7 @@ public interface IngredientMapper {
 
     // DTO -> Entity (tạo mới)
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "quantityOnHand", ignore = true)
     Ingredient toEntity(IngredientRequestDTO dto);
 
     // Entity -> DTO (hiển thị)

@@ -47,10 +47,10 @@ public class User implements UserDetails {
     private String status; // "ACTIVE", "INACTIVE", "TERMINATED"
 
     @Column(name = "created_at", updatable = false)
-    private LocalDateTime createAt;
+    private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
-    private LocalDateTime updateAt;
+    private LocalDateTime updatedAt;
 
     // Dinh nghia moi quan he nhieu nhieu
     @ManyToMany(fetch = FetchType.EAGER)
@@ -93,13 +93,13 @@ public class User implements UserDetails {
     // tu dong cap nhat thoi gian
     @PrePersist
     public void onCreate() {
-        this.createAt = LocalDateTime.now();
-        this.updateAt = LocalDateTime.now();
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
     @PreUpdate
     public void onUpdate() {
-        this.updateAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now(); // <-- SỬA LẠI THÀNH updatedAt
     }
 
     @Override

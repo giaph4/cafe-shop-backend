@@ -2,6 +2,7 @@ package com.giapho.coffee_shop_backend.controller;
 
 import com.giapho.coffee_shop_backend.dto.IngredientRequestDTO;
 import com.giapho.coffee_shop_backend.dto.IngredientResponseDTO;
+import com.giapho.coffee_shop_backend.dto.InventoryAdjustmentRequestDTO;
 import com.giapho.coffee_shop_backend.service.IngredientService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -84,5 +85,18 @@ public class IngredientController {
     public ResponseEntity<Void> deleteIngredient(@PathVariable Long id) {
         ingredientService.deleteIngredient(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * API Điều chỉnh số lượng tồn kho
+     * Chỉ MANAGER hoặc ADMIN mới có quyền.
+     */
+    @PatchMapping("/adjust-inventory") // Endpoint mới
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ResponseEntity<IngredientResponseDTO> adjustInventory(
+            @Valid @RequestBody InventoryAdjustmentRequestDTO request
+    ) {
+        IngredientResponseDTO updatedIngredient = ingredientService.adjustInventory(request);
+        return ResponseEntity.ok(updatedIngredient);
     }
 }

@@ -4,6 +4,7 @@ import com.giapho.coffee_shop_backend.domain.entity.Ingredient;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
@@ -20,4 +21,7 @@ public interface IngredientRepository extends JpaRepository<Ingredient, Long> {
     List<Ingredient> findByQuantityOnHandLessThanEqual(BigDecimal threshold);
 
     Page<Ingredient> findByNameContainingIgnoreCase(String name, Pageable pageable);
+
+    @Query("SELECT i FROM Ingredient i WHERE i.reorderLevel IS NOT NULL AND i.quantityOnHand <= i.reorderLevel")
+    List<Ingredient> findIngredientsBelowReorderLevel();
 }

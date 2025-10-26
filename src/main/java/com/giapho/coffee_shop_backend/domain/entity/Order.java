@@ -6,6 +6,7 @@ import org.hibernate.proxy.HibernateProxy;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -40,6 +41,11 @@ public class Order {
     @ToString.Exclude
     private Customer customer;
 
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    @ToString.Exclude
+    @Builder.Default // Thêm nếu chưa có
+    private Set<OrderDetail> orderDetails = new HashSet<>();
+
     @Column(nullable = false, length = 20)
     private String type; // Loại đơn: AT_TABLE, TAKE_AWAY, DELIVERY
 
@@ -57,6 +63,9 @@ public class Order {
     @Column(name = "total_amount", nullable = false)
     private BigDecimal totalAmount; // Tổng tiền cuối cùng
 
+    @Column(name = "voucher_code", length = 50) // Mã voucher đã áp dụng
+    private String voucherCode;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -72,8 +81,6 @@ public class Order {
      *  CascadeType.ALL: Khi lưu/xoá Order, tự động lưu/xoá OrderDetail
      *  orphanRemoval = true: Khi xoá 1 item khỏi Set, tự động xoá nó trong DB
      */
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
-    private Set<OrderDetail> orderDetails;
 
     @PrePersist
     protected void onCreate() {
