@@ -38,10 +38,11 @@ public class ProductController {
     @GetMapping
     @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<Page<ProductResponse>> getAllProducts(
-            // @PageableDefault: Cấu hình phân trang mặc định (size=10, page=0)
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) Long categoryId,
             @PageableDefault(size = 10, page = 0) Pageable pageable
     ) {
-        Page<ProductResponse> products = productService.getAllProducts(pageable);
+        Page<ProductResponse> products = productService.getFilteredProducts(name, categoryId, pageable);
         return ResponseEntity.ok(products);
     }
 

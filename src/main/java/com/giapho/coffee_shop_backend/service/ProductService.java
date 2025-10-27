@@ -11,6 +11,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -67,6 +68,33 @@ public class ProductService {
         Product savedProduct = productRepository.save(product);
 
         return productMapper.toProductResponse(savedProduct);
+    }
+
+    /**
+     * Lấy sản phẩm có lọc theo tên và/hoặc categoryId
+     */
+    @Transactional(readOnly = true)
+    public Page<ProductResponse> getFilteredProducts(String name, Long categoryId, Pageable pageable) {
+
+        Specification<Product> spec = (root, query, criteriaBuilder) -> null;
+
+        if (name != null && !name.isEmpty()) {
+            spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
+        }
+
+        if (categoryId != null) {
+            // Tùy chọn: Kiểm tra Category có tồn tại không
+            if (categoryId > 0 && !categoryRepository.existsById(categoryId)) { // Giả sử ID > 0 là ID hợp lệ
+                throw new EntityNotFoundException("Category not found with id: " + categoryId);
+            }
+            // Thêm điều kiện lọc
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("category").get("id"), categoryId));
+        }
+
+        // --- Execute Query ---
+        Page<Product> productPage = productRepository.findAll(spec, pageable);
+
+        return productPage.map(productMapper::toProductResponse);
     }
 
     /**
