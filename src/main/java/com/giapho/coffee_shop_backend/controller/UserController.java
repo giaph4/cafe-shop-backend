@@ -50,7 +50,7 @@ public class UserController {
      * Chỉ ADMIN mới có quyền cập nhật user khác.
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("#id == authentication.principal.id || hasRole('ADMIN')")
     public ResponseEntity<UserResponseDTO> updateUser(
             @PathVariable Long id,
             @Valid @RequestBody UserUpdateRequestDTO updateDTO
@@ -59,16 +59,13 @@ public class UserController {
         return ResponseEntity.ok(updatedUser);
     }
 
-    // (Lưu ý: Thường không nên có API XÓA user vĩnh viễn,
-    // thay vào đó nên dùng API cập nhật status='INACTIVE' hoặc 'TERMINATED')
-
     /**
      * API cho phép người dùng đang đăng nhập tự đổi mật khẩu
      * Yêu cầu người dùng phải được xác thực (có token hợp lệ).
      * Dùng POST hoặc PATCH đều được.
      */
-    @PostMapping("/change-password") // Hoặc @PatchMapping("/me/password")
-    @PreAuthorize("isAuthenticated()") // Chỉ cần đăng nhập là được
+    @PostMapping("/change-password")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<String> changePassword(
             @Valid @RequestBody ChangePasswordRequestDTO request
     ) {

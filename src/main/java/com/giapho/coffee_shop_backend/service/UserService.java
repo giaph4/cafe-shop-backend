@@ -101,41 +101,38 @@ public class UserService {
      */
     @Transactional
     public void changePassword(ChangePasswordRequestDTO request) {
-        // 1. Lấy username của người dùng đang đăng nhập
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated() || authentication.getPrincipal().equals("anonymousUser")) {
             throw new IllegalStateException("User not authenticated");
         }
         String currentUsername = authentication.getName();
 
-        // 2. Tìm User trong DB
         User currentUser = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new EntityNotFoundException("Current user not found in database"));
 
-        // 3. Kiểm tra mật khẩu hiện tại có đúng không
         if (!passwordEncoder.matches(request.getCurrentPassword(), currentUser.getPassword())) {
             throw new IllegalArgumentException("Incorrect current password");
         }
 
-        // 4. Kiểm tra mật khẩu mới và mật khẩu xác nhận có khớp không
         if (!request.getNewPassword().equals(request.getConfirmationPassword())) {
             throw new IllegalArgumentException("New password and confirmation password do not match");
         }
 
-        // 5. (Tùy chọn) Kiểm tra xem mật khẩu mới có giống mật khẩu cũ không
         if (passwordEncoder.matches(request.getNewPassword(), currentUser.getPassword())) {
             throw new IllegalArgumentException("New password cannot be the same as the old password");
         }
 
-        // 6. Mã hóa mật khẩu mới
         String encodedNewPassword = passwordEncoder.encode(request.getNewPassword());
 
-        // 7. Cập nhật mật khẩu mới cho user
         currentUser.setPassword(encodedNewPassword);
 
-        // 8. Lưu thay đổi
         userRepository.save(currentUser);
+    }
 
-        // (Tùy chọn nâng cao: Thu hồi tất cả token cũ của user này nếu dùng blacklist)
+    @Transactional(readOnly = true)
+    public UserResponseDTO getUserByUsername(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with username: " + username));
+        return userMapper.toUserResponseDto(user);
     }
 }
