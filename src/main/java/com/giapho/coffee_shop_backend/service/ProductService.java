@@ -3,6 +3,8 @@ package com.giapho.coffee_shop_backend.service;
 import com.giapho.coffee_shop_backend.domain.entity.Category;
 import com.giapho.coffee_shop_backend.domain.entity.Product;
 import com.giapho.coffee_shop_backend.domain.repository.CategoryRepository;
+import com.giapho.coffee_shop_backend.domain.repository.OrderDetailRepository;
+import com.giapho.coffee_shop_backend.domain.repository.ProductIngredientRepository;
 import com.giapho.coffee_shop_backend.domain.repository.ProductRepository;
 import com.giapho.coffee_shop_backend.dto.ProductRequest;
 import com.giapho.coffee_shop_backend.dto.ProductResponse;
@@ -22,6 +24,8 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final ProductMapper productMapper;
+    private final ProductIngredientRepository productIngredientRepository;
+    private final OrderDetailRepository orderDetailRepository;
 
     /**
      * Lấy sản phẩm (có phân trang)
@@ -123,10 +127,25 @@ public class ProductService {
      */
     @Transactional
     public void deleteProduct(Long id) {
-        if (!productRepository.existsById(id)) {
-            throw new EntityNotFoundException("Product not found with id: " + id);
+        // 1. Kiểm tra sản phẩm tồn tại
+        Product product = productRepository.findById(id) // Lấy cả đối tượng Product để lấy tên
+                .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + id));
+
+        // 2. Kiểm tra xem sản phẩm có trong bất kỳ OrderDetail nào không (QUAN TRỌNG)
+        long orderDetailCount = orderDetailRepository.countByProductId(id); // Giả sử bạn thêm hàm countByProductId vào OrderDetailRepository
+        if (orderDetailCount > 0) {
+            throw new IllegalArgumentException("Cannot delete product '" + product.getName() + "' because it exists in past order details. Consider marking it as unavailable instead.");
+            // Hoặc bạn có thể dùng một Exception tùy chỉnh khác
         }
+
+        // 3. Xóa các dòng công thức liên quan (nếu sản phẩm không có trong order details)
+        productIngredientRepository.deleteByProductId(id);
+        productIngredientRepository.flush(); // Optional but safer
+
+        // 4. Bây giờ mới xóa sản phẩm
         productRepository.deleteById(id);
+
+        System.out.println("Deleted product and its ingredients for ID: " + id); // Log (tùy chọn)
     }
 
     /**

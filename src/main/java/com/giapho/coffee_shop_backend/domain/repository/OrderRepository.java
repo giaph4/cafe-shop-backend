@@ -54,4 +54,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     List<Order> findByStatusAndPaidAtBetween(String status, LocalDateTime startDateTime, LocalDateTime endDateTime);
 
+    long countByCafeTableId(Long tableId);
+
 }

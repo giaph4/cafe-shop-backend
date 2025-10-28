@@ -11,14 +11,20 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 
 @Service
 @RequiredArgsConstructor
@@ -32,11 +38,60 @@ public class PurchaseOrderService {
     private final PurchaseOrderDetailMapper purchaseOrderDetailMapper;
 
     /**
-     * Lấy danh sách phiếu nhập hàng (có phân trang)
+     * Lấy danh sách phiếu nhập hàng (có phân trang VÀ LỌC)
+     *
+     * @param status     Trạng thái cần lọc (PENDING, COMPLETED, CANCELLED) - Tùy chọn
+     * @param startDate  Ngày bắt đầu lọc (YYYY-MM-DD) - Tùy chọn
+     * @param endDate    Ngày kết thúc lọc (YYYY-MM-DD) - Tùy chọn
+     * @param pageable   Thông tin phân trang và sắp xếp
+     * @return Page<PurchaseOrderResponseDTO>
      */
     @Transactional(readOnly = true)
-    public Page<PurchaseOrderResponseDTO> getAllPurchaseOrders(Pageable pageable) {
-        Page<PurchaseOrder> poPage = purchaseOrderRepository.findAll(pageable);
+    public Page<PurchaseOrderResponseDTO> getAllPurchaseOrders(
+            String status,
+            Long supplierId,
+            LocalDate startDate,
+            LocalDate endDate,
+            Pageable pageable
+    ) {
+        // Tạo Specification dựa trên các tham số lọc
+        Specification<PurchaseOrder> spec = (root, query, criteriaBuilder) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+            jakarta.persistence.criteria.Predicate predicate = criteriaBuilder.conjunction();
+
+            // 1. Lọc theo trạng thái (status)
+            if (status != null && !status.isEmpty()) {
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("status"), status));
+            }
+
+            // 2. Lọc theo nhà cung cấp (supplierId)
+            if (supplierId != null) {
+                // Tùy chọn: Kiểm tra xem supplierId có hợp lệ không
+                // if (!supplierRepository.existsById(supplierId)) {
+                //     throw new EntityNotFoundException("Supplier not found with id: " + supplierId);
+                // }
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("supplier").get("id"), supplierId));
+            }
+
+            // 3. Lọc theo khoảng ngày đặt hàng (orderDate)
+            if (startDate != null && endDate != null) {
+                LocalDateTime startDateTime = startDate.atStartOfDay(); // Bắt đầu ngày startDate
+                LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX); // Kết thúc ngày endDate
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.between(root.get("orderDate"), startDateTime, endDateTime));
+            } else if (startDate != null) { // Chỉ có ngày bắt đầu
+                LocalDateTime startDateTime = startDate.atStartOfDay();
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.greaterThanOrEqualTo(root.get("orderDate"), startDateTime));
+            } else if (endDate != null) { // Chỉ có ngày kết thúc
+                LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.lessThanOrEqualTo(root.get("orderDate"), endDateTime));
+            }
+
+            return predicate;
+        };
+
+        // Gọi phương thức findAll của repository với Specification và Pageable
+        Page<PurchaseOrder> poPage = purchaseOrderRepository.findAll(spec, pageable);
+
         return poPage.map(purchaseOrderMapper::entityToResponse);
     }
 

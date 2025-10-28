@@ -2,6 +2,7 @@ package com.giapho.coffee_shop_backend.service;
 
 import com.giapho.coffee_shop_backend.domain.entity.CafeTable;
 import com.giapho.coffee_shop_backend.domain.repository.CafeTableRepository;
+import com.giapho.coffee_shop_backend.domain.repository.OrderRepository;
 import com.giapho.coffee_shop_backend.dto.CafeTableRequest;
 import com.giapho.coffee_shop_backend.dto.CafeTableResponse;
 import com.giapho.coffee_shop_backend.mapper.CafeTableMapper;
@@ -18,6 +19,7 @@ public class CafeTableService {
 
     private final CafeTableRepository cafeTableRepository;
     private final CafeTableMapper cafeTableMapper;
+    private final OrderRepository orderRepository;
 
     /**
      * Lấy tất cả các bàn
@@ -99,11 +101,17 @@ public class CafeTableService {
      */
     @Transactional
     public void deleteTable(Long id) {
-        if (!cafeTableRepository.existsById(id)) {
-            throw new EntityNotFoundException("Table not found with id: " + id);
+        CafeTable table = cafeTableRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Table not found with id: " + id));
+
+        long orderCount = orderRepository.countByCafeTableId(id); // Giả sử bạn thêm hàm countByCafeTableId vào OrderRepository
+        if (orderCount > 0) {
+            throw new IllegalArgumentException("Cannot delete table '" + table.getName() + "' because it has associated orders. Please resolve or reassign the orders first.");
         }
-        // (Cần kiểm tra xem bàn có đang được gán cho Order nào không trước khi xoá)
-        // (Tạm thời chúng ta cho xoá)
+
+
+        // 3. Nếu không có order nào, tiến hành xóa bàn
         cafeTableRepository.deleteById(id);
+        System.out.println("Deleted table with ID: " + id); // Log (tùy chọn)
     }
 }

@@ -60,4 +60,6 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate,
             Pageable pageable);
+
+    long countByProductId(Long productId);
 }

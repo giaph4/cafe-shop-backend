@@ -9,10 +9,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/v1/purchase-orders")
@@ -35,15 +38,24 @@ public class PurchaseOrderController {
     }
 
     /**
-     * API Lấy danh sách phiếu nhập hàng (có phân trang)
+     * API Lấy danh sách phiếu nhập hàng (có phân trang VÀ LỌC)
      * Chỉ MANAGER hoặc ADMIN mới có quyền xem.
      */
     @GetMapping
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<Page<PurchaseOrderResponseDTO>> getAllPurchaseOrders(
+            // --- Thêm các tham số lọc ---
+            @RequestParam(required = false) String status, // Lọc theo trạng thái
+            @RequestParam(required = false) Long supplierId, // Lọc theo ID nhà cung cấp
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate, // Lọc từ ngày
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate, // Lọc đến ngày
+            // ---------------------------
             @PageableDefault(size = 10, page = 0, sort = "orderDate", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        Page<PurchaseOrderResponseDTO> purchaseOrders = purchaseOrderService.getAllPurchaseOrders(pageable);
+        // Truyền các tham số lọc vào service
+        Page<PurchaseOrderResponseDTO> purchaseOrders = purchaseOrderService.getAllPurchaseOrders(
+                status, supplierId, startDate, endDate, pageable
+        );
         return ResponseEntity.ok(purchaseOrders);
     }
 
