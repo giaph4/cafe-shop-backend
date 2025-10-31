@@ -66,6 +66,10 @@ public class Order {
     @Column(name = "voucher_code", length = 50) // Mã voucher đã áp dụng
     private String voucherCode;
 
+    @ManyToOne(fetch = FetchType.LAZY) // Optional: Liên kết tới entity Voucher nếu cần truy vấn ngược
+    @JoinColumn(name = "voucher_id")
+    private Voucher appliedVoucher;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -102,4 +106,6 @@ public class Order {
     public final int hashCode() {
         return this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass().hashCode() : getClass().hashCode();
     }
+
+
 }
