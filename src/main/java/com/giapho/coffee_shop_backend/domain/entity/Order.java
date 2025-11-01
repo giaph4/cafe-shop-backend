@@ -10,6 +10,9 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
+import com.giapho.coffee_shop_backend.domain.entity.CafeTable;
+import com.giapho.coffee_shop_backend.domain.entity.User;
+
 @Getter
 @Setter
 @ToString
@@ -68,6 +71,7 @@ public class Order {
 
     @ManyToOne(fetch = FetchType.LAZY) // Optional: Liên kết tới entity Voucher nếu cần truy vấn ngược
     @JoinColumn(name = "voucher_id")
+    @ToString.Exclude
     private Voucher appliedVoucher;
 
     @Column(name = "created_at", updatable = false)
@@ -81,9 +85,9 @@ public class Order {
 
     /**
      * ----- MỐI QUAN HỆ VỚI CHI TIẾT ĐƠN HÀNG -----
-     *  Một Order có nhiều OrderDetail
-     *  CascadeType.ALL: Khi lưu/xoá Order, tự động lưu/xoá OrderDetail
-     *  orphanRemoval = true: Khi xoá 1 item khỏi Set, tự động xoá nó trong DB
+     * Một Order có nhiều OrderDetail
+     * CascadeType.ALL: Khi lưu/xoá Order, tự động lưu/xoá OrderDetail
+     * orphanRemoval = true: Khi xoá 1 item khỏi Set, tự động xoá nó trong DB
      */
 
     @PrePersist
@@ -106,6 +110,4 @@ public class Order {
     public final int hashCode() {
         return this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass().hashCode() : getClass().hashCode();
     }
-
-
 }

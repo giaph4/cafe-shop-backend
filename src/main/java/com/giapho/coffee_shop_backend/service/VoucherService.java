@@ -40,7 +40,7 @@ public class VoucherService {
             return buildInvalidResponse(voucher, "Đơn hàng chưa đạt giá trị tối thiểu (" + voucher.getMinimumOrderAmount() + ").");
         }
 
-        // Tính toán số tiền giảm giá
+
         BigDecimal discountAmount = calculateDiscount(voucher, orderAmount);
 
         return VoucherCheckResponseDTO.builder()
@@ -52,23 +52,23 @@ public class VoucherService {
                 .build();
     }
 
-    // Hàm phụ tính toán discount
+
     private BigDecimal calculateDiscount(Voucher voucher, BigDecimal orderAmount) {
         BigDecimal discount = BigDecimal.ZERO;
         if (voucher.getType() == Voucher.VoucherType.FIXED_AMOUNT) {
             discount = voucher.getDiscountValue();
         } else if (voucher.getType() == Voucher.VoucherType.PERCENTAGE) {
             discount = orderAmount.multiply(voucher.getDiscountValue().divide(BigDecimal.valueOf(100)));
-            // Áp dụng mức giảm tối đa nếu có
+
             if (voucher.getMaximumDiscountAmount() != null && discount.compareTo(voucher.getMaximumDiscountAmount()) > 0) {
                 discount = voucher.getMaximumDiscountAmount();
             }
         }
-        // Đảm bảo giảm giá không vượt quá tổng tiền
+
         return discount.min(orderAmount);
     }
 
-    // Hàm phụ tạo response không hợp lệ
+
     private VoucherCheckResponseDTO buildInvalidResponse(Voucher voucher, String message) {
         return VoucherCheckResponseDTO.builder()
                 .isValid(false)
@@ -79,13 +79,11 @@ public class VoucherService {
                 .build();
     }
 
-    // Hàm này sẽ được gọi bởi OrderService khi đơn hàng hoàn thành
+
     public void incrementUsageCount(String code) {
         voucherRepository.findByCode(code).ifPresent(voucher -> {
             voucher.setTimesUsed(voucher.getTimesUsed() + 1);
             voucherRepository.save(voucher);
         });
     }
-
-    // Thêm các hàm CRUD cơ bản (getAll, getById, create, update, delete) nếu cần quản lý voucher qua API
 }

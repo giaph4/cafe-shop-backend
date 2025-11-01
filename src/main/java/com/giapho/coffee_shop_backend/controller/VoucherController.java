@@ -40,7 +40,4 @@ public class VoucherController {
                     .build());
         }
     }
-
-    // Thêm các endpoints CRUD cho voucher nếu cần (getYById, getAll, create, update, delete)
-    // Cần phân quyền phù hợp (chỉ Admin/Manager mới được tạo/sửa/xóa)
 }

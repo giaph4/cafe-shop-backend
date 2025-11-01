@@ -7,6 +7,7 @@ import com.giapho.coffee_shop_backend.mapper.OrderDetailMapper;
 import com.giapho.coffee_shop_backend.mapper.OrderMapper;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -15,12 +16,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderService {
@@ -34,7 +37,8 @@ public class OrderService {
     private final IngredientRepository ingredientRepository;
     private final ProductIngredientRepository productIngredientRepository;
     private final OrderMapper orderMapper;
-    private final OrderDetailMapper orderDetailMapper;
+    private final VoucherService voucherService;
+
     /**
      * Lấy danh sách Order (có phân trang)
      */
@@ -45,8 +49,24 @@ public class OrderService {
     }
 
     /**
-     * Lấy chi tiết một Order
+     * Lấy danh sách Order theo khoảng thời gian (có phân trang)
+     *
+     * @param startDate Ngày bắt đầu (inclusive)
+     * @param endDate   Ngày kết thúc (inclusive)
+     * @param pageable  Thông tin phân trang
+     * @return Trang các OrderResponseDTO
      */
+    @Transactional(readOnly = true)
+    public Page<OrderResponseDTO> getOrdersByDateRange(LocalDate startDate, LocalDate endDate, Pageable pageable) {
+        // Chuyển LocalDate thành LocalDateTime để so sánh với trường created_at trong database
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.plusDays(1).atStartOfDay();
+
+        Page<Order> orderPage = orderRepository.findByCreatedAtBetween(startDateTime, endDateTime, pageable);
+        return orderPage.map(orderMapper::entityToResponse);
+    }
+
+
     @Transactional(readOnly = true)
     public OrderResponseDTO getOrderById(Long id) {
         // Sử dụng findById và fetch EAGER details để đảm bảo có đủ thông tin
@@ -218,24 +238,101 @@ public class OrderService {
 
         String paymentMethod = validatePaymentMethod(paymentRequest.getPaymentMethod());
 
-        // Trừ kho TRƯỚC khi cập nhật trạng thái
         subtractInventoryForOrder(order);
+
+        // Lưu voucher code trước khi thanh toán
+        String appliedVoucherCode = order.getVoucherCode();
 
         // Cập nhật Order
         order.setStatus("PAID");
         order.setPaidAt(LocalDateTime.now());
         order.setPaymentMethod(paymentMethod);
-        orderRepository.save(order); // Lưu trạng thái PAID
+        orderRepository.save(order);
+
+        log.info("Order {} paid successfully with payment method: {}", orderId, paymentMethod);
+
+        // *** CẢI TIẾN: Tăng usage count cho voucher ***
+        if (appliedVoucherCode != null && !appliedVoucherCode.isEmpty()) {
+            try {
+                voucherService.incrementUsageCount(appliedVoucherCode);
+                log.info("Incremented usage count for voucher: {}", appliedVoucherCode);
+            } catch (Exception e) {
+                log.error("Failed to increment voucher usage for code: {}", appliedVoucherCode, e);
+                // Không throw exception để không ảnh hưởng đến việc thanh toán
+            }
+        }
 
         // Cập nhật Bàn
         updateTableStatusOnOrderCompletion(order.getCafeTable());
 
-        // Cộng điểm
+        // Cộng điểm thưởng
         if (order.getCustomer() != null) {
             addLoyaltyPoints(order);
         }
 
         return fetchAndMapOrder(orderId, "Failed to fetch paid order");
+    }
+
+    @Transactional
+    public OrderResponseDTO applyVoucher(Long orderId, String voucherCode) {
+        Order order = findPendingOrderById(orderId);
+
+        if (voucherCode == null || voucherCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Voucher code cannot be empty");
+        }
+
+        // Kiểm tra voucher với VoucherService
+        VoucherCheckResponseDTO voucherCheck = voucherService.checkAndCalculateDiscount(
+                voucherCode.trim().toUpperCase(),
+                order.getSubTotal()
+        );
+
+        if (!voucherCheck.isValid()) {
+            throw new IllegalArgumentException(voucherCheck.getMessage());
+        }
+
+        // Apply voucher
+        order.setVoucherCode(voucherCode.trim().toUpperCase());
+        order.setDiscountAmount(voucherCheck.getDiscountAmount());
+        order.setTotalAmount(order.getSubTotal().subtract(voucherCheck.getDiscountAmount()));
+
+        orderRepository.save(order);
+
+        log.info("Applied voucher {} to order {}. Discount: {}",
+                voucherCode, orderId, voucherCheck.getDiscountAmount());
+
+        return fetchAndMapOrder(orderId, "Failed to fetch order after applying voucher");
+    }
+
+    @Transactional
+    public OrderResponseDTO removeVoucher(Long orderId) {
+        Order order = findPendingOrderById(orderId);
+
+        if (order.getVoucherCode() == null) {
+            throw new IllegalArgumentException("Order does not have any voucher applied");
+        }
+
+        String removedVoucher = order.getVoucherCode();
+
+        // Remove voucher
+        order.setVoucherCode(null);
+        order.setDiscountAmount(BigDecimal.ZERO);
+        order.setTotalAmount(order.getSubTotal());
+
+        orderRepository.save(order);
+
+        log.info("Removed voucher {} from order {}", removedVoucher, orderId);
+
+        return fetchAndMapOrder(orderId, "Failed to fetch order after removing voucher");
+    }
+
+    @Transactional(readOnly = true)
+    public Page<OrderResponseDTO> getOrdersByStatus(String status, Pageable pageable) {
+        if (status == null || status.trim().isEmpty()) {
+            return getAllOrders(pageable);
+        }
+        Page<Order> orders = orderRepository.findByStatus(status.trim().toUpperCase(), pageable);
+        return orders.map(orderMapper::entityToResponse);
     }
 
     /**
@@ -425,21 +522,27 @@ public class OrderService {
      * Hàm helper cộng điểm (đã có)
      */
     private void addLoyaltyPoints(Order order) {
-        if (order.getCustomer() == null || order.getTotalAmount() == null || order.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
+        if (order.getCustomer() == null || order.getTotalAmount() == null ||
+                order.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
             return;
         }
 
-        // Logic tính điểm: Ví dụ: 10,000 VND = 1 điểm
-        int pointsToAdd = order.getTotalAmount().divide(BigDecimal.valueOf(10000), 0, RoundingMode.DOWN).intValue();
+        // Logic tính điểm: 10,000 VND = 1 điểm
+        int pointsToAdd = order.getTotalAmount()
+                .divide(BigDecimal.valueOf(10000), 0, RoundingMode.DOWN)
+                .intValue();
 
         if (pointsToAdd > 0) {
-            // Lấy lại customer từ DB để đảm bảo tính nhất quán
             Customer currentCustomer = customerRepository.findById(order.getCustomer().getId())
-                    .orElseThrow(() -> new EntityNotFoundException("Customer disappeared during point calculation"));
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Customer disappeared during point calculation"));
 
-            currentCustomer.setLoyaltyPoints(currentCustomer.getLoyaltyPoints() + pointsToAdd);
-            // customerRepository.save(currentCustomer); // Không cần thiết trong @Transactional
-            System.out.println(">>> Added " + pointsToAdd + " points to customer " + currentCustomer.getPhone());
+            int oldPoints = currentCustomer.getLoyaltyPoints();
+            currentCustomer.setLoyaltyPoints(oldPoints + pointsToAdd);
+
+            log.info("Added {} points to customer {} (ID: {}). Old: {}, New: {}",
+                    pointsToAdd, currentCustomer.getPhone(), currentCustomer.getId(),
+                    oldPoints, currentCustomer.getLoyaltyPoints());
         }
     }
 
@@ -494,4 +597,6 @@ public class OrderService {
                 .orElseThrow(() -> new EntityNotFoundException(errorMessage + " with id: " + orderId));
         return orderMapper.entityToResponse(fetchedOrder);
     }
+
+
 }

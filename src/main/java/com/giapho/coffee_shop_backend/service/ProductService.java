@@ -11,12 +11,16 @@ import com.giapho.coffee_shop_backend.dto.ProductResponse;
 import com.giapho.coffee_shop_backend.mapper.ProductMapper;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.ILoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProductService {
@@ -26,6 +30,7 @@ public class ProductService {
     private final ProductMapper productMapper;
     private final ProductIngredientRepository productIngredientRepository;
     private final OrderDetailRepository orderDetailRepository;
+    private final FileStorageService fileStorageService;
 
     /**
      * Lấy sản phẩm (có phân trang)
@@ -127,25 +132,34 @@ public class ProductService {
      */
     @Transactional
     public void deleteProduct(Long id) {
-        // 1. Kiểm tra sản phẩm tồn tại
-        Product product = productRepository.findById(id) // Lấy cả đối tượng Product để lấy tên
+        Product product = productRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + id));
 
-        // 2. Kiểm tra xem sản phẩm có trong bất kỳ OrderDetail nào không (QUAN TRỌNG)
-        long orderDetailCount = orderDetailRepository.countByProductId(id); // Giả sử bạn thêm hàm countByProductId vào OrderDetailRepository
+        long orderDetailCount = orderDetailRepository.countByProductId(id);
         if (orderDetailCount > 0) {
-            throw new IllegalArgumentException("Cannot delete product '" + product.getName() + "' because it exists in past order details. Consider marking it as unavailable instead.");
-            // Hoặc bạn có thể dùng một Exception tùy chỉnh khác
+            throw new IllegalArgumentException(
+                    "Cannot delete product '" + product.getName() +
+                            "' because it exists in past order details. Consider marking it as unavailable instead.");
         }
 
-        // 3. Xóa các dòng công thức liên quan (nếu sản phẩm không có trong order details)
-        productIngredientRepository.deleteByProductId(id);
-        productIngredientRepository.flush(); // Optional but safer
+        if (product.getImageUrl() != null && !product.getImageUrl().isEmpty()) {
+            try {
+                String fileName = fileStorageService.extractFileNameFromUrl(product.getImageUrl());
+                fileStorageService.deleteFile(fileName);
+                log.info("Product image deleted during product deletion: {}", fileName);
+            } catch (Exception e) {
+                log.error("Failed to delete product image: {}", product.getImageUrl(), e);
+            }
+        }
 
-        // 4. Bây giờ mới xóa sản phẩm
+        // Xóa product ingredients
+        productIngredientRepository.deleteByProductId(id);
+        productIngredientRepository.flush();
+
+        // Xóa product
         productRepository.deleteById(id);
 
-        System.out.println("Deleted product and its ingredients for ID: " + id); // Log (tùy chọn)
+        log.info("Deleted product and its data for ID: {}", id);
     }
 
     /**
@@ -163,8 +177,153 @@ public class ProductService {
         return productMapper.toProductResponse(updateProduct);
     }
 
-    /**
-     * Tạo bàn mới
-     */
+    @Transactional
+    public ProductResponse createProductWithImage(
+            ProductRequest productRequest,
+            MultipartFile imageFile
+    ) {
+        // Validate unique code
+        if (productRepository.existsByCode(productRequest.getCode())) {
+            throw new IllegalArgumentException("Product code already exists: " + productRequest.getCode());
+        }
 
+        // Validate category
+        Category category = categoryRepository.findById(productRequest.getCategoryId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Category not found: " + productRequest.getCategoryId()));
+
+        // Upload image nếu có
+        String imageUrl = null;
+        if (imageFile != null && !imageFile.isEmpty()) {
+            String fileName = fileStorageService.storeFile(imageFile);
+            imageUrl = fileStorageService.getFileUrl(fileName);
+            log.info("Product image uploaded: {}", fileName);
+        }
+
+        // Tạo product
+        Product product = productMapper.toProduct(productRequest);
+        product.setCategory(category);
+        product.setAvailable(true);
+        product.setImageUrl(imageUrl); // Set image URL
+
+        Product savedProduct = productRepository.save(product);
+
+        return productMapper.toProductResponse(savedProduct);
+    }
+
+    /**
+     * CẢI TIẾN: Cập nhật sản phẩm với image upload (optional)
+     */
+    @Transactional
+    public ProductResponse updateProductWithImage(
+            Long id,
+            ProductRequest productRequest,
+            MultipartFile imageFile
+    ) {
+        Product existingProduct = productRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + id));
+
+        // Validate category
+        Category category = categoryRepository.findById(productRequest.getCategoryId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Category not found with id: " + productRequest.getCategoryId()));
+
+        // Lưu old image URL để xóa sau (nếu cần)
+        String oldImageUrl = existingProduct.getImageUrl();
+
+        // Upload image mới nếu có
+        if (imageFile != null && !imageFile.isEmpty()) {
+            String fileName = fileStorageService.storeFile(imageFile);
+            String newImageUrl = fileStorageService.getFileUrl(fileName);
+
+            // Xóa file cũ nếu có
+            if (oldImageUrl != null && !oldImageUrl.isEmpty()) {
+                try {
+                    String oldFileName = fileStorageService.extractFileNameFromUrl(oldImageUrl);
+                    fileStorageService.deleteFile(oldFileName);
+                    log.info("Old product image deleted: {}", oldFileName);
+                } catch (Exception e) {
+                    log.error("Failed to delete old image: {}", oldImageUrl, e);
+                    // Không throw exception, chỉ log
+                }
+            }
+
+            existingProduct.setImageUrl(newImageUrl);
+            log.info("Product image updated: {}", fileName);
+        }
+
+        // Update product info
+        productMapper.updateProductFromDto(productRequest, existingProduct);
+        existingProduct.setCategory(category);
+
+        Product updatedProduct = productRepository.save(existingProduct);
+
+
+
+        return productMapper.toProductResponse(updatedProduct);
+    }
+
+    /**
+     * CẢI TIẾN: Xóa image của product
+     */
+    @Transactional
+    public ProductResponse deleteProductImage(Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + id));
+
+        String imageUrl = product.getImageUrl();
+
+        if (imageUrl == null || imageUrl.isEmpty()) {
+            throw new IllegalArgumentException("Product does not have an image");
+        }
+
+        try {
+            String fileName = fileStorageService.extractFileNameFromUrl(imageUrl);
+            fileStorageService.deleteFile(fileName);
+            log.info("Product image deleted: {}", fileName);
+        } catch (Exception e) {
+            log.error("Failed to delete product image: {}", imageUrl, e);
+            throw new RuntimeException("Failed to delete product image", e);
+        }
+
+        product.setImageUrl(null);
+        Product updatedProduct = productRepository.save(product);
+
+        return productMapper.toProductResponse(updatedProduct);
+    }
+
+
+    /**
+     * Upload/Update chỉ image cho product đã tồn tại
+     */
+    @Transactional
+    public ProductResponse uploadProductImage(Long id, MultipartFile imageFile) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + id));
+
+        // Lưu old image URL để xóa sau
+        String oldImageUrl = product.getImageUrl();
+
+        // Upload image mới
+        String fileName = fileStorageService.storeFile(imageFile);
+        String newImageUrl = fileStorageService.getFileUrl(fileName);
+
+        // Xóa file cũ nếu có
+        if (oldImageUrl != null && !oldImageUrl.isEmpty()) {
+            try {
+                String oldFileName = fileStorageService.extractFileNameFromUrl(oldImageUrl);
+                fileStorageService.deleteFile(oldFileName);
+                log.info("Old product image replaced: {}", oldFileName);
+            } catch (Exception e) {
+                log.error("Failed to delete old image: {}", oldImageUrl, e);
+            }
+        }
+
+        product.setImageUrl(newImageUrl);
+        Product updatedProduct = productRepository.save(product);
+
+
+        log.info("Product image uploaded successfully: {}", fileName);
+        return productMapper.toProductResponse(updatedProduct);
+    }
 }

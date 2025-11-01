@@ -8,10 +8,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/orders")
@@ -117,6 +121,64 @@ public class OrderController {
     ) {
         OrderResponseDTO updatedOrder = orderService.payOrder(orderId, paymentRequest);
         return ResponseEntity.ok(updatedOrder);
+    }
+
+    /**
+     * API Apply voucher vào Order đang PENDING
+     * Tất cả nhân viên đều có quyền.
+     */
+    @PostMapping("/{orderId}/voucher")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<OrderResponseDTO> applyVoucher(
+            @PathVariable Long orderId,
+            @RequestBody Map<String, String> voucherMap
+    ) {
+        String voucherCode = voucherMap.get("voucherCode");
+        if (voucherCode == null || voucherCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Voucher code is required");
+        }
+        OrderResponseDTO updatedOrder = orderService.applyVoucher(orderId, voucherCode);
+        return ResponseEntity.ok(updatedOrder);
+    }
+
+    /**
+     * API Remove voucher khỏi Order đang PENDING
+     * Tất cả nhân viên đều có quyền.
+     */
+    @DeleteMapping("/{orderId}/voucher")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<OrderResponseDTO> removeVoucher(@PathVariable Long orderId) {
+        OrderResponseDTO updatedOrder = orderService.removeVoucher(orderId);
+        return ResponseEntity.ok(updatedOrder);
+    }
+
+    /**
+     * API Lấy danh sách Order theo trạng thái
+     * Chỉ MANAGER hoặc ADMIN mới có quyền.
+     */
+    @GetMapping("/status/{status}")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ResponseEntity<Page<OrderResponseDTO>> getOrdersByStatus(
+            @PathVariable String status,
+            @PageableDefault(size = 10, page = 0, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        Page<OrderResponseDTO> orders = orderService.getOrdersByStatus(status, pageable);
+        return ResponseEntity.ok(orders);
+    }
+
+    /**
+     * API Lấy Order theo khoảng thời gian
+     * Chỉ MANAGER hoặc ADMIN mới có quyền.
+     */
+    @GetMapping("/date-range")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ResponseEntity<Page<OrderResponseDTO>> getOrdersByDateRange(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @PageableDefault(size = 10, page = 0, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        Page<OrderResponseDTO> orders = orderService.getOrdersByDateRange(startDate, endDate, pageable);
+        return ResponseEntity.ok(orders);
     }
 
     /**

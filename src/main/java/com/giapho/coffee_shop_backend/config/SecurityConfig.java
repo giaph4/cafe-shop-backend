@@ -46,7 +46,11 @@ public class SecurityConfig {
                         .permitAll()
                         .anyRequest()
                         .authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/files/**").permitAll() // Cho phép xem file công khai
+                        .requestMatchers(HttpMethod.POST, "/api/v1/files/**").hasAnyRole("MANAGER", "ADMIN") // Upload
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/files/**").hasAnyRole("MANAGER", "ADMIN") // Delete
                 )
+
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
