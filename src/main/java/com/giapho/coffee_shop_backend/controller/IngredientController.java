@@ -28,7 +28,8 @@ public class IngredientController {
     @GetMapping
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<Page<IngredientResponseDTO>> getAllIngredients(
-            @RequestParam String name, // Tham số tìm kiếm theo tên (tùy chọn)
+            // SỬA LỖI: Thêm (required = false) để cho phép tìm kiếm tùy chọn
+            @RequestParam(required = false) String name, // Tham số tìm kiếm theo tên (tùy chọn)
             @PageableDefault(size = 15, page = 0, sort = "name", direction = Sort.Direction.ASC) Pageable pageable
     ) {
         Page<IngredientResponseDTO> ingredients;

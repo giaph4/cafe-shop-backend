@@ -37,7 +37,8 @@ public class CafeTableService {
     public CafeTableResponse getTableById(Long id) {
         CafeTable table = cafeTableRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Table not found with id: " + id));
-        return null;
+        // SỬA LỖI: Trả về DTO đã map thay vì null
+        return cafeTableMapper.entityToResponse(table);
     }
 
     /**

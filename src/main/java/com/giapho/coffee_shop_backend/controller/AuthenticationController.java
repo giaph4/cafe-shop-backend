@@ -35,20 +35,4 @@ public class AuthenticationController {
     ) {
         return ResponseEntity.ok(authenticationService.login(request));
     }
-
-    /**
-     * Khi @Valid thất bại, nó sẽ ném ra MethodArgumentNotValidException
-     * Hàm này sẽ "bắt" lỗi đó và trả về lỗi 400 (Bad Request) thân thiện hơn
-     */
-//    @ResponseStatus(HttpStatus.BAD_REQUEST)
-//    @ExceptionHandler(MethodArgumentNotValidException.class)
-//    public Map<String, String> handleValidationExceptions(MethodArgumentNotValidException ex) {
-//        Map<String, String> errors = new HashMap<>();
-//        ex.getBindingResult().getAllErrors().forEach((error) -> {
-//            String fieldName = ((FieldError) error).getField();
-//            String errorMessage = error.getDefaultMessage();
-//            errors.put(fieldName, errorMessage);
-//        });
-//        return errors;
-//    }
 }

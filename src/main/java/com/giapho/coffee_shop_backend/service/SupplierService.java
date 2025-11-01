@@ -39,14 +39,9 @@ public class SupplierService {
     }
 
     /**
-     * Tạo mới một nhà cung cấp
+     * SỬA LỖI: Xóa bỏ phương thức createSupplier(Long id)
+     * vì nó trùng lặp logic với getSupplierById
      */
-    @Transactional(readOnly = true)
-    public SupplierDTO createSupplier(Long id) {
-        Supplier supplier = supplierRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Supplier not found with id: " + id));
-        return supplierMapper.toDto(supplier);
-    }
 
     @Transactional
     public SupplierDTO createSupplier(SupplierDTO supplierDTO) {

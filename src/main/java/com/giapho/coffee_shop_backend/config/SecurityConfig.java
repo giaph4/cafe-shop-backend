@@ -44,11 +44,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Cho phép tất cả OPTIONS request
                         .requestMatchers("/api/v1/auth/**")
                         .permitAll()
-                        .anyRequest()
-                        .authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/files/**").permitAll() // Cho phép xem file công khai
                         .requestMatchers(HttpMethod.POST, "/api/v1/files/**").hasAnyRole("MANAGER", "ADMIN") // Upload
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/files/**").hasAnyRole("MANAGER", "ADMIN") // Delete
+                        .anyRequest()
+                        .authenticated()
                 )
 
                 .sessionManagement(session -> session

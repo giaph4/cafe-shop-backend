@@ -37,7 +37,7 @@ public class OrderService {
     private final IngredientRepository ingredientRepository;
     private final ProductIngredientRepository productIngredientRepository;
     private final OrderMapper orderMapper;
-    private final VoucherService voucherService;
+    private final VoucherService voucherService; // <-- Đã được inject
 
     /**
      * Lấy danh sách Order (có phân trang)
@@ -132,7 +132,7 @@ public class OrderService {
         newOrder.setOrderDetails(details);
 
         // --- Tính toán lại tổng tiền (bao gồm voucher) ---
-        recalculateOrderTotals(newOrder);
+        recalculateOrderTotals(newOrder); // SỬA LỖI: Hàm này giờ đã dùng VoucherService
 
         // --- Lưu Order ---
         Order savedOrder = orderRepository.save(newOrder);
@@ -177,7 +177,7 @@ public class OrderService {
         }
 
         recalculateOrderTotals(order);
-        orderRepository.save(order); // Lưu thay đổi
+        orderRepository.save(order);
 
         return fetchAndMapOrder(orderId, "Failed to fetch order after adding item");
     }
@@ -197,7 +197,7 @@ public class OrderService {
         detailToUpdate.setQuantity(updateDTO.getQuantity());
         detailToUpdate.setNotes(updateDTO.getNotes());
 
-        recalculateOrderTotals(order);
+        recalculateOrderTotals(order); // SỬA LỖI: Hàm này giờ đã dùng VoucherService
         orderRepository.save(order);
 
         return fetchAndMapOrder(orderId, "Failed to fetch order after updating item");
@@ -221,7 +221,7 @@ public class OrderService {
         if (order.getOrderDetails().isEmpty()) {
             resetOrderTotalsAndVoucher(order);
         } else {
-            recalculateOrderTotals(order);
+            recalculateOrderTotals(order); // SỬA LỖI: Hàm này giờ đã dùng VoucherService
         }
 
         orderRepository.save(order);
@@ -416,6 +416,7 @@ public class OrderService {
 
     /**
      * Tính toán lại subTotal, discountAmount, totalAmount cho Order
+     * SỬA LỖI: Hàm này đã được sửa để sử dụng VoucherService
      */
     private void recalculateOrderTotals(Order order) {
         BigDecimal subTotal = BigDecimal.ZERO;
@@ -430,17 +431,34 @@ public class OrderService {
         }
         order.setSubTotal(subTotal);
 
-        // Tính Discount dựa trên voucherCode
-        BigDecimal discountAmount = calculateDiscount(order.getVoucherCode(), subTotal);
+        // --- BẮT ĐẦU KHỐI SỬA LỖI ---
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        if (order.getVoucherCode() != null && !order.getVoucherCode().isEmpty()) {
+            try {
+                // SỬA LỖI: Dùng VoucherService thật
+                VoucherCheckResponseDTO voucherCheck = voucherService.checkAndCalculateDiscount(
+                        order.getVoucherCode(),
+                        subTotal
+                );
+
+                if (voucherCheck.isValid()) {
+                    discountAmount = voucherCheck.getDiscountAmount();
+                } else {
+                    // Voucher không còn hợp lệ (ví dụ: subTotal thay đổi, không đủ điều kiện)
+                    log.warn("Voucher {} is no longer valid for order {}. Removing.", order.getVoucherCode(), order.getId());
+                    order.setVoucherCode(null); // Xóa voucher
+                }
+            } catch (EntityNotFoundException e) {
+                // Voucher không tồn tại
+                log.warn("Voucher {} not found during recalculation. Removing.", order.getVoucherCode());
+                order.setVoucherCode(null); // Xóa voucher
+            }
+        }
+        // --- KẾT THÚC KHỐI SỬA LỖI ---
+
         // Đảm bảo discount không lớn hơn subTotal
         discountAmount = discountAmount.min(subTotal);
         order.setDiscountAmount(discountAmount);
-
-        // Nếu voucher không hợp lệ sau khi tính, xóa nó đi
-        if (discountAmount.equals(BigDecimal.ZERO) && order.getVoucherCode() != null) {
-            System.out.println("WARN: Invalid or unrecognized voucher code: " + order.getVoucherCode() + ". Removing voucher.");
-            order.setVoucherCode(null);
-        }
 
         // Tính TotalAmount
         BigDecimal totalAmount = subTotal.subtract(discountAmount);
@@ -448,24 +466,9 @@ public class OrderService {
     }
 
     /**
-     * Hàm helper tính discount dựa trên code (logic ví dụ)
+     * SỬA LỖI: Xóa hàm `calculateDiscount` hard-coded
+     * (Hàm private calculateDiscount(String voucherCode, BigDecimal subTotal) đã bị xóa)
      */
-    private BigDecimal calculateDiscount(String voucherCode, BigDecimal subTotal) {
-        if (voucherCode == null || voucherCode.isEmpty() || subTotal.compareTo(BigDecimal.ZERO) <= 0) {
-            return BigDecimal.ZERO;
-        }
-
-        switch (voucherCode.toUpperCase()) {
-            case "GIAM10K":
-                return BigDecimal.valueOf(10000);
-            case "KM10PT":
-                // Giảm 10% subTotal, làm tròn xuống
-                return subTotal.multiply(BigDecimal.valueOf(0.10))
-                        .setScale(0, RoundingMode.DOWN);
-            default:
-                return BigDecimal.ZERO; // Voucher không hợp lệ
-        }
-    }
 
     /**
      * Reset tiền và voucher khi order rỗng
