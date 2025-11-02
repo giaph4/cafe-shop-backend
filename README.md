@@ -320,12 +320,12 @@ This project is licensed under the MIT License.
 ## 👥 Contact
 
 - **Developer**: Gia Pho
-- **Email**: giapho@example.com
-- **GitHub**: [@giapho](https://github.com/giapho)
+- **Email**: huynhgiapho1234@gmail.com
+- **GitHub**: [@giapho](https://github.com/giaph4)
 
 ## 🎯 Roadmap
 
-- [ ] File upload cho product images
+
 - [ ] Real-time notifications với WebSocket
 - [ ] Multi-language support
 - [ ] Mobile app integration

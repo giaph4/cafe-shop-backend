@@ -20,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Collections;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -38,9 +40,6 @@ public class ProductService {
     @Transactional(readOnly = true)
     public Page<ProductResponse> getAllProducts(Pageable pageable) {
         Page<Product> productPage = productRepository.findAll(pageable);
-
-        // 2. Dùng hàm map() của Page để chuyển Page<Entity> -> Page<DTO>
-        // productMapper::toProductResponse là một "method reference"
         return productPage.map(productMapper::toProductResponse);
     }
 
@@ -51,7 +50,6 @@ public class ProductService {
     public ProductResponse getProductById(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new EntityNotFoundException("Product not found with id " + productId));
-
         return productMapper.toProductResponse(product);
     }
 
@@ -85,24 +83,21 @@ public class ProductService {
     @Transactional(readOnly = true)
     public Page<ProductResponse> getFilteredProducts(String name, Long categoryId, Pageable pageable) {
 
-        Specification<Product> spec = (root, query, criteriaBuilder) -> null;
+        Specification<Product> spec = Specification.allOf(Collections.emptyList()); // Bắt đầu với một spec rỗng
 
         if (name != null && !name.isEmpty()) {
             spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
         }
 
-        if (categoryId != null) {
+        if (categoryId != null && categoryId > 0) {
             // Tùy chọn: Kiểm tra Category có tồn tại không
-            if (categoryId > 0 && !categoryRepository.existsById(categoryId)) { // Giả sử ID > 0 là ID hợp lệ
+            if (!categoryRepository.existsById(categoryId)) {
                 throw new EntityNotFoundException("Category not found with id: " + categoryId);
             }
-            // Thêm điều kiện lọc
             spec = spec.and((root, query, cb) -> cb.equal(root.get("category").get("id"), categoryId));
         }
 
-        // --- Execute Query ---
         Page<Product> productPage = productRepository.findAll(spec, pageable);
-
         return productPage.map(productMapper::toProductResponse);
     }
 
@@ -142,23 +137,10 @@ public class ProductService {
                             "' because it exists in past order details. Consider marking it as unavailable instead.");
         }
 
-        if (product.getImageUrl() != null && !product.getImageUrl().isEmpty()) {
-            try {
-                String fileName = fileStorageService.extractFileNameFromUrl(product.getImageUrl());
-                fileStorageService.deleteFile(fileName);
-                log.info("Product image deleted during product deletion: {}", fileName);
-            } catch (Exception e) {
-                log.error("Failed to delete product image: {}", product.getImageUrl(), e);
-            }
-        }
+        deleteOldImage(product.getImageUrl()); // Xóa ảnh
 
-        // Xóa product ingredients
         productIngredientRepository.deleteByProductId(id);
-        productIngredientRepository.flush();
-
-        // Xóa product
         productRepository.deleteById(id);
-
         log.info("Deleted product and its data for ID: {}", id);
     }
 
@@ -169,11 +151,8 @@ public class ProductService {
     public ProductResponse toggleProductAvailability(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + id));
-
         product.setAvailable(!product.isAvailable());
-
         Product updateProduct = productRepository.save(product);
-
         return productMapper.toProductResponse(updateProduct);
     }
 
@@ -182,17 +161,14 @@ public class ProductService {
             ProductRequest productRequest,
             MultipartFile imageFile
     ) {
-        // Validate unique code
         if (productRepository.existsByCode(productRequest.getCode())) {
             throw new IllegalArgumentException("Product code already exists: " + productRequest.getCode());
         }
 
-        // Validate category
         Category category = categoryRepository.findById(productRequest.getCategoryId())
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Category not found: " + productRequest.getCategoryId()));
 
-        // Upload image nếu có
         String imageUrl = null;
         if (imageFile != null && !imageFile.isEmpty()) {
             String fileName = fileStorageService.storeFile(imageFile);
@@ -200,14 +176,12 @@ public class ProductService {
             log.info("Product image uploaded: {}", fileName);
         }
 
-        // Tạo product
         Product product = productMapper.toProduct(productRequest);
         product.setCategory(category);
         product.setAvailable(true);
-        product.setImageUrl(imageUrl); // Set image URL
+        product.setImageUrl(imageUrl);
 
         Product savedProduct = productRepository.save(product);
-
         return productMapper.toProductResponse(savedProduct);
     }
 
@@ -223,43 +197,41 @@ public class ProductService {
         Product existingProduct = productRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + id));
 
-        // Validate category
         Category category = categoryRepository.findById(productRequest.getCategoryId())
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Category not found with id: " + productRequest.getCategoryId()));
 
-        // Lưu old image URL để xóa sau (nếu cần)
         String oldImageUrl = existingProduct.getImageUrl();
 
-        // Upload image mới nếu có
-        if (imageFile != null && !imageFile.isEmpty()) {
-            String fileName = fileStorageService.storeFile(imageFile);
-            String newImageUrl = fileStorageService.getFileUrl(fileName);
-
-            // Xóa file cũ nếu có
-            if (oldImageUrl != null && !oldImageUrl.isEmpty()) {
-                try {
-                    String oldFileName = fileStorageService.extractFileNameFromUrl(oldImageUrl);
-                    fileStorageService.deleteFile(oldFileName);
-                    log.info("Old product image deleted: {}", oldFileName);
-                } catch (Exception e) {
-                    log.error("Failed to delete old image: {}", oldImageUrl, e);
-                    // Không throw exception, chỉ log
-                }
-            }
-
-            existingProduct.setImageUrl(newImageUrl);
-            log.info("Product image updated: {}", fileName);
-        }
-
-        // Update product info
+        // 1. Cập nhật thông tin cơ bản (trừ imageUrl)
+        // (Mapper đã được cấu hình để ignore imageUrl)
         productMapper.updateProductFromDto(productRequest, existingProduct);
         existingProduct.setCategory(category);
 
+        // 2. Xử lý logic ảnh
+        if (imageFile != null && !imageFile.isEmpty()) {
+            // --- TRƯỜNG HỢP 1: Có upload file ảnh MỚI ---
+            log.info("Updating image for product {}. Uploading new file...", id);
+            String fileName = fileStorageService.storeFile(imageFile);
+            String newImageUrl = fileStorageService.getFileUrl(fileName);
+            existingProduct.setImageUrl(newImageUrl);
+
+            // Xóa file cũ nếu có
+            deleteOldImage(oldImageUrl);
+
+        } else if (productRequest.getImageUrl() == null && oldImageUrl != null) {
+            // --- TRƯỜNG HỢP 2: Không upload file MỚI, và imageUrl trong request là null ---
+            // (Nghĩa là người dùng đã bấm nút "Xóa ảnh" ở frontend)
+            log.info("Deleting image for product {}.", id);
+            existingProduct.setImageUrl(null); // Xóa URL trong database
+
+            // Xóa file cũ
+            deleteOldImage(oldImageUrl);
+        }
+        // --- TRƯỜNG HỢP 3: Không upload file MỚI, và imageUrl trong request vẫn là URL cũ ---
+        // (Chúng ta không làm gì cả, giữ nguyên ảnh cũ)
+
         Product updatedProduct = productRepository.save(existingProduct);
-
-
-
         return productMapper.toProductResponse(updatedProduct);
     }
 
@@ -296,34 +268,35 @@ public class ProductService {
     /**
      * Upload/Update chỉ image cho product đã tồn tại
      */
+    // (Hàm này giờ giống updateProductWithImage, có thể gộp lại)
     @Transactional
     public ProductResponse uploadProductImage(Long id, MultipartFile imageFile) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + id));
 
-        // Lưu old image URL để xóa sau
         String oldImageUrl = product.getImageUrl();
-
-        // Upload image mới
         String fileName = fileStorageService.storeFile(imageFile);
         String newImageUrl = fileStorageService.getFileUrl(fileName);
-
-        // Xóa file cũ nếu có
-        if (oldImageUrl != null && !oldImageUrl.isEmpty()) {
-            try {
-                String oldFileName = fileStorageService.extractFileNameFromUrl(oldImageUrl);
-                fileStorageService.deleteFile(oldFileName);
-                log.info("Old product image replaced: {}", oldFileName);
-            } catch (Exception e) {
-                log.error("Failed to delete old image: {}", oldImageUrl, e);
-            }
-        }
+        deleteOldImage(oldImageUrl);
 
         product.setImageUrl(newImageUrl);
         Product updatedProduct = productRepository.save(product);
 
-
         log.info("Product image uploaded successfully: {}", fileName);
         return productMapper.toProductResponse(updatedProduct);
+    }
+
+    // Hàm helper xóa ảnh cũ
+    private void deleteOldImage(String oldImageUrl) {
+        if (oldImageUrl != null && !oldImageUrl.isEmpty()) {
+            try {
+                String oldFileName = fileStorageService.extractFileNameFromUrl(oldImageUrl);
+                fileStorageService.deleteFile(oldFileName);
+                log.info("Old product image deleted: {}", oldFileName);
+            } catch (Exception e) {
+                log.error("Failed to delete old image: {}", oldImageUrl, e);
+                // Không throw exception, chỉ log
+            }
+        }
     }
 }
