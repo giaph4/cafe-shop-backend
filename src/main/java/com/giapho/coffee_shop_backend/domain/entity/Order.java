@@ -40,13 +40,13 @@ public class Order {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "customer_id") // Khóa ngoại customer_id (cho phép NULL)
+    @JoinColumn(name = "customer_id")
     @ToString.Exclude
     private Customer customer;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @ToString.Exclude
-    @Builder.Default // Thêm nếu chưa có
+    @Builder.Default
     private Set<OrderDetail> orderDetails = new HashSet<>();
 
     @Column(nullable = false, length = 20)
@@ -57,19 +57,19 @@ public class Order {
     private String status = "PENDING"; // Trạng thái: PENDING, PAID, CANCELLED
 
     @Column(name = "sub_total", nullable = false)
-    private BigDecimal subTotal; // Tổng tiền (trước giảm giá)
+    private BigDecimal subTotal;
 
     @Column(name = "discount_amount")
     @Builder.Default
-    private BigDecimal discountAmount = BigDecimal.ZERO; // Tiền giảm giá
+    private BigDecimal discountAmount = BigDecimal.ZERO;
 
     @Column(name = "total_amount", nullable = false)
-    private BigDecimal totalAmount; // Tổng tiền cuối cùng
+    private BigDecimal totalAmount;
 
-    @Column(name = "voucher_code", length = 50) // Mã voucher đã áp dụng
+    @Column(name = "voucher_code", length = 50)
     private String voucherCode;
 
-    @ManyToOne(fetch = FetchType.LAZY) // Optional: Liên kết tới entity Voucher nếu cần truy vấn ngược
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "voucher_id")
     @ToString.Exclude
     private Voucher appliedVoucher;

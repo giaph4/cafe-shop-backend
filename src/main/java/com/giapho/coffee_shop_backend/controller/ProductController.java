@@ -31,10 +31,6 @@ public class ProductController {
         return ResponseEntity.ok(productResponse);
     }
 
-    /**
-     * API lấy tất cả sản phẩm (có phân trang)
-     * Mọi nhân viên (STAFF, MANAGER, ADMIN) đều có quyền
-     */
     @GetMapping
     @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<Page<ProductResponse>> getAllProducts(
@@ -46,10 +42,6 @@ public class ProductController {
         return ResponseEntity.ok(products);
     }
 
-    /**
-     * API lấy chi tiết sản phẩm
-     * Mọi nhân viên (STAFF, MANAGER, ADMIN) đều có quyền
-     */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
@@ -57,10 +49,6 @@ public class ProductController {
         return ResponseEntity.ok(product);
     }
 
-    /**
-     * API cập nhật sản phẩm
-     * Chỉ MANAGER hoặc ADMIN mới có quyền
-     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<ProductResponse> updateProduct(
@@ -71,10 +59,6 @@ public class ProductController {
         return ResponseEntity.ok(updatedProduct);
     }
 
-    /**
-     * API xoá sản phẩm
-     * Chỉ MANAGER hoặc ADMIN mới có quyền
-     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
@@ -82,11 +66,6 @@ public class ProductController {
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * API Ẩn/Hiện sản phẩm
-     * Dùng @PatchMapping vì đây là cập nhật 1 phần
-     * Chỉ MANAGER hoặc ADMIN mới có quyền
-     */
     @PatchMapping("/{id}/toggle-availability")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<ProductResponse> toggleProductAvailability(@PathVariable Long id) {
@@ -94,11 +73,6 @@ public class ProductController {
         return ResponseEntity.ok(updatedProduct);
     }
 
-    /**
-     * ENDPOINT MỚI: Tạo sản phẩm với image upload
-     * Sử dụng multipart/form-data
-     * Chỉ MANAGER hoặc ADMIN mới có quyền
-     */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<ProductResponse> createProductWithImage(
@@ -106,11 +80,7 @@ public class ProductController {
             @RequestPart(value = "image", required = false) MultipartFile imageFile
     ) {
         try {
-            // Parse JSON string thành ProductRequest
             ProductRequest productRequest = objectMapper.readValue(productJson, ProductRequest.class);
-
-            // Validate manually (vì không dùng @Valid với @RequestPart String)
-            // Hoặc bạn có thể dùng Validator bean
 
             ProductResponse productResponse = productService.createProductWithImage(productRequest, imageFile);
             return ResponseEntity.ok(productResponse);
@@ -120,10 +90,6 @@ public class ProductController {
         }
     }
 
-    /**
-     * ENDPOINT MỚI: Cập nhật sản phẩm với image upload (optional)
-     * Chỉ MANAGER hoặc ADMIN mới có quyền
-     */
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<ProductResponse> updateProductWithImage(
@@ -140,10 +106,7 @@ public class ProductController {
         }
     }
 
-    /**
-     * ENDPOINT MỚI: Xóa image của product
-     * Chỉ MANAGER hoặc ADMIN mới có quyền
-     */
+
     @DeleteMapping("/{id}/image")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<ProductResponse> deleteProductImage(@PathVariable Long id) {
@@ -151,10 +114,6 @@ public class ProductController {
         return ResponseEntity.ok(updatedProduct);
     }
 
-    /**
-     * ENDPOINT MỚI: Chỉ upload/update image cho product đã tồn tại
-     * Chỉ MANAGER hoặc ADMIN mới có quyền
-     */
     @PostMapping("/{id}/image")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<ProductResponse> uploadProductImage(

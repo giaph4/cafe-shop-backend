@@ -26,14 +26,14 @@ public class Product {
     private String name;
 
     @Column(unique = true, length = 50)
-    private String code; // Mã món
+    private String code;
 
     @Column(nullable = false)
-    private BigDecimal price; // Giá bán
+    private BigDecimal price;
 
-    private BigDecimal cost; // Giá vốn (để tính lợi nhuận)
+    private BigDecimal cost;
 
-    @Lob // Dùng cho kiểu TEXT (mô tả dài)
+    @Lob
     @Column(columnDefinition = "TEXT")
     private String description;
 
@@ -50,9 +50,6 @@ public class Product {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    // --- Mối quan hệ Nhiều-Một ---
-    // Nhiều Product thuộc về Một Category
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)

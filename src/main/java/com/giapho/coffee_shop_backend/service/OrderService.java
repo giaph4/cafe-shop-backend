@@ -69,8 +69,7 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public OrderResponseDTO getOrderById(Long id) {
-        // Sử dụng findById và fetch EAGER details để đảm bảo có đủ thông tin
-        Order order = orderRepository.findById(id)
+        Order order = orderRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new EntityNotFoundException("Order not found with id: " + id));
         return orderMapper.entityToResponse(order);
     }
@@ -94,7 +93,6 @@ public class OrderService {
      */
     @Transactional
     public OrderResponseDTO createOrder(OrderCreateRequestDTO request) {
-        // --- Lấy thông tin User và Customer ---
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new EntityNotFoundException("Current user not found"));
@@ -105,39 +103,33 @@ public class OrderService {
                     .orElseThrow(() -> new EntityNotFoundException("Customer not found with id: " + request.getCustomerId()));
         }
 
-        // --- Kiểm tra Bàn ---
         CafeTable table = null;
         if (request.getTableId() != null) {
             table = cafeTableRepository.findById(request.getTableId())
                     .orElseThrow(() -> new EntityNotFoundException("Table not found with id: " + request.getTableId()));
-            validateTableForNewOrder(table); // Gọi hàm kiểm tra bàn
+            validateTableForNewOrder(table);
         }
 
-        // --- Tạo Order ban đầu ---
         Order newOrder = Order.builder()
                 .user(currentUser)
                 .cafeTable(table)
                 .customer(customer)
                 .type(request.getType())
                 .status("PENDING")
-                .voucherCode(request.getVoucherCode()) // Gán voucher code
+                .voucherCode(request.getVoucherCode())
                 .subTotal(BigDecimal.ZERO)
                 .discountAmount(BigDecimal.ZERO)
                 .totalAmount(BigDecimal.ZERO)
                 .orderDetails(new HashSet<>())
                 .build();
 
-        // --- Xử lý Items và Tạo OrderDetails ---
         Set<OrderDetail> details = processOrderItems(request.getItems(), newOrder);
         newOrder.setOrderDetails(details);
 
-        // --- Tính toán lại tổng tiền (bao gồm voucher) ---
-        recalculateOrderTotals(newOrder); // SỬA LỖI: Hàm này giờ đã dùng VoucherService
+        recalculateOrderTotals(newOrder);
 
-        // --- Lưu Order ---
         Order savedOrder = orderRepository.save(newOrder);
 
-        // --- Cập nhật trạng thái bàn ---
         updateTableStatusOnOrderCreate(savedOrder.getCafeTable());
 
         // --- Trả về DTO (Fetch lại để đảm bảo EAGER loading) ---
@@ -361,11 +353,9 @@ public class OrderService {
      * Tìm Order theo ID và kiểm tra trạng thái PENDING
      */
     private Order findPendingOrderById(Long orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new EntityNotFoundException("Order not found with id: " + orderId));
-        if (!"PENDING".equals(order.getStatus())) {
-            throw new IllegalArgumentException("Order is not in PENDING status. Current status: " + order.getStatus());
-        }
+        Order order = orderRepository.findPendingOrderByIdWithDetails(orderId)
+                .orElseThrow(() -> new EntityNotFoundException("Order not found with id: " + orderId + " or is not in PENDING status."));
+
         return order;
     }
 
@@ -587,19 +577,13 @@ public class OrderService {
                 }
 
                 currentIngredient.setQuantityOnHand(currentStock.subtract(totalQuantityToSubtract));
-                // ingredientRepository.save(currentIngredient); // Không cần thiết
             }
         }
     }
 
-    /**
-     * Hàm helper fetch lại Order và map sang DTO
-     */
     private OrderResponseDTO fetchAndMapOrder(Long orderId, String errorMessage) {
-        Order fetchedOrder = orderRepository.findById(orderId)
+        Order fetchedOrder = orderRepository.findByIdWithDetails(orderId)
                 .orElseThrow(() -> new EntityNotFoundException(errorMessage + " with id: " + orderId));
         return orderMapper.entityToResponse(fetchedOrder);
     }
-
-
 }

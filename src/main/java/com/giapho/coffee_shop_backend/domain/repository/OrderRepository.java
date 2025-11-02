@@ -17,36 +17,32 @@ import java.util.Optional;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
-    /**
-     * Tìm các đơn hàng trong một khoảng thời gian (dùng cho báo cáo)
-     */
     Page<Order> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end, Pageable pageable);
 
-    /**
-     * Tìm các đơn hàng theo trạng thái
-     */
     Page<Order> findByStatus(String status, Pageable pageable);
 
-    /**
-     * Tìm đơn hàng đang 'PENDING' (chưa thanh toán) của 1 bàn
-     * (Một bàn chỉ nên có 1 đơn PENDING tại 1 thời điểm)
-     */
     @Query("SELECT o FROM Order o WHERE o.cafeTable.id = :tableId AND o.status = 'PENDING'")
     Optional<Order> findPendingOrderByTableId(@Param("tableId") Long tableId);
 
-    @Query("SELECT o FROM Order o WHERE o.cafeTable.id = :tableId AND o.status = 'EMPTY'")
-    Optional<Order> findEmptyOrderByTableId(@Param("tableId") Long tableId);
-
     @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.status = 'PAID' AND FUNCTION('DATE', o.paidAt) = :date")
     BigDecimal findTotalRevenueByDate(@Param("date") LocalDate date); // Nhận vào LocalDate
-//
-//    @Query("SELECT o FROM Order o WHERE o.cafeTable.id = :tableId AND o.status = 'PENDING'")
-//    Optional<Order> findPendingOderByTableId(Long id);
 
-    /**
-     * Tính tổng totalAmount của các đơn hàng PAID giữa 2 thời điểm LocalDateTime.
-     * (Thêm phương thức này)
-     */
+    @Query("SELECT o FROM Order o " +
+            "LEFT JOIN FETCH o.orderDetails " +
+            "LEFT JOIN FETCH o.cafeTable " +
+            "LEFT JOIN FETCH o.user " +
+            "LEFT JOIN FETCH o.customer " +
+            "WHERE o.id = :id")
+    Optional<Order> findByIdWithDetails(@Param("id") Long id);
+
+    @Query("SELECT o FROM Order o " +
+            "LEFT JOIN FETCH o.orderDetails " +
+            "LEFT JOIN FETCH o.cafeTable " +
+            "LEFT JOIN FETCH o.user " +
+            "LEFT JOIN FETCH o.customer " +
+            "WHERE o.id = :id AND o.status = 'PENDING'")
+    Optional<Order> findPendingOrderByIdWithDetails(@Param("id") Long id);
+
     @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.status = 'PAID' AND o.paidAt >= :startDateTime AND o.paidAt < :endDateTime")
     BigDecimal sumAmountBetweenDates(
             @Param("startDateTime") LocalDateTime startDateTime,
