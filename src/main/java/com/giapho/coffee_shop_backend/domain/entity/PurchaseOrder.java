@@ -25,33 +25,32 @@ public class PurchaseOrder {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "supplier_id", nullable = false) // Nhà cung cấp
+    @JoinColumn(name = "supplier_id", nullable = false)
     @ToString.Exclude
     private Supplier supplier;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false) // Nhân viên tạo phiếu
+    @JoinColumn(name = "user_id", nullable = false)
     @ToString.Exclude
     private User user;
 
     @Column(name = "order_date", nullable = false, updatable = false)
-    private LocalDateTime orderDate; // Ngày tạo phiếu
-
+    private LocalDateTime orderDate;
     @Column(name = "expected_date")
-    private LocalDateTime expectedDate; // Ngày dự kiến nhận hàng (có thể null)
+    private LocalDateTime expectedDate;
 
     @Column(nullable = false, length = 20)
     @Builder.Default
-    private String status = "PENDING"; // Trạng thái: PENDING, COMPLETED, CANCELLED
+    private String status = "PENDING";
 
     @Column(name = "total_amount", nullable = false)
     @Builder.Default
-    private BigDecimal totalAmount = BigDecimal.ZERO; // Tổng tiền phiếu nhập
+    private BigDecimal totalAmount = BigDecimal.ZERO;
 
-    // Quan hệ One-to-Many với chi tiết phiếu nhập
+
     @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
-    @ToString.Exclude // Tránh vòng lặp toString
-    @Builder.Default // Khởi tạo Set rỗng
+    @ToString.Exclude
+    @Builder.Default
     private Set<PurchaseOrderDetail> purchaseOrderDetails = new HashSet<>();
 
     @PrePersist

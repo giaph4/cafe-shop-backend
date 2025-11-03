@@ -15,16 +15,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/users") // Endpoint chung cho quản lý user
+@RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
 
-    /**
-     * API Lấy danh sách tất cả người dùng (phân trang)
-     * Chỉ ADMIN mới có quyền xem danh sách user.
-     */
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Page<UserResponseDTO>> getAllUsers(
@@ -34,10 +30,6 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
-    /**
-     * API Lấy chi tiết một người dùng theo ID
-     * Chỉ ADMIN mới có quyền xem chi tiết user khác.
-     */
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserResponseDTO> getUserById(@PathVariable Long id) {
@@ -45,10 +37,6 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
-    /**
-     * API Cập nhật thông tin và quyền của người dùng
-     * Chỉ ADMIN mới có quyền cập nhật user khác.
-     */
     @PutMapping("/{id}")
     @PreAuthorize("#id == authentication.principal.id || hasRole('ADMIN')")
     public ResponseEntity<UserResponseDTO> updateUser(
@@ -59,11 +47,6 @@ public class UserController {
         return ResponseEntity.ok(updatedUser);
     }
 
-    /**
-     * API cho phép người dùng đang đăng nhập tự đổi mật khẩu
-     * Yêu cầu người dùng phải được xác thực (có token hợp lệ).
-     * Dùng POST hoặc PATCH đều được.
-     */
     @PostMapping("/change-password")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<String> changePassword(

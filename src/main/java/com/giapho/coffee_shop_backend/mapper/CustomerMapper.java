@@ -9,20 +9,17 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface CustomerMapper {
 
-    // DTO -> Entity (tạo mới)
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "loyaltyPoints", ignore = true) // Điểm bắt đầu từ 0
+    @Mapping(target = "loyaltyPoints", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Customer toEntity(CustomerDTO dto);
 
-    // Entity -> DTO (hiển thị)
     CustomerDTO toDto(Customer entity);
 
-    // Cập nhật Entity từ DTO
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "loyaltyPoints", ignore = true) // Không cho cập nhật điểm trực tiếp qua API này
+    @Mapping(target = "loyaltyPoints", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true) // Sẽ được @PreUpdate xử lý
+    @Mapping(target = "updatedAt", ignore = true)
     void updateEntityFromDto(CustomerDTO dto, @MappingTarget Customer entity);
 }

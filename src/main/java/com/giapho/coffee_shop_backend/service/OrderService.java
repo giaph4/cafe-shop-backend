@@ -37,7 +37,7 @@ public class OrderService {
     private final IngredientRepository ingredientRepository;
     private final ProductIngredientRepository productIngredientRepository;
     private final OrderMapper orderMapper;
-    private final VoucherService voucherService; // <-- Đã được inject
+    private final VoucherService voucherService;
 
     /**
      * Lấy danh sách Order (có phân trang)
@@ -58,7 +58,6 @@ public class OrderService {
      */
     @Transactional(readOnly = true)
     public Page<OrderResponseDTO> getOrdersByDateRange(LocalDate startDate, LocalDate endDate, Pageable pageable) {
-        // Chuyển LocalDate thành LocalDateTime để so sánh với trường created_at trong database
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.plusDays(1).atStartOfDay();
 
@@ -79,7 +78,6 @@ public class OrderService {
      */
     @Transactional(readOnly = true)
     public OrderResponseDTO getPendingOrderByTable(Long tableId) {
-        // Kiểm tra bàn tồn tại trước
         if (!cafeTableRepository.existsById(tableId)) {
             throw new EntityNotFoundException("Table not found with id: " + tableId);
         }
@@ -132,7 +130,6 @@ public class OrderService {
 
         updateTableStatusOnOrderCreate(savedOrder.getCafeTable());
 
-        // --- Trả về DTO (Fetch lại để đảm bảo EAGER loading) ---
         return fetchAndMapOrder(savedOrder.getId(), "Failed to fetch newly created order");
     }
 
@@ -141,23 +138,20 @@ public class OrderService {
      */
     @Transactional
     public OrderResponseDTO addItemToOrder(Long orderId, OrderDetailRequestDTO itemDTO) {
-        Order order = findPendingOrderById(orderId); // Tìm và kiểm tra PENDING
-        Product product = findAvailableProductById(itemDTO.getProductId()); // Tìm và kiểm tra Available
+        Order order = findPendingOrderById(orderId);
+        Product product = findAvailableProductById(itemDTO.getProductId());
 
         Optional<OrderDetail> existingDetailOpt = order.getOrderDetails().stream()
                 .filter(detail -> detail.getProduct().getId().equals(itemDTO.getProductId()))
                 .findFirst();
 
         if (existingDetailOpt.isPresent()) {
-            // Tăng số lượng
             OrderDetail existingDetail = existingDetailOpt.get();
             existingDetail.setQuantity(existingDetail.getQuantity() + itemDTO.getQuantity());
-            // Cập nhật notes nếu cần
-            if (itemDTO.getNotes() != null) { // Chỉ cập nhật nếu note mới được cung cấp
+            if (itemDTO.getNotes() != null) {
                 existingDetail.setNotes(itemDTO.getNotes());
             }
         } else {
-            // Tạo OrderDetail mới
             OrderDetail newDetail = OrderDetail.builder()
                     .order(order)
                     .product(product)
@@ -182,14 +176,14 @@ public class OrderService {
         Order order = findPendingOrderById(orderId);
 
         OrderDetail detailToUpdate = order.getOrderDetails().stream()
-                .filter(detail -> detail.getId() != null && detail.getId().equals(orderDetailId)) // Thêm kiểm tra null cho ID
+                .filter(detail -> detail.getId() != null && detail.getId().equals(orderDetailId))
                 .findFirst()
                 .orElseThrow(() -> new EntityNotFoundException("OrderDetail not found with id: " + orderDetailId + " in Order id: " + orderId));
 
         detailToUpdate.setQuantity(updateDTO.getQuantity());
         detailToUpdate.setNotes(updateDTO.getNotes());
 
-        recalculateOrderTotals(order); // SỬA LỖI: Hàm này giờ đã dùng VoucherService
+        recalculateOrderTotals(order);
         orderRepository.save(order);
 
         return fetchAndMapOrder(orderId, "Failed to fetch order after updating item");
@@ -207,13 +201,12 @@ public class OrderService {
                 .findFirst()
                 .orElseThrow(() -> new EntityNotFoundException("OrderDetail not found with id: " + orderDetailId + " in Order id: " + orderId));
 
-        order.getOrderDetails().remove(detailToRemove); // OrphanRemoval=true sẽ xóa record
+        order.getOrderDetails().remove(detailToRemove);
 
-        // Nếu xóa hết món, reset tiền và voucher
         if (order.getOrderDetails().isEmpty()) {
             resetOrderTotalsAndVoucher(order);
         } else {
-            recalculateOrderTotals(order); // SỬA LỖI: Hàm này giờ đã dùng VoucherService
+            recalculateOrderTotals(order);
         }
 
         orderRepository.save(order);
@@ -232,10 +225,8 @@ public class OrderService {
 
         subtractInventoryForOrder(order);
 
-        // Lưu voucher code trước khi thanh toán
         String appliedVoucherCode = order.getVoucherCode();
 
-        // Cập nhật Order
         order.setStatus("PAID");
         order.setPaidAt(LocalDateTime.now());
         order.setPaymentMethod(paymentMethod);
@@ -243,21 +234,17 @@ public class OrderService {
 
         log.info("Order {} paid successfully with payment method: {}", orderId, paymentMethod);
 
-        // *** CẢI TIẾN: Tăng usage count cho voucher ***
         if (appliedVoucherCode != null && !appliedVoucherCode.isEmpty()) {
             try {
                 voucherService.incrementUsageCount(appliedVoucherCode);
                 log.info("Incremented usage count for voucher: {}", appliedVoucherCode);
             } catch (Exception e) {
                 log.error("Failed to increment voucher usage for code: {}", appliedVoucherCode, e);
-                // Không throw exception để không ảnh hưởng đến việc thanh toán
             }
         }
 
-        // Cập nhật Bàn
         updateTableStatusOnOrderCompletion(order.getCafeTable());
 
-        // Cộng điểm thưởng
         if (order.getCustomer() != null) {
             addLoyaltyPoints(order);
         }
@@ -273,7 +260,6 @@ public class OrderService {
             throw new IllegalArgumentException("Voucher code cannot be empty");
         }
 
-        // Kiểm tra voucher với VoucherService
         VoucherCheckResponseDTO voucherCheck = voucherService.checkAndCalculateDiscount(
                 voucherCode.trim().toUpperCase(),
                 order.getSubTotal()
@@ -283,7 +269,6 @@ public class OrderService {
             throw new IllegalArgumentException(voucherCheck.getMessage());
         }
 
-        // Apply voucher
         order.setVoucherCode(voucherCode.trim().toUpperCase());
         order.setDiscountAmount(voucherCheck.getDiscountAmount());
         order.setTotalAmount(order.getSubTotal().subtract(voucherCheck.getDiscountAmount()));
@@ -306,7 +291,6 @@ public class OrderService {
 
         String removedVoucher = order.getVoucherCode();
 
-        // Remove voucher
         order.setVoucherCode(null);
         order.setDiscountAmount(BigDecimal.ZERO);
         order.setTotalAmount(order.getSubTotal());
@@ -335,19 +319,14 @@ public class OrderService {
         Order order = findPendingOrderById(orderId);
 
         order.setStatus("CANCELLED");
-        orderRepository.save(order); // Lưu trạng thái CANCELLED
+        orderRepository.save(order);
 
-        // Cập nhật Bàn
         updateTableStatusOnOrderCompletion(order.getCafeTable());
 
-        // (Hoàn kho/điểm nếu cần)
 
         return fetchAndMapOrder(orderId, "Failed to fetch cancelled order");
     }
 
-    // ==========================================================
-    // HÀM HELPER (Private Methods)
-    // ==========================================================
 
     /**
      * Tìm Order theo ID và kiểm tra trạng thái PENDING
@@ -376,11 +355,9 @@ public class OrderService {
      */
     private void validateTableForNewOrder(CafeTable table) {
         if (!"EMPTY".equals(table.getStatus())) {
-            // Kiểm tra xem có đơn PENDING nào khác không
             orderRepository.findPendingOrderByTableId(table.getId()).ifPresent(existingOrder -> {
                 throw new IllegalArgumentException("Table " + table.getName() + " already has a pending order (ID: " + existingOrder.getId() + ")");
             });
-            // Chỉ cho phép tạo trên bàn EMPTY (hoặc có thể mở rộng cho SERVING nếu muốn gộp đơn)
             throw new IllegalArgumentException("Table " + table.getName() + " is currently " + table.getStatus() + " and cannot receive a new order.");
         }
     }
@@ -412,7 +389,7 @@ public class OrderService {
         BigDecimal subTotal = BigDecimal.ZERO;
         if (order.getOrderDetails() != null) {
             for (OrderDetail detail : order.getOrderDetails()) {
-                if (detail.getPriceAtOrder() != null && detail.getQuantity() > 0) { // Thêm kiểm tra quantity > 0
+                if (detail.getPriceAtOrder() != null && detail.getQuantity() > 0) {
                     subTotal = subTotal.add(
                             detail.getPriceAtOrder().multiply(BigDecimal.valueOf(detail.getQuantity()))
                     );
@@ -421,11 +398,9 @@ public class OrderService {
         }
         order.setSubTotal(subTotal);
 
-        // --- BẮT ĐẦU KHỐI SỬA LỖI ---
         BigDecimal discountAmount = BigDecimal.ZERO;
         if (order.getVoucherCode() != null && !order.getVoucherCode().isEmpty()) {
             try {
-                // SỬA LỖI: Dùng VoucherService thật
                 VoucherCheckResponseDTO voucherCheck = voucherService.checkAndCalculateDiscount(
                         order.getVoucherCode(),
                         subTotal
@@ -434,25 +409,20 @@ public class OrderService {
                 if (voucherCheck.isValid()) {
                     discountAmount = voucherCheck.getDiscountAmount();
                 } else {
-                    // Voucher không còn hợp lệ (ví dụ: subTotal thay đổi, không đủ điều kiện)
                     log.warn("Voucher {} is no longer valid for order {}. Removing.", order.getVoucherCode(), order.getId());
-                    order.setVoucherCode(null); // Xóa voucher
+                    order.setVoucherCode(null);
                 }
             } catch (EntityNotFoundException e) {
-                // Voucher không tồn tại
                 log.warn("Voucher {} not found during recalculation. Removing.", order.getVoucherCode());
-                order.setVoucherCode(null); // Xóa voucher
+                order.setVoucherCode(null);
             }
         }
-        // --- KẾT THÚC KHỐI SỬA LỖI ---
 
-        // Đảm bảo discount không lớn hơn subTotal
         discountAmount = discountAmount.min(subTotal);
         order.setDiscountAmount(discountAmount);
 
-        // Tính TotalAmount
         BigDecimal totalAmount = subTotal.subtract(discountAmount);
-        order.setTotalAmount(totalAmount.max(BigDecimal.ZERO)); // Đảm bảo không âm
+        order.setTotalAmount(totalAmount.max(BigDecimal.ZERO));
     }
 
     /**
@@ -485,11 +455,9 @@ public class OrderService {
      */
     private void updateTableStatusOnOrderCompletion(CafeTable table) {
         if (table != null) {
-            // Kiểm tra xem còn đơn PENDING nào khác trên bàn không
             boolean hasOtherPendingOrder = orderRepository.findPendingOrderByTableId(table.getId())
-                    .isPresent(); // Không cần filter vì đơn hiện tại đã PAID/CANCELLED
+                    .isPresent();
 
-            // Chỉ trả về EMPTY nếu bàn đang SERVING và không còn đơn PENDING nào khác
             if (!hasOtherPendingOrder && "SERVING".equals(table.getStatus())) {
                 table.setStatus("EMPTY");
                 cafeTableRepository.save(table);
@@ -520,7 +488,6 @@ public class OrderService {
             return;
         }
 
-        // Logic tính điểm: 10,000 VND = 1 điểm
         int pointsToAdd = order.getTotalAmount()
                 .divide(BigDecimal.valueOf(10000), 0, RoundingMode.DOWN)
                 .intValue();
@@ -549,7 +516,7 @@ public class OrderService {
 
         for (OrderDetail detail : order.getOrderDetails()) {
             Product product = detail.getProduct();
-            if (product == null) continue; // Bỏ qua nếu không có product (dữ liệu lỗi?)
+            if (product == null) continue;
             int orderQuantity = detail.getQuantity();
 
             List<ProductIngredient> recipe = productIngredientRepository.findByProductId(product.getId());
@@ -561,7 +528,7 @@ public class OrderService {
 
             for (ProductIngredient pi : recipe) {
                 Ingredient ingredient = pi.getIngredient();
-                if (ingredient == null) continue; // Bỏ qua nếu không có ingredient (dữ liệu lỗi?)
+                if (ingredient == null) continue;
 
                 BigDecimal quantityNeededPerProduct = pi.getQuantityNeeded();
                 BigDecimal totalQuantityToSubtract = quantityNeededPerProduct.multiply(BigDecimal.valueOf(orderQuantity));

@@ -25,10 +25,6 @@ public class Category {
 
     private String description;
 
-    // --- Mối quan hệ Một-Nhiều ---
-    // Một Category có nhiều Product
-    // mappedBy = "category": Báo cho JPA biết rằng
-    // thuộc tính 'category' bên class Product là chủ của mối quan hệ này.
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @ToString.Exclude
     private Set<Product> products;

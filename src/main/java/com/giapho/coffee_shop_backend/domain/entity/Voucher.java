@@ -1,13 +1,19 @@
 package com.giapho.coffee_shop_backend.domain.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
+import org.hibernate.proxy.HibernateProxy;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Entity
 @Table(name = "vouchers")
-@Data
+@Getter
+@Setter
+@ToString
+@RequiredArgsConstructor
 public class Voucher {
 
     @Id
@@ -15,49 +21,65 @@ public class Voucher {
     private Long id;
 
     @Column(unique = true, nullable = false)
-    private String code; // Mã voucher (VD: "GIAM10K", "FREESHIP")
+    private String code;
 
     @Column(nullable = false)
-    private String description; // Mô tả (VD: "Giảm 10,000 VND", "Miễn phí vận chuyển")
+    private String description;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private VoucherType type; // Loại voucher (VD: FIXED_AMOUNT, PERCENTAGE)
+    private VoucherType type;
 
     @Column(nullable = false)
-    private BigDecimal discountValue; // Giá trị giảm (Số tiền cố định hoặc phần trăm)
+    private BigDecimal discountValue;
 
-    private BigDecimal minimumOrderAmount; // Số tiền đơn hàng tối thiểu để áp dụng
+    private BigDecimal minimumOrderAmount;
 
-    private BigDecimal maximumDiscountAmount; // Số tiền giảm tối đa (cho loại PERCENTAGE)
-
-    @Column(nullable = false)
-    private LocalDateTime validFrom; // Ngày bắt đầu hiệu lực
+    private BigDecimal maximumDiscountAmount;
 
     @Column(nullable = false)
-    private LocalDateTime validTo; // Ngày hết hiệu lực
+    private LocalDateTime validFrom;
 
     @Column(nullable = false)
-    private int usageLimit; // Số lần sử dụng tối đa
+    private LocalDateTime validTo;
 
     @Column(nullable = false)
-    private int timesUsed; // Số lần đã sử dụng
+    private int usageLimit;
 
     @Column(nullable = false)
-    private boolean active = true; // Trạng thái kích hoạt
+    private int timesUsed;
 
-    // Timestamps
+    @Column(nullable = false)
+    private boolean active = true;
+
+
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt;
 
     public enum VoucherType {
-        FIXED_AMOUNT, // Giảm số tiền cố định
-        PERCENTAGE    // Giảm theo phần trăm
+        FIXED_AMOUNT,
+        PERCENTAGE
     }
 
-    // Helper method để kiểm tra voucher có hợp lệ không (cơ bản)
+
     public boolean isValid() {
         LocalDateTime now = LocalDateTime.now();
         return active && timesUsed < usageLimit && now.isAfter(validFrom) && now.isBefore(validTo);
+    }
+
+    @Override
+    public final boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null) return false;
+        Class<?> oEffectiveClass = o instanceof HibernateProxy ? ((HibernateProxy) o).getHibernateLazyInitializer().getPersistentClass() : o.getClass();
+        Class<?> thisEffectiveClass = this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass() : this.getClass();
+        if (thisEffectiveClass != oEffectiveClass) return false;
+        Voucher voucher = (Voucher) o;
+        return getId() != null && Objects.equals(getId(), voucher.getId());
+    }
+
+    @Override
+    public final int hashCode() {
+        return this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass().hashCode() : getClass().hashCode();
     }
 }

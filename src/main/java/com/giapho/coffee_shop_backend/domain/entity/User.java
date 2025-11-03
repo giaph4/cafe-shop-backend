@@ -44,7 +44,7 @@ public class User implements UserDetails {
     private String email;
 
     @Column(length = 20)
-    private String status; // "ACTIVE", "INACTIVE", "TERMINATED"
+    private String status;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -52,7 +52,6 @@ public class User implements UserDetails {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // Dinh nghia moi quan he nhieu nhieu
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_roles",
@@ -90,7 +89,6 @@ public class User implements UserDetails {
         return "ACTIVE".equals(this.status);
     }
 
-    // tu dong cap nhat thoi gian
     @PrePersist
     public void onCreate() {
         this.createdAt = LocalDateTime.now();
@@ -99,7 +97,7 @@ public class User implements UserDetails {
 
     @PreUpdate
     public void onUpdate() {
-        this.updatedAt = LocalDateTime.now(); // <-- SỬA LẠI THÀNH updatedAt
+        this.updatedAt = LocalDateTime.now();
     }
 
     @Override

@@ -25,8 +25,6 @@ public interface OrderDetailMapper {
 
     Set<OrderDetailResponseDTO> entitySetToResponseSet(Set<OrderDetail> details);
 
-    // --- Hàm Helper ---
-    // Tạo đối tượng Product "giả" chỉ chứa ID
     @Named("productIdToProduct")
     default Product productIdToProduct(Long productId) {
         if (productId == null) {

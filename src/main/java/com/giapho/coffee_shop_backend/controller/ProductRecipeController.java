@@ -19,10 +19,6 @@ public class ProductRecipeController {
 
     private final ProductRecipeService productRecipeService;
 
-    /**
-     * API Lấy công thức (định lượng) của một sản phẩm
-     * Chỉ MANAGER hoặc ADMIN mới có quyền xem/sửa công thức.
-     */
     @GetMapping
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<List<ProductIngredientDTO>> getRecipe(@PathVariable Long productId) {
@@ -30,11 +26,6 @@ public class ProductRecipeController {
         return ResponseEntity.ok(recipe);
     }
 
-    /**
-     * API Cập nhật (ghi đè) toàn bộ công thức cho một sản phẩm
-     * Chỉ MANAGER hoặc ADMIN mới có quyền.
-     * Dùng PUT vì đây là hành động thay thế toàn bộ công thức cũ.
-     */
     @PutMapping
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<List<ProductIngredientDTO>> setRecipe(

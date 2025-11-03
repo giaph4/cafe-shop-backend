@@ -17,10 +17,6 @@ public class CategoryController {
 
     private final CategoryService categoryService;
 
-    /**
-     * API tạo danh mục mới
-     * Chỉ MANAGER hoặc ADMIN mới có quyền
-     */
     @PostMapping
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<CategoryDTO> createCategory(@Valid @RequestBody CategoryDTO categoryDTO) {
@@ -29,10 +25,6 @@ public class CategoryController {
         return ResponseEntity.ok(createCategory);
     }
 
-    /**
-     * API lấy tất cả danh mục
-     * Mọi nhân viên (STAFF, MANAGER, ADMIN) đều có quyền
-     */
     @GetMapping
     @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<List<CategoryDTO>> getAllCategories() {
@@ -40,10 +32,6 @@ public class CategoryController {
         return ResponseEntity.ok(categories);
     }
 
-    /**
-     * API cập nhật danh mục
-     * Chỉ MANAGER hoặc ADMIN mới có quyền
-     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<CategoryDTO> updateCategory(
@@ -54,10 +42,6 @@ public class CategoryController {
         return ResponseEntity.ok(updatedCategory);
     }
 
-    /**
-            * API xoá danh mục
-     * Chỉ MANAGER hoặc ADMIN mới có quyền
-     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {

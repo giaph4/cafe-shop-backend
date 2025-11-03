@@ -40,12 +40,12 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(withDefaults())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Cho phép tất cả OPTIONS request
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/v1/auth/login")
                         .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/files/**").permitAll() // Cho phép xem file công khai
-                        .requestMatchers(HttpMethod.POST, "/api/v1/files/**").hasAnyRole("MANAGER", "ADMIN") // Upload
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/files/**").hasAnyRole("MANAGER", "ADMIN") // Delete
+                        .requestMatchers(HttpMethod.GET, "/api/v1/files/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/files/**").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/files/**").hasAnyRole("MANAGER", "ADMIN")
                         .anyRequest()
                         .authenticated()
                 )
@@ -73,5 +73,4 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/api/v1/**", configuration);
         return source;
     }
-    // ----------------------------------------------------
 }

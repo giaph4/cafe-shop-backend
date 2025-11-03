@@ -11,7 +11,6 @@ public interface RoleMapper {
     RoleDTO toDto(Role entity);
     Set<RoleDTO> toDtoSet(Set<Role> entities);
 
-    // Helper map từ ID sang Entity (proxy) - sẽ dùng trong UserMapper
     default Role idToRole(Long id) {
         if (id == null) return null;
         Role role = new Role();

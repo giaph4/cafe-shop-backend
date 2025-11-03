@@ -21,15 +21,10 @@ public class IngredientController {
 
     private final IngredientService ingredientService;
 
-    /**
-     * API Lấy danh sách nguyên vật liệu (phân trang, tìm kiếm)
-     * Chỉ MANAGER hoặc ADMIN mới có quyền xem.
-     */
     @GetMapping
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<Page<IngredientResponseDTO>> getAllIngredients(
-            // SỬA LỖI: Thêm (required = false) để cho phép tìm kiếm tùy chọn
-            @RequestParam(required = false) String name, // Tham số tìm kiếm theo tên (tùy chọn)
+            @RequestParam(required = false) String name,
             @PageableDefault(size = 15, page = 0, sort = "name", direction = Sort.Direction.ASC) Pageable pageable
     ) {
         Page<IngredientResponseDTO> ingredients;
@@ -41,10 +36,6 @@ public class IngredientController {
         return ResponseEntity.ok(ingredients);
     }
 
-    /**
-     * API Lấy chi tiết nguyên vật liệu theo ID
-     * Chỉ MANAGER hoặc ADMIN mới có quyền xem.
-     */
     @GetMapping("/id")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<IngredientResponseDTO> getIngredientById(@PathVariable Long id) {
@@ -52,10 +43,6 @@ public class IngredientController {
         return ResponseEntity.ok(ingredient);
     }
 
-    /**
-     * API Tạo nguyên vật liệu mới
-     * Chỉ MANAGER hoặc ADMIN mới có quyền.
-     */
     @PostMapping
     @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     public ResponseEntity<IngredientResponseDTO> createIngredient(@Valid @RequestBody IngredientRequestDTO request) {
@@ -63,10 +50,6 @@ public class IngredientController {
         return ResponseEntity.ok(createdIngredient);
     }
 
-    /**
-     * API Cập nhật thông tin nguyên vật liệu (không cập nhật tồn kho)
-     * Chỉ MANAGER hoặc ADMIN mới có quyền.
-     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<IngredientResponseDTO> updateIngredientInfo(
@@ -77,10 +60,6 @@ public class IngredientController {
         return ResponseEntity.ok(updatedIngredient);
     }
 
-    /**
-     * API Xoá nguyên vật liệu
-     * Chỉ ADMIN mới có quyền xoá.
-     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteIngredient(@PathVariable Long id) {
@@ -88,10 +67,6 @@ public class IngredientController {
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * API Điều chỉnh số lượng tồn kho
-     * Chỉ MANAGER hoặc ADMIN mới có quyền.
-     */
     @PatchMapping("/adjust-inventory") // Endpoint mới
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<IngredientResponseDTO> adjustInventory(

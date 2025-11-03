@@ -36,7 +36,6 @@ public class AuthenticationService {
             throw new IllegalArgumentException("Error: Email is already in use!");
         }
 
-        // tim role "ROLE_STAFF"
         Role staffRole = roleRepository.findByName("ROLE_STAFF")
                 .orElseThrow(() -> new EntityNotFoundException("Error: Role 'STAFF' not found"));
 

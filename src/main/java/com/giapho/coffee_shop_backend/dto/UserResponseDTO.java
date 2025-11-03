@@ -14,5 +14,5 @@ public class UserResponseDTO {
     private String status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private Set<RoleDTO> roles; // Hiển thị danh sách quyền
+    private Set<RoleDTO> roles;
 }

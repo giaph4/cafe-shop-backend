@@ -21,18 +21,12 @@ public class CafeTableService {
     private final CafeTableMapper cafeTableMapper;
     private final OrderRepository orderRepository;
 
-    /**
-     * Lấy tất cả các bàn
-     */
     @Transactional(readOnly = true)
     public List<CafeTableResponse> getAllTables() {
         List<CafeTable> tables = cafeTableRepository.findAll();
         return cafeTableMapper.entityListToResponseList(tables);
     }
 
-    /**
-     * Lấy chi tiết 1 bàn
-     */
     @Transactional(readOnly = true)
     public CafeTableResponse getTableById(Long id) {
         CafeTable table = cafeTableRepository.findById(id)
@@ -41,9 +35,6 @@ public class CafeTableService {
         return cafeTableMapper.entityToResponse(table);
     }
 
-    /**
-     * Tạo bàn mới
-     */
     @Transactional
     public CafeTableResponse createTable(CafeTableRequest request) {
         if (cafeTableRepository.existsByName(request.getName())) {
@@ -57,9 +48,6 @@ public class CafeTableService {
         return cafeTableMapper.entityToResponse(savedTable);
     }
 
-    /**
-     * Cập nhật thông tin bàn (tên, sức chứa)
-     */
     @Transactional
     public CafeTableResponse updateTableInfo(Long id, CafeTableRequest request) {
         CafeTable existingTable = cafeTableRepository.findById(id)
@@ -77,9 +65,6 @@ public class CafeTableService {
         return cafeTableMapper.entityToResponse(updatedTable);
     }
 
-    /**
-     * Cập nhật trạng thái bàn (NGHIỆP VỤ RIÊNG)
-     */
     @Transactional
     public CafeTableResponse updateTableStatus(Long id, String status) {
         // (Có thể thêm logic kiểm tra status hợp lệ: "EMPTY", "SERVING", "RESERVED")
@@ -97,9 +82,6 @@ public class CafeTableService {
         return cafeTableMapper.entityToResponse(updatedTable);
     }
 
-    /**
-     * Xoá bàn
-     */
     @Transactional
     public void deleteTable(Long id) {
         CafeTable table = cafeTableRepository.findById(id)

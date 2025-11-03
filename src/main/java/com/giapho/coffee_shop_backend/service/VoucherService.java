@@ -15,14 +15,11 @@ import java.time.LocalDateTime;
 public class VoucherService {
 
     private final VoucherRepository voucherRepository;
-    // Inject VoucherMapper nếu cần cho CRUD
 
-    // Hàm quan trọng để kiểm tra và tính toán giảm giá
     public VoucherCheckResponseDTO checkAndCalculateDiscount(String code, BigDecimal orderAmount) {
         Voucher voucher = voucherRepository.findByCode(code)
                 .orElseThrow(() -> new EntityNotFoundException("Voucher không tồn tại: " + code));
 
-        // Kiểm tra cơ bản
         if (!voucher.isActive()) {
             return buildInvalidResponse(voucher, "Voucher không hoạt động.");
         }
@@ -75,7 +72,7 @@ public class VoucherService {
                 .message(message)
                 .code(voucher.getCode())
                 .discountAmount(BigDecimal.ZERO)
-                .type(voucher.getType()) // Vẫn trả về type nếu muốn
+                .type(voucher.getType())
                 .build();
     }
 

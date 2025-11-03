@@ -13,7 +13,7 @@ public class OrderCreateRequestDTO {
     private Long tableId;
 
     @NotBlank(message = "Order type is required")
-    private String type; // Loại đơn hàng: AT_TABLE, TAKE_AWAY, DELIVERY
+    private String type;
 
     private Long customerId;
 

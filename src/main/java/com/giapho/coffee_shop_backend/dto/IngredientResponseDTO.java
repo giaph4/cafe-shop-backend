@@ -9,6 +9,6 @@ public class IngredientResponseDTO {
     private Long id;
     private String name;
     private String unit;
-    private BigDecimal quantityOnHand; // Hiển thị tồn kho hiện tại
+    private BigDecimal quantityOnHand;
     private BigDecimal reorderLevel;
 }

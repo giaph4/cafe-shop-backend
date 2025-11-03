@@ -12,17 +12,16 @@ import org.mapstruct.Named;
 import java.util.Set;
 import java.util.stream.Collectors; // Import Collectors
 
-@Mapper(componentModel = "spring", uses = {RoleMapper.class}) // Sử dụng RoleMapper
+@Mapper(componentModel = "spring", uses = {RoleMapper.class})
 public interface UserMapper {
 
     // Entity -> ResponseDTO
-    @Mapping(source = "roles", target = "roles") // Tự động dùng RoleMapper.toDtoSet
+    @Mapping(source = "roles", target = "roles")
     UserResponseDTO toUserResponseDto(User user);
 
-    // UpdateRequestDTO -> Entity (Cập nhật)
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "username", ignore = true) // Không cập nhật username
-    @Mapping(target = "password", ignore = true) // Không cập nhật password
+    @Mapping(target = "username", ignore = true)
+    @Mapping(target = "password", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "authorities", ignore = true)
@@ -30,13 +29,11 @@ public interface UserMapper {
 
     void updateUserFromDto(UserUpdateRequestDTO dto, @MappingTarget User user);
 
-    // Helper map từ Set<Long> sang Set<Role>
     @Named("roleIdsToRoleSet")
     default Set<Role> roleIdsToRoleSet(Set<Long> roleIds) {
         if (roleIds == null) {
-            return null; // Hoặc trả về Set rỗng tùy logic
+            return null;
         }
-        // Tạo Set<Role> chứa các proxy Role chỉ có ID
         return roleIds.stream()
                 .map(id -> {
                     Role role = new Role();

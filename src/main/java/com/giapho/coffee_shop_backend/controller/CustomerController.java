@@ -20,10 +20,6 @@ public class CustomerController {
 
     private final CustomerService customerService;
 
-    /**
-     * API Tạo khách hàng mới
-     * Tất cả nhân viên đều có thể thêm khách hàng.
-     */
     @PostMapping
     @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<CustomerDTO> createCustomer(@Valid @RequestBody CustomerDTO customerDTO) {
@@ -31,10 +27,6 @@ public class CustomerController {
         return new ResponseEntity<>(createdCustomer, HttpStatus.CREATED);
     }
 
-    /**
-     * API Tìm kiếm và Lấy danh sách khách hàng (phân trang)
-     * Tất cả nhân viên đều có thể xem/tìm kiếm.
-     */
     @GetMapping
     @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<Page<CustomerDTO>> searchCustomers(
@@ -45,10 +37,6 @@ public class CustomerController {
         return ResponseEntity.ok(customers);
     }
 
-    /**
-     * API Lấy chi tiết khách hàng theo ID
-     * Tất cả nhân viên đều có thể xem.
-     */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<CustomerDTO> getCustomerById(@PathVariable Long id) {
@@ -56,10 +44,6 @@ public class CustomerController {
         return ResponseEntity.ok(customer);
     }
 
-    /**
-     * API Tìm khách hàng theo số điện thoại (tra cứu nhanh)
-     * Tất cả nhân viên đều có thể xem.
-     */
     @GetMapping("/phone/{phone}")
     @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<CustomerDTO> getCustomerByPhone(@PathVariable String phone) {
@@ -67,10 +51,7 @@ public class CustomerController {
         return ResponseEntity.ok(customer);
     }
 
-    /**
-     * API Cập nhật thông tin khách hàng
-     * Chỉ MANAGER hoặc ADMIN mới có quyền sửa.
-     */
+
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<CustomerDTO> updateCustomer(
@@ -81,10 +62,6 @@ public class CustomerController {
         return ResponseEntity.ok(updatedCustomer);
     }
 
-    /**
-     * API Xoá khách hàng
-     * Chỉ ADMIN mới có quyền xoá.
-     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteCustomer(@PathVariable Long id) {

@@ -24,10 +24,6 @@ public class PurchaseOrderController {
 
     private final PurchaseOrderService purchaseOrderService;
 
-    /**
-     * API Tạo phiếu nhập hàng mới
-     * Chỉ MANAGER hoặc ADMIN mới có quyền.
-     */
     @PostMapping
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<PurchaseOrderResponseDTO> createPurchaseOrder(
@@ -37,10 +33,6 @@ public class PurchaseOrderController {
         return new ResponseEntity<>(createdPO, HttpStatus.CREATED);
     }
 
-    /**
-     * API Lấy danh sách phiếu nhập hàng (có phân trang VÀ LỌC)
-     * Chỉ MANAGER hoặc ADMIN mới có quyền xem.
-     */
     @GetMapping
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<Page<PurchaseOrderResponseDTO>> getAllPurchaseOrders(
@@ -52,17 +44,12 @@ public class PurchaseOrderController {
             // ---------------------------
             @PageableDefault(size = 10, page = 0, sort = "orderDate", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        // Truyền các tham số lọc vào service
         Page<PurchaseOrderResponseDTO> purchaseOrders = purchaseOrderService.getAllPurchaseOrders(
                 status, supplierId, startDate, endDate, pageable
         );
         return ResponseEntity.ok(purchaseOrders);
     }
 
-    /**
-     * API Lấy chi tiết một phiếu nhập hàng theo ID
-     * Chỉ MANAGER hoặc ADMIN mới có quyền xem.
-     */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<PurchaseOrderResponseDTO> getPurchaseOrderById(@PathVariable Long id) {
@@ -70,11 +57,6 @@ public class PurchaseOrderController {
         return ResponseEntity.ok(purchaseOrder);
     }
 
-    /**
-     * API Đánh dấu phiếu nhập hàng là HOÀN THÀNH (COMPLETED)
-     * Chỉ MANAGER hoặc ADMIN mới có quyền.
-     * Dùng POST vì nó thay đổi trạng thái và cập nhật tồn kho.
-     */
     @PostMapping("/{id}/complete")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<PurchaseOrderResponseDTO> markAsCompleted(@PathVariable Long id) {
@@ -82,11 +64,6 @@ public class PurchaseOrderController {
         return ResponseEntity.ok(completedPO);
     }
 
-    /**
-     * API Huỷ một phiếu nhập hàng đang PENDING
-     * Chỉ MANAGER hoặc ADMIN mới có quyền.
-     * Dùng POST vì nó thay đổi trạng thái.
-     */
     @PostMapping("/{id}/cancel")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<PurchaseOrderResponseDTO> cancelPurchaseOrder(@PathVariable Long id) {

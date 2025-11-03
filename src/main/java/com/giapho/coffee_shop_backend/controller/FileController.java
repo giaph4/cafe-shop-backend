@@ -16,9 +16,6 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
 
-/**
- * Controller xử lý upload và download file
- */
 @RestController
 @RequestMapping("/api/v1/files")
 @RequiredArgsConstructor
@@ -27,10 +24,6 @@ public class FileController {
 
     private final FileStorageService fileStorageService;
 
-    /**
-     * Upload single file
-     * Chỉ MANAGER hoặc ADMIN mới có quyền upload
-     */
     @PostMapping("/upload")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<FileUploadResponse> uploadFile(
@@ -52,10 +45,6 @@ public class FileController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Upload multiple files
-     * Chỉ MANAGER hoặc ADMIN mới có quyền upload
-     */
     @PostMapping("/upload-multiple")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<FileUploadResponse[]> uploadMultipleFiles(
@@ -82,10 +71,6 @@ public class FileController {
         return ResponseEntity.ok(responses);
     }
 
-    /**
-     * Download/View file
-     * Public endpoint - không cần authentication
-     */
     @GetMapping("/{fileName:.+}")
     public ResponseEntity<Resource> downloadFile(
             @PathVariable String fileName,
@@ -95,15 +80,13 @@ public class FileController {
 
         Resource resource = fileStorageService.loadFileAsResource(fileName);
 
-        // Xác định content type
         String contentType = null;
         try {
             contentType = request.getServletContext().getMimeType(resource.getFile().getAbsolutePath());
         } catch (IOException ex) {
             log.warn("Could not determine file type for: {}", fileName);
         }
-
-        // Fallback to default content type if type could not be determined
+        
         if (contentType == null) {
             contentType = "application/octet-stream";
         }
@@ -113,11 +96,7 @@ public class FileController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
                 .body(resource);
     }
-
-    /**
-     * Delete file
-     * Chỉ MANAGER hoặc ADMIN mới có quyền xóa
-     */
+    
     @DeleteMapping("/{fileName:.+}")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<String> deleteFile(@PathVariable String fileName) {

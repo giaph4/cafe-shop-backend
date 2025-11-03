@@ -22,22 +22,21 @@ public class PurchaseOrderDetail {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "purchase_order_id", nullable = false) // Liên kết tới phiếu nhập chính
+    @JoinColumn(name = "purchase_order_id", nullable = false)
     @ToString.Exclude
     private PurchaseOrder purchaseOrder;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ingredient_id", nullable = false) // Nguyên liệu được nhập
+    @JoinColumn(name = "ingredient_id", nullable = false)
     @ToString.Exclude
     private Ingredient ingredient;
 
     @Column(nullable = false)
-    private BigDecimal quantity; // Số lượng nhập
+    private BigDecimal quantity;
 
     @Column(name = "unit_price", nullable = false)
-    private BigDecimal unitPrice; // Đơn giá nhập tại thời điểm đó
+    private BigDecimal unitPrice;
 
-    // Ghi đè equals và hashCode
     @Override
     public final boolean equals(Object o) {
         if (this == o) return true;

@@ -9,26 +9,22 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
-@Mapper(componentModel = "spring", uses = {OrderDetailMapper.class}) // Báo MapStruct sử dụng OrderDetailMapper
+@Mapper(componentModel = "spring", uses = {OrderDetailMapper.class})
 public interface OrderMapper {
 
-    // Chuyển từ Entity sang Response DTO
     @Mapping(source = "cafeTable", target = "tableName", qualifiedByName = "tableToTableName")
     @Mapping(source = "user", target = "staffUsername", qualifiedByName = "userToUsername")
     @Mapping(source = "customer.id", target = "customerId")
     @Mapping(source = "customer", target = "customerName", qualifiedByName = "customerToName")
     @Mapping(source = "customer.phone", target = "customerPhone")
-    @Mapping(source = "orderDetails", target = "orderDetails") // Tự động dùng OrderDetailMapper
+    @Mapping(source = "orderDetails", target = "orderDetails")
     OrderResponseDTO entityToResponse(Order order);
 
-    // --- Hàm Helpers ---
-    // Lấy tên bàn
     @Named("tableToTableName")
     default String tableToTableName(CafeTable table) {
         return (table != null) ? table.getName() : null;
     }
 
-    // Lấy username nhân viên
     @Named("userToUsername")
     default String userToUsername(User user) {
         return (user != null) ? user.getUsername() : null;

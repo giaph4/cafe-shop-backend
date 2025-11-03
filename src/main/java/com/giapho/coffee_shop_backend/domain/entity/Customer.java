@@ -24,28 +24,23 @@ public class Customer {
     private Long id;
 
     @Column(nullable = false, unique = true, length = 20)
-    private String phone; // Số điện thoại (dùng làm khóa chính nghiệp vụ)
+    private String phone;
 
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
     @Column(unique = true, length = 100)
-    private String email; // Có thể null
+    private String email;
 
     @Column(name = "loyalty_points")
     @Builder.Default
-    private int loyaltyPoints = 0; // Điểm tích lũy, mặc định là 0
+    private int loyaltyPoints = 0;
 
     @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt; // Thêm ngày tạo
+    private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt; // Thêm ngày cập nhật
-
-    // --- (Quan hệ One-to-Many với Order sẽ thêm sau nếu cần) ---
-    // @OneToMany(mappedBy = "customer", fetch = FetchType.LAZY)
-    // @ToString.Exclude
-    // private Set<Order> orders;
+    private LocalDateTime updatedAt;
 
     @PrePersist
     protected void onCreate() {
@@ -58,7 +53,6 @@ public class Customer {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // Ghi đè equals và hashCode
     @Override
     public final boolean equals(Object o) {
         if (this == o) return true;

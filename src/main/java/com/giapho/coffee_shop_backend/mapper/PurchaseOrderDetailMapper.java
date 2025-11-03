@@ -16,22 +16,19 @@ import java.util.Set;
 @Mapper(componentModel = "spring")
 public interface PurchaseOrderDetailMapper {
 
-    // RequestDTO -> Entity
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "purchaseOrder", ignore = true) // Sẽ gán thủ công
+    @Mapping(target = "purchaseOrder", ignore = true)
     @Mapping(source = "ingredientId", target = "ingredient", qualifiedByName = "ingredientIdToIngredient")
     PurchaseOrderDetail requestToEntity(PurchaseOrderDetailRequestDTO dto);
 
-    // Entity -> ResponseDTO
     @Mapping(source = "ingredient.id", target = "ingredientId")
     @Mapping(source = "ingredient.name", target = "ingredientName")
     @Mapping(source = "ingredient.unit", target = "ingredientUnit")
-    @Mapping(target = "lineTotal", ignore = true) // Sẽ tính sau khi map
+    @Mapping(target = "lineTotal", ignore = true)
     PurchaseOrderDetailResponseDTO entityToResponse(PurchaseOrderDetail entity);
 
     Set<PurchaseOrderDetailResponseDTO> entitySetToResponseSet(Set<PurchaseOrderDetail> details);
 
-    // Hàm tính thành tiền sau khi map xong
     @AfterMapping
     default void calculateLineTotal(@MappingTarget PurchaseOrderDetailResponseDTO target, PurchaseOrderDetail source) {
         if (source.getQuantity() != null && source.getUnitPrice() != null) {
@@ -41,7 +38,6 @@ public interface PurchaseOrderDetailMapper {
         }
     }
 
-    // Helper tạo Ingredient proxy
     @Named("ingredientIdToIngredient")
     default Ingredient ingredientIdToIngredient(Long ingredientId) {
         if (ingredientId == null) return null;

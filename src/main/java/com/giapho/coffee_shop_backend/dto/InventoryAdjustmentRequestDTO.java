@@ -13,7 +13,7 @@ public class InventoryAdjustmentRequestDTO {
 
     @NotNull(message = "New quantity on hand is required")
     @PositiveOrZero(message = "Quantity must be zero or positive")
-    private BigDecimal newQuantityOnHand; // Số lượng tồn kho mới sau khi điều chỉnh
+    private BigDecimal newQuantityOnHand;
 
-    private String reason; // Lý do điều chỉnh (tùy chọn)
+    private String reason;
 }

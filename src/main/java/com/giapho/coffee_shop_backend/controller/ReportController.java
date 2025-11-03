@@ -17,8 +17,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map; // Import Map
-
+import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/reports")
 @RequiredArgsConstructor
@@ -26,19 +25,13 @@ public class ReportController {
 
     private final ReportService reportService;
 
-    /**
-     * API Lấy tổng doanh thu theo ngày
-     * Chỉ MANAGER hoặc ADMIN mới có quyền xem.
-     */
+
     @GetMapping("/daily-revenue")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<Map<String, Object>> getDailyRevenue(
-            // @RequestParam để lấy tham số từ URL (?date=...)
-            // @DateTimeFormat để Spring biết cách chuyển chuỗi "YYYY-MM-DD" thành LocalDate
             @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
         BigDecimal revenue = reportService.getDailyRevenue(date);
-        // Trả về JSON có cấu trúc rõ ràng
         Map<String, Object> response = Map.of(
                 "date", date.toString(),
                 "totalRevenue", revenue
@@ -46,11 +39,6 @@ public class ReportController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * API Lấy báo cáo tồn kho hiện tại
-     * Chỉ MANAGER hoặc ADMIN mới có quyền xem.
-     * Có thể thêm tham số ?lowStock=true để chỉ lấy hàng sắp hết
-     */
     @GetMapping("/inventory")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<List<IngredientResponseDTO>> getInventoryReport(
@@ -65,10 +53,6 @@ public class ReportController {
         return ResponseEntity.ok(inventory);
     }
 
-    /**
-     * API Xuất danh sách Order ra file Excel
-     * Chỉ MANAGER hoặc ADMIN mới có quyền.
-     */
     @GetMapping("/orders/export")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<Resource> exportOrders(
@@ -79,13 +63,10 @@ public class ReportController {
             ByteArrayInputStream excelStream = reportService.exportOrdersToExcel(startDate, endDate);
             InputStreamResource resource = new InputStreamResource(excelStream);
 
-            // Tạo tên file động
             String filename = "Orders_" + startDate + "_to_" + endDate + ".xlsx";
 
             return ResponseEntity.ok()
-                    // Header cho trình duyệt biết đây là file đính kèm để tải xuống
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
-                    // Header cho biết loại file là Excel
                     .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                     .body(resource);
 
@@ -95,10 +76,6 @@ public class ReportController {
         }
     }
 
-    /**
-     * API Lấy báo cáo Lợi nhuận theo khoảng ngày
-     * Chỉ MANAGER hoặc ADMIN mới có quyền xem.
-     */
     @GetMapping("/profit")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<Map<String, Object>> getProfitReport(
@@ -107,7 +84,6 @@ public class ReportController {
     ) {
         Map<String, BigDecimal> profitData = reportService.getProfitReport(startDate, endDate);
 
-        // Tạo Map response để có cấu trúc rõ ràng, bao gồm cả ngày
         Map<String, Object> response = Map.of(
                 "startDate", startDate.toString(),
                 "endDate", endDate.toString(),
@@ -118,10 +94,6 @@ public class ReportController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * API Lấy danh sách sản phẩm bán chạy nhất
-     * Chỉ MANAGER hoặc ADMIN mới có quyền xem.
-     */
     @GetMapping("/best-sellers")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<List<BestSellerDTO>> getBestSellers(
@@ -130,7 +102,6 @@ public class ReportController {
             @RequestParam(defaultValue = "10") int top, // Mặc định lấy top 10
             @RequestParam(defaultValue = "quantity") String sortBy // Mặc định theo số lượng ('quantity' hoặc 'revenue')
     ) {
-        // Có thể thêm validation cho sortBy
         if (!sortBy.equalsIgnoreCase("quantity") && !sortBy.equalsIgnoreCase("revenue")) {
             sortBy = "quantity"; // Mặc định nếu giá trị không hợp lệ
         }
@@ -138,10 +109,6 @@ public class ReportController {
         return ResponseEntity.ok(bestSellers);
     }
 
-    /**
-     * API Lấy báo cáo Doanh thu chi tiết theo từng ngày trong khoảng thời gian
-     * Chỉ MANAGER hoặc ADMIN mới có quyền xem.
-     */
     @GetMapping("/revenue-by-date")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<Map<LocalDate, BigDecimal>> getRevenueByDateRange(
@@ -152,10 +119,6 @@ public class ReportController {
         return ResponseEntity.ok(dailyRevenue);
     }
 
-    /**
-     * API Lấy báo cáo Chi phí chi tiết theo từng ngày và loại trong khoảng thời gian
-     * Chỉ MANAGER hoặc ADMIN mới có quyền xem.
-     */
     @GetMapping("/expenses-by-date")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<Map<LocalDate, Map<String, BigDecimal>>> getExpensesByDateRange(

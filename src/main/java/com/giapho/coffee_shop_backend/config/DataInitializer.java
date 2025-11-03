@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-@Slf4j // Lombok annotation để tự động tạo logger
+@Slf4j
 public class DataInitializer implements CommandLineRunner {
 
     private final RoleRepository roleRepository;

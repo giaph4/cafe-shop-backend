@@ -23,10 +23,6 @@ public class ExpenseController {
 
     private final ExpenseService expenseService;
 
-    /**
-     * API Ghi nhận khoản chi mới
-     * Chỉ MANAGER hoặc ADMIN mới có quyền.
-     */
     @PostMapping
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<ExpenseDTO> createExpense(@Valid @RequestBody ExpenseDTO expenseDTO) {
@@ -34,10 +30,6 @@ public class ExpenseController {
         return new ResponseEntity<>(createdExpense, HttpStatus.CREATED);
     }
 
-    /**
-     * API Lấy danh sách chi phí (phân trang, lọc theo ngày)
-     * Chỉ MANAGER hoặc ADMIN mới có quyền xem.
-     */
     @GetMapping
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<Page<ExpenseDTO>> getAllExpenses(
@@ -51,10 +43,6 @@ public class ExpenseController {
         return ResponseEntity.ok(expenses);
     }
 
-    /**
-     * API Lấy chi tiết một khoản chi theo ID
-     * Chỉ MANAGER hoặc ADMIN mới có quyền xem.
-     */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<ExpenseDTO> getExpenseById(@PathVariable Long id) {
@@ -62,10 +50,6 @@ public class ExpenseController {
         return ResponseEntity.ok(expense);
     }
 
-    /**
-     * API Cập nhật thông tin một khoản chi
-     * Chỉ MANAGER hoặc ADMIN mới có quyền.
-     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<ExpenseDTO> updateExpense(
@@ -76,10 +60,6 @@ public class ExpenseController {
         return ResponseEntity.ok(updatedExpense);
     }
 
-    /**
-     * API Xoá một khoản chi
-     * Chỉ ADMIN mới có quyền xoá.
-     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteExpense(@PathVariable Long id) {

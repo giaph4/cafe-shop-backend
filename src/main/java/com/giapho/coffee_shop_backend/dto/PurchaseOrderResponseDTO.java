@@ -9,11 +9,11 @@ import java.util.Set;
 public class PurchaseOrderResponseDTO {
     private Long id;
     private Long supplierId;
-    private String supplierName; // Tên nhà cung cấp
-    private String staffUsername; // Tên nhân viên tạo
+    private String supplierName;
+    private String staffUsername;
     private LocalDateTime orderDate;
     private LocalDateTime expectedDate;
     private String status;
     private BigDecimal totalAmount;
-    private Set<PurchaseOrderDetailResponseDTO> purchaseOrderDetails; // Chi tiết các món nhập
+    private Set<PurchaseOrderDetailResponseDTO> purchaseOrderDetails;
 }

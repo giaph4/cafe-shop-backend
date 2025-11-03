@@ -10,9 +10,6 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
-import com.giapho.coffee_shop_backend.domain.entity.CafeTable;
-import com.giapho.coffee_shop_backend.domain.entity.User;
-
 @Getter
 @Setter
 @ToString
@@ -20,20 +17,18 @@ import com.giapho.coffee_shop_backend.domain.entity.User;
 @Builder
 @AllArgsConstructor
 @Entity
-@Table(name = "orders") // Tên bảng là "orders"
+@Table(name = "orders")
 public class Order {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // ----- MỐI QUAN HỆ VỚI BÀN -----
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "table_id")
     @ToString.Exclude
     private CafeTable cafeTable;
 
-    // ----- MỐI QUAN HỆ VỚI NHÂN VIÊN -----
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     @ToString.Exclude
@@ -50,11 +45,11 @@ public class Order {
     private Set<OrderDetail> orderDetails = new HashSet<>();
 
     @Column(nullable = false, length = 20)
-    private String type; // Loại đơn: AT_TABLE, TAKE_AWAY, DELIVERY
+    private String type;
 
     @Column(nullable = false, length = 20)
     @Builder.Default
-    private String status = "PENDING"; // Trạng thái: PENDING, PAID, CANCELLED
+    private String status = "PENDING";
 
     @Column(name = "sub_total", nullable = false)
     private BigDecimal subTotal;
@@ -80,15 +75,8 @@ public class Order {
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
-    @Column(name = "payment_method", length = 20) // Lưu 'CASH', 'TRANSFER', 'CARD', etc.
+    @Column(name = "payment_method", length = 20)
     private String paymentMethod;
-
-    /**
-     * ----- MỐI QUAN HỆ VỚI CHI TIẾT ĐƠN HÀNG -----
-     * Một Order có nhiều OrderDetail
-     * CascadeType.ALL: Khi lưu/xoá Order, tự động lưu/xoá OrderDetail
-     * orphanRemoval = true: Khi xoá 1 item khỏi Set, tự động xoá nó trong DB
-     */
 
     @PrePersist
     protected void onCreate() {

@@ -8,5 +8,4 @@ import org.mapstruct.Mapper;
 public interface VoucherMapper {
     VoucherCheckResponseDTO toDTO(Voucher voucher);
     Voucher toEntity(VoucherCheckResponseDTO voucherDTO);
-    // Thêm các mapping cho Create/Update DTOs nếu cần
 }

@@ -9,5 +9,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RoleDTO {
     private Long id;
-    private String name; // Ví dụ: "ROLE_STAFF", "ROLE_MANAGER"
+    private String name;
 }

@@ -9,8 +9,8 @@ import java.math.BigDecimal;
 @Builder
 public class VoucherCheckResponseDTO {
     private boolean isValid;
-    private String message; // Lý do không hợp lệ
+    private String message;
     private String code;
-    private BigDecimal discountAmount; // Số tiền giảm cụ thể cho đơn hàng này
+    private BigDecimal discountAmount;
     private Voucher.VoucherType type;
 }

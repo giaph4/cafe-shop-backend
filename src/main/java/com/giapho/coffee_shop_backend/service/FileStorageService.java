@@ -19,9 +19,6 @@ import java.nio.file.*;
 import java.util.Arrays;
 import java.util.UUID;
 
-/**
- * Service xử lý upload, lưu trữ và truy xuất file
- */
 @Service
 @Slf4j
 public class FileStorageService {
@@ -43,25 +40,18 @@ public class FileStorageService {
         }
     }
 
-    /**
-     * Lưu file và trả về tên file đã lưu
-     */
     public String storeFile(MultipartFile file) {
-        // Validate file
         validateFile(file);
 
-        // Tạo tên file unique
         String originalFileName = StringUtils.cleanPath(file.getOriginalFilename());
         String fileExtension = getFileExtension(originalFileName);
         String newFileName = generateUniqueFileName() + "." + fileExtension;
 
         try {
-            // Kiểm tra file name không có ký tự đặc biệt
             if (originalFileName.contains("..")) {
                 throw new FileStorageException("Filename contains invalid path sequence: " + originalFileName);
             }
 
-            // Copy file vào thư mục đích
             Path targetLocation = this.fileStorageLocation.resolve(newFileName);
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 
@@ -73,9 +63,6 @@ public class FileStorageService {
         }
     }
 
-    /**
-     * Load file như một Resource
-     */
     public Resource loadFileAsResource(String fileName) {
         try {
             Path filePath = this.fileStorageLocation.resolve(fileName).normalize();
@@ -91,9 +78,6 @@ public class FileStorageService {
         }
     }
 
-    /**
-     * Xóa file
-     */
     public void deleteFile(String fileName) {
         try {
             Path filePath = this.fileStorageLocation.resolve(fileName).normalize();
@@ -105,9 +89,7 @@ public class FileStorageService {
         }
     }
 
-    /**
-     * Lấy URL đầy đủ của file
-     */
+
     public String getFileUrl(String fileName) {
         if (fileName == null || fileName.isEmpty()) {
             return null;
@@ -115,9 +97,6 @@ public class FileStorageService {
         return fileStorageProperties.getBaseUrl() + "/api/v1/files/" + fileName;
     }
 
-    /**
-     * Extract file name từ URL
-     */
     public String extractFileNameFromUrl(String fileUrl) {
         if (fileUrl == null || fileUrl.isEmpty()) {
             return null;
@@ -125,18 +104,12 @@ public class FileStorageService {
         return fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
     }
 
-    // ==================== PRIVATE HELPER METHODS ====================
 
-    /**
-     * Validate file upload
-     */
     private void validateFile(MultipartFile file) {
-        // Kiểm tra file empty
         if (file.isEmpty()) {
             throw new FileStorageException("Cannot upload empty file");
         }
 
-        // Kiểm tra kích thước file
         if (file.getSize() > fileStorageProperties.getMaxFileSize()) {
             throw new FileStorageException(
                     String.format("File size exceeds maximum limit of %d MB",
@@ -144,7 +117,6 @@ public class FileStorageService {
             );
         }
 
-        // Kiểm tra extension
         String fileName = file.getOriginalFilename();
         String extension = getFileExtension(fileName);
 
@@ -158,13 +130,9 @@ public class FileStorageService {
             );
         }
 
-        // Validate là image file thật
         validateImageFile(file);
     }
 
-    /**
-     * Validate file là image hợp lệ
-     */
     private void validateImageFile(MultipartFile file) {
         try (InputStream input = file.getInputStream()) {
             BufferedImage image = ImageIO.read(input);
@@ -177,9 +145,6 @@ public class FileStorageService {
         }
     }
 
-    /**
-     * Lấy file extension
-     */
     private String getFileExtension(String fileName) {
         if (fileName == null || !fileName.contains(".")) {
             throw new FileStorageException("File must have an extension");
@@ -187,9 +152,6 @@ public class FileStorageService {
         return fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
     }
 
-    /**
-     * Tạo tên file unique
-     */
     private String generateUniqueFileName() {
         return UUID.randomUUID().toString();
     }

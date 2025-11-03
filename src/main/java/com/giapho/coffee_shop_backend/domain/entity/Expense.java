@@ -24,19 +24,19 @@ public class Expense {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false) // Nhân viên ghi nhận chi phí
+    @JoinColumn(name = "user_id", nullable = false)
     @ToString.Exclude
     private User user;
 
     @Column(nullable = false, length = 50)
-    private String category; // Loại chi phí: UTILITY, SALARY, RENT, MARKETING, INGREDIENT_PURCHASE, OTHER
+    private String category;
 
     @Column(nullable = false)
-    private BigDecimal amount; // Số tiền
+    private BigDecimal amount;
 
     @Lob
     @Column(columnDefinition = "TEXT")
-    private String description; // Mô tả chi tiết
+    private String description;
 
     @Column(name = "expense_date", nullable = false)
     private LocalDate expenseDate; // Ngày thực hiện chi
@@ -51,7 +51,6 @@ public class Expense {
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
-        // Gán ngày chi là hôm nay nếu chưa có (tùy chọn)
         if (this.expenseDate == null) {
             this.expenseDate = LocalDate.now();
         }
@@ -62,7 +61,6 @@ public class Expense {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // Ghi đè equals và hashCode
     @Override
     public final boolean equals(Object o) {
         if (this == o) return true;

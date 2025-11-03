@@ -19,25 +19,21 @@ public class ProductIngredient {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // Dùng ID riêng cho dòng định lượng này
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false) // Món ăn nào?
+    @JoinColumn(name = "product_id", nullable = false)
     @ToString.Exclude
     private Product product;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ingredient_id", nullable = false) // Cần nguyên liệu nào?
+    @JoinColumn(name = "ingredient_id", nullable = false)
     @ToString.Exclude
     private Ingredient ingredient;
 
     @Column(name = "quantity_needed", nullable = false)
-    private BigDecimal quantityNeeded; // Cần bao nhiêu? (Đơn vị tính theo Ingredient.unit)
+    private BigDecimal quantityNeeded;
 
-    // Ghi đè equals và hashCode
-    // Quan trọng: equals/hashCode nên dựa trên Product và Ingredient (hoặc ID nếu đã có)
-    // để tránh thêm trùng lặp cùng một nguyên liệu cho cùng một sản phẩm.
-    // Tuy nhiên, cách đơn giản nhất vẫn là dựa trên ID cho nhất quán.
     @Override
     public final boolean equals(Object o) {
         if (this == o) return true;

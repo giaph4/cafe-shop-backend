@@ -13,24 +13,24 @@ import java.time.LocalDateTime;
 @Data
 public class ExpenseDTO {
 
-    private Long id; // Chỉ dùng khi hiển thị
+    private Long id;
 
-    private Long userId; // ID người tạo (chỉ hiển thị)
-    private String username; // Tên người tạo (chỉ hiển thị)
+    private Long userId;
+    private String username;
 
     @NotBlank(message = "Expense category is required")
-    private String category; // Loại chi phí
+    private String category;
 
     @NotNull(message = "Amount is required")
     @Positive(message = "Amount must be positive")
-    private BigDecimal amount; // Số tiền
+    private BigDecimal amount;
 
-    private String description; // Mô tả
+    private String description;
 
     @NotNull(message = "Expense date is required")
     @PastOrPresent(message = "Expense date cannot be in the future")
-    private LocalDate expenseDate; // Ngày chi
+    private LocalDate expenseDate;
 
-    private LocalDateTime createdAt; // Chỉ hiển thị
-    private LocalDateTime updatedAt; // Chỉ hiển thị
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

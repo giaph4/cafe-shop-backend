@@ -12,13 +12,11 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface ProductIngredientMapper {
 
-    // DTO -> Entity (Khi tạo/cập nhật)
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "product", ignore = true) // Sẽ gán thủ công
+    @Mapping(target = "product", ignore = true)
     @Mapping(source = "ingredientId", target = "ingredient", qualifiedByName = "ingredientIdToIngredient")
     ProductIngredient dtoToEntity(ProductIngredientDTO dto);
 
-    // Entity -> DTO (Khi hiển thị)
     @Mapping(source = "ingredient.id", target = "ingredientId")
     @Mapping(source = "ingredient.name", target = "ingredientName")
     @Mapping(source = "ingredient.unit", target = "ingredientUnit")
@@ -26,7 +24,6 @@ public interface ProductIngredientMapper {
 
     List<ProductIngredientDTO> entityListToDtoList(List<ProductIngredient> entities);
 
-    // Helper tạo Ingredient proxy
     @Named("ingredientIdToIngredient")
     default Ingredient ingredientIdToIngredient(Long ingredientId) {
         if (ingredientId == null) return null;

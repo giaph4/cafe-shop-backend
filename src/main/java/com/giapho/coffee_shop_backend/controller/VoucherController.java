@@ -18,12 +18,11 @@ public class VoucherController {
     @GetMapping("/check")
     public ResponseEntity<VoucherCheckResponseDTO> checkVoucher(
             @RequestParam String code,
-            @RequestParam BigDecimal amount) { // `amount` là tổng tiền tạm tính của đơn hàng
+            @RequestParam BigDecimal amount) {
         try {
             VoucherCheckResponseDTO response = voucherService.checkAndCalculateDiscount(code, amount);
             return ResponseEntity.ok(response);
         } catch (EntityNotFoundException e) {
-            // Trả về response không hợp lệ thay vì 404 để frontend dễ xử lý
             return ResponseEntity.ok(VoucherCheckResponseDTO.builder()
                     .isValid(false)
                     .message(e.getMessage())
@@ -31,7 +30,6 @@ public class VoucherController {
                     .discountAmount(BigDecimal.ZERO)
                     .build());
         } catch (Exception e) {
-            // Lỗi khác
             return ResponseEntity.internalServerError().body(VoucherCheckResponseDTO.builder()
                     .isValid(false)
                     .message("Lỗi hệ thống khi kiểm tra voucher.")

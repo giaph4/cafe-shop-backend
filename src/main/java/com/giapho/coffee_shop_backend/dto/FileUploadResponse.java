@@ -5,9 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Response DTO cho file upload
- */
 @Data
 @Builder
 @NoArgsConstructor

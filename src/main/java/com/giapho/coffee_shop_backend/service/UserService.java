@@ -2,7 +2,7 @@ package com.giapho.coffee_shop_backend.service;
 
 import com.giapho.coffee_shop_backend.domain.entity.Role;
 import com.giapho.coffee_shop_backend.domain.entity.User;
-import com.giapho.coffee_shop_backend.domain.repository.RoleRepository; // Import RoleRepository
+import com.giapho.coffee_shop_backend.domain.repository.RoleRepository;
 import com.giapho.coffee_shop_backend.domain.repository.UserRepository;
 import com.giapho.coffee_shop_backend.dto.ChangePasswordRequestDTO;
 import com.giapho.coffee_shop_backend.dto.UserResponseDTO;
@@ -18,16 +18,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet; // Import HashSet
-import java.util.Set; // Import Set
-import java.util.stream.Collectors; // Import Collectors
+import java.util.HashSet;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
-    private final RoleRepository roleRepository; // Cần để kiểm tra Role ID hợp lệ
+    private final RoleRepository roleRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
 
@@ -58,19 +57,16 @@ public class UserService {
         User existingUser = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
 
-        // Kiểm tra SĐT mới (nếu thay đổi)
         if (!existingUser.getPhone().equals(updateDTO.getPhone()) &&
                 userRepository.existsByPhone(updateDTO.getPhone())) {
             throw new IllegalArgumentException("Phone number already exists: " + updateDTO.getPhone());
         }
-        // Kiểm tra Email mới (nếu thay đổi và không rỗng)
         if (updateDTO.getEmail() != null && !updateDTO.getEmail().isEmpty() &&
-                !updateDTO.getEmail().equals(existingUser.getEmail()) && // Chỉ kiểm tra nếu email thực sự thay đổi
+                !updateDTO.getEmail().equals(existingUser.getEmail()) &&
                 userRepository.existsByEmail(updateDTO.getEmail())) {
             throw new IllegalArgumentException("Email already exists: " + updateDTO.getEmail());
         }
 
-        // **Kiểm tra và lấy các đối tượng Role từ DB**
         Set<Role> roles = new HashSet<>();
         if (updateDTO.getRoleIds() != null) {
             for (Long roleId : updateDTO.getRoleIds()) {
@@ -83,16 +79,12 @@ public class UserService {
             throw new IllegalArgumentException("User must have at least one role.");
         }
 
-        // Dùng mapper cập nhật thông tin cơ bản (mapper đã ignore roles)
         userMapper.updateUserFromDto(updateDTO, existingUser);
 
-        // Gán lại Set<Role> đầy đủ từ DB vào User
         existingUser.setRoles(roles);
 
-        // Lưu thay đổi
         User updatedUser = userRepository.save(existingUser);
 
-        // Trả về DTO
         return userMapper.toUserResponseDto(updatedUser);
     }
 
