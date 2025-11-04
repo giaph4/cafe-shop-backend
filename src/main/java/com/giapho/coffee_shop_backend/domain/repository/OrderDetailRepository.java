@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import org.springframework.data.domain.Pageable;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -20,11 +21,12 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
     List<OrderDetail> findPaidOrderDetailsBetweenDates(
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate);
-
+    
     @Query("SELECT new com.giapho.coffee_shop_backend.dto.BestSellerDTO(" +
             "  od.product.id, " +
             "  od.product.name, " +
             "  SUM(od.quantity) as totalQuantity, " +
+            "  SUM(od.quantity * od.priceAtOrder) as totalRevenue) " + // Đã sửa
             "FROM OrderDetail od JOIN od.order o " +
             "WHERE o.status = 'PAID' AND o.paidAt BETWEEN :startDate AND :endDate " +
             "GROUP BY od.product.id, od.product.name " +
@@ -38,6 +40,7 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
             "  od.product.id, " +
             "  od.product.name, " +
             "  SUM(od.quantity) as totalQuantity, " +
+            "  SUM(od.quantity * od.priceAtOrder) as totalRevenue) " + // Đã sửa
             "FROM OrderDetail od JOIN od.order o " +
             "WHERE o.status = 'PAID' AND o.paidAt BETWEEN :startDate AND :endDate " +
             "GROUP BY od.product.id, od.product.name " +

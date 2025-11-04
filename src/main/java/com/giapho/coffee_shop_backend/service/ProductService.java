@@ -34,18 +34,14 @@ public class ProductService {
     private final OrderDetailRepository orderDetailRepository;
     private final FileStorageService fileStorageService;
 
-    /**
-     * Lấy sản phẩm (có phân trang)
-     */
+
     @Transactional(readOnly = true)
     public Page<ProductResponse> getAllProducts(Pageable pageable) {
         Page<Product> productPage = productRepository.findAll(pageable);
         return productPage.map(productMapper::toProductResponse);
     }
 
-    /**
-     * Lấy chi tiết 1 sản phẩm
-     */
+
     @Transactional(readOnly = true)
     public ProductResponse getProductById(Long productId) {
         Product product = productRepository.findById(productId)
@@ -53,9 +49,6 @@ public class ProductService {
         return productMapper.toProductResponse(product);
     }
 
-    /**
-     * Tạo sản phẩm mới
-     */
     @Transactional
     public ProductResponse createProduct(ProductRequest productRequest) {
         if (productRepository.existsByCode(productRequest.getCode())) {
@@ -77,9 +70,6 @@ public class ProductService {
         return productMapper.toProductResponse(savedProduct);
     }
 
-    /**
-     * Lấy sản phẩm có lọc theo tên và/hoặc categoryId
-     */
     @Transactional(readOnly = true)
     public Page<ProductResponse> getFilteredProducts(String name, Long categoryId, Pageable pageable) {
 
@@ -101,9 +91,7 @@ public class ProductService {
         return productPage.map(productMapper::toProductResponse);
     }
 
-    /**
-     * Cập nhật sản phẩm
-     */
+ 
     @Transactional
     public ProductResponse updateProduct(Long id, ProductRequest productRequest) {
         Product existingProduct = productRepository.findById(id)
@@ -122,9 +110,6 @@ public class ProductService {
         return productMapper.toProductResponse(updatedProduct);
     }
 
-    /**
-     * Xoá sản phẩm
-     */
     @Transactional
     public void deleteProduct(Long id) {
         Product product = productRepository.findById(id)
@@ -144,9 +129,7 @@ public class ProductService {
         log.info("Deleted product and its data for ID: {}", id);
     }
 
-    /**
-     * Ẩn/hiện sản phẩm
-     */
+
     @Transactional
     public ProductResponse toggleProductAvailability(Long id) {
         Product product = productRepository.findById(id)
@@ -185,9 +168,6 @@ public class ProductService {
         return productMapper.toProductResponse(savedProduct);
     }
 
-    /**
-     * CẢI TIẾN: Cập nhật sản phẩm với image upload (optional)
-     */
     @Transactional
     public ProductResponse updateProductWithImage(
             Long id,

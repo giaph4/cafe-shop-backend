@@ -68,8 +68,8 @@ public class CafeTableService {
     @Transactional
     public CafeTableResponse updateTableStatus(Long id, String status) {
         // (Có thể thêm logic kiểm tra status hợp lệ: "EMPTY", "SERVING", "RESERVED")
-        if (status == null || (!status.equals("EMPTY") && !status.equals("SERVING") && !status.equals("RESERVED"))) {
-            throw new IllegalArgumentException("Invalid status. Must be one of: EMPTY, SERVING, RESERVED");
+        if (status == null || (!status.equals("PENDING") && !status.equals("AVAILABLE") &&!status.equals("EMPTY") && !status.equals("SERVING") && !status.equals("RESERVED"))) {
+            throw new IllegalArgumentException("Invalid status. Must be one of: PENDING, AVAILABLE, EMPTY, SERVING, RESERVED");
         }
 
         CafeTable table = cafeTableRepository.findById(id)
