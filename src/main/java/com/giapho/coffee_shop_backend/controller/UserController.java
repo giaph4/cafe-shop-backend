@@ -1,6 +1,7 @@
 package com.giapho.coffee_shop_backend.controller;
 
 import com.giapho.coffee_shop_backend.dto.ChangePasswordRequestDTO;
+import com.giapho.coffee_shop_backend.dto.RoleDTO;
 import com.giapho.coffee_shop_backend.dto.UserResponseDTO;
 import com.giapho.coffee_shop_backend.dto.UserUpdateRequestDTO;
 import com.giapho.coffee_shop_backend.service.UserService;
@@ -14,12 +15,23 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
+
+
+    // lay tat ca roles
+    @GetMapping("/roles")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<RoleDTO>> getAllRoles() {
+        List<RoleDTO> roles = userService.getAllRoles();
+        return ResponseEntity.ok(roles);
+    }
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -55,4 +67,6 @@ public class UserController {
         userService.changePassword(request);
         return ResponseEntity.ok("Password changed successfully");
     }
+
+
 }

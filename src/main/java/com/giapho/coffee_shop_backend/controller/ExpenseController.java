@@ -37,7 +37,7 @@ public class ExpenseController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             // Tham số lọc theo ngày kết thúc (tùy chọn)
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @PageableDefault(size = 15, page = 0, sort = "expenseDate", direction = Sort.Direction.DESC) Pageable pageable
+            @PageableDefault(size = 10, page = 0, sort = "expenseDate", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         Page<ExpenseDTO> expenses = expenseService.getAllExpenses(startDate, endDate, pageable);
         return ResponseEntity.ok(expenses);

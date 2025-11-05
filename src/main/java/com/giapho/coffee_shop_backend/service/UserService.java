@@ -5,8 +5,10 @@ import com.giapho.coffee_shop_backend.domain.entity.User;
 import com.giapho.coffee_shop_backend.domain.repository.RoleRepository;
 import com.giapho.coffee_shop_backend.domain.repository.UserRepository;
 import com.giapho.coffee_shop_backend.dto.ChangePasswordRequestDTO;
+import com.giapho.coffee_shop_backend.dto.RoleDTO;
 import com.giapho.coffee_shop_backend.dto.UserResponseDTO;
 import com.giapho.coffee_shop_backend.dto.UserUpdateRequestDTO;
+import com.giapho.coffee_shop_backend.mapper.RoleMapper;
 import com.giapho.coffee_shop_backend.mapper.UserMapper;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +21,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +33,14 @@ public class UserService {
     private final RoleRepository roleRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final RoleMapper roleMapper;
+
+    //    lây tất cả role
+    @Transactional(readOnly = true)
+    public List<RoleDTO> getAllRoles() {
+        return roleRepository.findAll().stream().map(roleMapper::toDto)
+                .collect(Collectors.toList());
+    }
 
     /**
      * Lấy danh sách tất cả người dùng (phân trang)
@@ -127,4 +139,5 @@ public class UserService {
                 .orElseThrow(() -> new EntityNotFoundException("User not found with username: " + username));
         return userMapper.toUserResponseDto(user);
     }
+
 }
