@@ -1,19 +1,43 @@
 package com.giapho.coffee_shop_backend.domain.repository;
 
 import com.giapho.coffee_shop_backend.domain.entity.User;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
-
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByUsername(String username);
 
-    Boolean existsByUsername(String username);
+    boolean existsByUsername(String username);
 
-    Boolean existsByEmail(String email);
+    boolean existsByEmail(String email);
 
-    Boolean existsByPhone(String phone);
+    @Query("SELECT new com.giapho.coffee_shop_backend.dto.StaffPerformanceDTO(" +
+            "  u.id, " +
+            "  u.username, " +
+            "  u.fullName, " +
+            "  CAST(COUNT(o.id) AS long), " +
+            "  CAST(COALESCE(SUM(o.totalAmount), 0) AS java.math.BigDecimal), " +
+            "  CAST(COALESCE(AVG(o.totalAmount), 0) AS java.math.BigDecimal), " +
+            "  'STAFF') " +
+            "FROM User u " +
+            "LEFT JOIN Order o ON o.user.id = u.id AND o.status = 'PAID' AND o.paidAt BETWEEN :startDate AND :endDate " +
+            "GROUP BY u.id, u.username, u.fullName " +
+            "ORDER BY COALESCE(SUM(o.totalAmount), 0) DESC")
+    List<com.giapho.coffee_shop_backend.dto.StaffPerformanceDTO> findStaffPerformanceBetweenDates(
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            Pageable pageable);
+
+    boolean existsByPhone(@NotBlank(message = "Phone number is required") @Pattern(regexp = "^(\\+?84|0)\\d{9}$", message = "Invalid Vietnamese phone number format") String phone);
 }
+

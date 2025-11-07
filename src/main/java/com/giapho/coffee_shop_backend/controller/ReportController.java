@@ -1,7 +1,14 @@
 package com.giapho.coffee_shop_backend.controller;
 
 import com.giapho.coffee_shop_backend.dto.BestSellerDTO;
+import com.giapho.coffee_shop_backend.dto.CategorySalesDTO;
+import com.giapho.coffee_shop_backend.dto.CustomerAnalyticsDTO;
+import com.giapho.coffee_shop_backend.dto.DashboardStatsDTO;
+import com.giapho.coffee_shop_backend.dto.HourlySalesDTO;
 import com.giapho.coffee_shop_backend.dto.IngredientResponseDTO;
+import com.giapho.coffee_shop_backend.dto.PaymentMethodStatsDTO;
+import com.giapho.coffee_shop_backend.dto.SalesComparisonDTO;
+import com.giapho.coffee_shop_backend.dto.StaffPerformanceDTO;
 import com.giapho.coffee_shop_backend.service.ReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -18,6 +25,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1/reports")
 @RequiredArgsConstructor
@@ -42,7 +50,7 @@ public class ReportController {
     @GetMapping("/inventory")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<List<IngredientResponseDTO>> getInventoryReport(
-            @RequestParam(required = false, defaultValue = "false") boolean lowStock // Tham số tùy chọn
+            @RequestParam(required = false, defaultValue = "false") boolean lowStock
     ) {
         List<IngredientResponseDTO> inventory;
         if (lowStock) {
@@ -71,7 +79,6 @@ public class ReportController {
                     .body(resource);
 
         } catch (IOException e) {
-            // Có thể trả về lỗi 500 hoặc một response lỗi cụ thể hơn
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
@@ -99,11 +106,11 @@ public class ReportController {
     public ResponseEntity<List<BestSellerDTO>> getBestSellers(
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(defaultValue = "10") int top, // Mặc định lấy top 10
-            @RequestParam(defaultValue = "quantity") String sortBy // Mặc định theo số lượng ('quantity' hoặc 'revenue')
+            @RequestParam(defaultValue = "10") int top,
+            @RequestParam(defaultValue = "quantity") String sortBy
     ) {
         if (!sortBy.equalsIgnoreCase("quantity") && !sortBy.equalsIgnoreCase("revenue")) {
-            sortBy = "quantity"; // Mặc định nếu giá trị không hợp lệ
+            sortBy = "quantity";
         }
         List<BestSellerDTO> bestSellers = reportService.getBestSellingProducts(startDate, endDate, top, sortBy);
         return ResponseEntity.ok(bestSellers);
@@ -127,5 +134,114 @@ public class ReportController {
     ) {
         Map<LocalDate, Map<String, BigDecimal>> dailyExpenses = reportService.getExpenseReportByDateRange(startDate, endDate);
         return ResponseEntity.ok(dailyExpenses);
+    }
+
+    @GetMapping("/top-customers")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ResponseEntity<List<CustomerAnalyticsDTO>> getTopCustomers(
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(defaultValue = "10") int top
+    ) {
+        List<CustomerAnalyticsDTO> topCustomers = reportService.getTopCustomers(startDate, endDate, top);
+        return ResponseEntity.ok(topCustomers);
+    }
+
+    @GetMapping("/staff-performance")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ResponseEntity<List<StaffPerformanceDTO>> getStaffPerformance(
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(defaultValue = "10") int top
+    ) {
+        List<StaffPerformanceDTO> staffPerformance = reportService.getStaffPerformance(startDate, endDate, top);
+        return ResponseEntity.ok(staffPerformance);
+    }
+
+    @GetMapping("/category-sales")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ResponseEntity<List<CategorySalesDTO>> getCategorySales(
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        List<CategorySalesDTO> categorySales = reportService.getCategorySales(startDate, endDate);
+        return ResponseEntity.ok(categorySales);
+    }
+
+    @GetMapping("/hourly-sales")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ResponseEntity<List<HourlySalesDTO>> getHourlySales(
+            @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+    ) {
+        List<HourlySalesDTO> hourlySales = reportService.getHourlySales(date);
+        return ResponseEntity.ok(hourlySales);
+    }
+
+    @GetMapping("/payment-method-stats")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ResponseEntity<List<PaymentMethodStatsDTO>> getPaymentMethodStats(
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        List<PaymentMethodStatsDTO> stats = reportService.getPaymentMethodStats(startDate, endDate);
+        return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/sales-comparison")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ResponseEntity<SalesComparisonDTO> compareSales(
+            @RequestParam("currentStart") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate currentStart,
+            @RequestParam("currentEnd") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate currentEnd,
+            @RequestParam("previousStart") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate previousStart,
+            @RequestParam("previousEnd") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate previousEnd
+    ) {
+        SalesComparisonDTO comparison = reportService.compareSalesPeriods(currentStart, currentEnd, previousStart, previousEnd);
+        return ResponseEntity.ok(comparison);
+    }
+
+    @GetMapping("/dashboard")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ResponseEntity<DashboardStatsDTO> getDashboardStats() {
+        DashboardStatsDTO stats = reportService.getDashboardStats();
+        return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/inventory/export")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ResponseEntity<Resource> exportInventory() {
+        try {
+            ByteArrayInputStream excelStream = reportService.exportInventoryToExcel();
+            InputStreamResource resource = new InputStreamResource(excelStream);
+
+            String filename = "Inventory_" + LocalDate.now() + ".xlsx";
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
+                    .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    .body(resource);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    @GetMapping("/expenses/export")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ResponseEntity<Resource> exportExpenses(
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        try {
+            ByteArrayInputStream excelStream = reportService.exportExpensesToExcel(startDate, endDate);
+            InputStreamResource resource = new InputStreamResource(excelStream);
+
+            String filename = "Expenses_" + startDate + "_to_" + endDate + ".xlsx";
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
+                    .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    .body(resource);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 }

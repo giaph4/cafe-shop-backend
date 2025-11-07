@@ -37,20 +37,6 @@ public class SecurityConfig {
     private final CustomAccessDeniedHandler accessDeniedHandler;
 
     @Bean
-    public WebMvcConfigurer corsConfigurer() {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/api/v1/**") // Chỉ áp dụng cho các API của bạn
-                        .allowedOrigins("http://localhost:5173") // Cho phép FE (thay đổi port nếu cần)
-                        .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS") // Cho phép các phương thức
-                        .allowedHeaders("*") // Cho phép tất cả header
-                        .allowCredentials(true); // Cho phép gửi cookie (nếu cần)
-            }
-        };
-    }
-
-    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -59,6 +45,8 @@ public class SecurityConfig {
                         // Set SecurityContextHolder to anonymous SecurityContext
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/v1/auth/login")
+                        .permitAll()
+                        .requestMatchers("/api/v1/auth/register")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/files/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/files/**").hasAnyRole("MANAGER", "ADMIN")

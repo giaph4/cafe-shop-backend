@@ -52,4 +52,22 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     long countByCafeTableId(Long tableId);
 
+    @Query("SELECT o FROM Order o WHERE o.status = 'PAID' AND FUNCTION('DATE', o.paidAt) = CURRENT_DATE")
+    List<Order> findTodayPaidOrders();
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status = 'PAID' AND FUNCTION('DATE', o.paidAt) = CURRENT_DATE")
+    Long countTodayOrders();
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status = 'PAID' AND FUNCTION('YEAR', o.paidAt) = FUNCTION('YEAR', CURRENT_DATE) AND FUNCTION('MONTH', o.paidAt) = FUNCTION('MONTH', CURRENT_DATE)")
+    Long countMonthOrders();
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status = 'PAID' AND FUNCTION('YEAR', o.paidAt) = FUNCTION('YEAR', CURRENT_DATE)")
+    Long countYearOrders();
+
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.status = 'PAID' AND FUNCTION('YEAR', o.paidAt) = FUNCTION('YEAR', CURRENT_DATE) AND FUNCTION('MONTH', o.paidAt) = FUNCTION('MONTH', CURRENT_DATE)")
+    BigDecimal sumMonthRevenue();
+
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.status = 'PAID' AND FUNCTION('YEAR', o.paidAt) = FUNCTION('YEAR', CURRENT_DATE)")
+    BigDecimal sumYearRevenue();
+
 }
