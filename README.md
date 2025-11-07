@@ -1,111 +1,123 @@
-# Coffee Shop Management System - Backend API
+# ☕ Hệ Thống Quản Lý Quán Cà Phê - Backend API
 
 ## 📋 Tổng Quan
 
-Hệ thống quản lý quán cà phê toàn diện với các tính năng:
-- ✅ Quản lý sản phẩm, danh mục
-- ✅ Quản lý đơn hàng, bàn
-- ✅ Quản lý nhân viên, khách hàng
-- ✅ Quản lý kho, nguyên liệu
-- ✅ Hệ thống voucher giảm giá
-- ✅ Báo cáo doanh thu, lợi nhuận
-- ✅ Authentication & Authorization với JWT
-- ✅ Audit Trail (tracking thay đổi)
+Hệ thống quản lý quán cà phê toàn diện với đầy đủ các tính năng cần thiết cho việc vận hành một quán cà phê chuyên nghiệp.
+
+### Quản Lý Cơ Bản
+- ✅ Quản lý sản phẩm & danh mục
+- ✅ Quản lý đơn hàng & bàn
+- ✅ Quản lý nhân viên & phân quyền
+- ✅ Quản lý khách hàng & tích điểm
+- ✅ Quản lý kho & nguyên liệu
+- ✅ Hệ thống khuyến mãi & voucher
+
+### Báo Cáo & Phân Tích
+- 📊 Báo cáo doanh thu theo ngày/tuần/tháng
+- 📈 Đánh giá hiệu suất nhân viên
+- 📉 Thống kê bán hàng theo danh mục
+- 🕒 Phân tích giờ cao điểm
+- 💳 Thống kê phương thức thanh toán
+- 🔄 So sánh doanh thu theo kỳ
+
+### Tính Năng Hệ Thống
+- 🔐 Xác thực và phân quyền với JWT
+- 📝 Theo dõi lịch sử thay đổi
+- 📱 API RESTful chuẩn với OpenAPI 3.0
+- 📊 Xuất báo cáo ra file Excel
+- 🐳 Hỗ trợ triển khai với Docker
 
 ## 🛠 Công Nghệ Sử Dụng
 
-- **Java 21**
-- **Spring Boot 3.5.6**
-- **MySQL 8.0+**
-- **JWT (JSON Web Token)**
-- **MapStruct** (DTO Mapping)
-- **Lombok** (Boilerplate Reduction)
-- **Apache POI** (Excel Export)
-- **SpringDoc OpenAPI** (API Documentation)
+- **Java 21** - Ngôn ngữ lập trình chính
+- **Spring Boot 3.5.6** - Framework backend
+- **MySQL 8.0+** - Hệ quản trị cơ sở dữ liệu
+- **JWT** - Xác thực người dùng
+- **MapStruct** - Ánh xạ đối tượng DTO
+- **Lombok** - Giảm code boilerplate
+- **Apache POI** - Xuất báo cáo Excel
+- **SpringDoc OpenAPI** - Tài liệu API tự động
 
-## 📦 Cài Đặt
+## 🚀 Hướng Dẫn Cài Đặt
 
 ### 1. Yêu Cầu Hệ Thống
 
-```bash
-- JDK 21+
+- JDK 21 trở lên
+- MySQL 8.0+ hoặc MariaDB
 - Maven 3.8+
-- MySQL 8.0+
 - Git
-```
 
-### 2. Clone Repository
+### 2. Cài Đặt Với Docker (Khuyến Nghị)
 
 ```bash
-git clone https://github.com/your-repo/coffee-shop-backend.git
+# Sao chép mã nguồn
+git clone [đường-dẫn-repository]
 cd coffee-shop-backend
+
+# Khởi động ứng dụng
+docker-compose up -d
 ```
 
-### 3. Cấu Hình Database
+### 3. Cấu Hình Cơ Sở Dữ Liệu
 
-Tạo database MySQL:
+Tạo database mới:
 
 ```sql
-CREATE DATABASE coffee_shop_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE coffee_shop_db 
+CHARACTER SET utf8mb4 
+COLLATE utf8mb4_unicode_ci;
 ```
 
-Cập nhật `src/main/resources/application.properties`:
+Cấu hình kết nối trong `application.properties`:
 
 ```properties
 spring.datasource.url=jdbc:mysql://localhost:3306/coffee_shop_db
-spring.datasource.username=your_username
-spring.datasource.password=your_password
+spring.datasource.username=tên_đăng_nhập
+spring.datasource.password=mật_khẩu
 ```
 
-### 4. Build & Run
+### 4. Biên Dịch Và Chạy
 
 ```bash
-# Build project
+# Biên dịch dự án
 ./mvnw clean install
 
-# Run application
+# Khởi động ứng dụng
 ./mvnw spring-boot:run
 ```
 
-Hoặc trên Windows:
+Truy cập ứng dụng tại: http://localhost:8088
 
-```bash
-mvnw.cmd clean install
-mvnw.cmd spring-boot:run
-```
+## 🔐 Bảo Mật
 
-Application sẽ chạy tại: `http://localhost:8088`
+### Cấu Hình JWT
 
-## 🔐 Security
-
-### JWT Configuration
-
-**QUAN TRỌNG**: Trong môi trường production, đổi JWT secret key:
+**LƯU Ý QUAN TRỌNG**: Trong môi trường thật, cần thay đổi khóa bí mật JWT:
 
 ```properties
 # Sử dụng biến môi trường
 application.jwt.secretKey=${JWT_SECRET_KEY}
 ```
 
-Tạo secret key mạnh:
+Tạo khóa bảo mật mạnh:
 
 ```bash
 openssl rand -base64 64
 ```
 
-### Default Roles
+### Các Vai Trò Mặc Định
 
-Hệ thống tự động tạo 3 roles:
-- `ROLE_ADMIN` - Toàn quyền
-- `ROLE_MANAGER` - Quản lý
-- `ROLE_STAFF` - Nhân viên
+Hệ thống có sẵn 3 vai trò:
+- `ROLE_ADMIN` - Quản trị viên (toàn quyền)
+- `ROLE_MANAGER` - Quản lý (quyền hạn trung bình)
+- `ROLE_STAFF` - Nhân viên (quyền cơ bản)
 
-## 📚 API Documentation
+## 📚 Tài Liệu API
 
-Sau khi chạy ứng dụng, truy cập:
+Sau khi khởi động ứng dụng, truy cập:
 
-- **Swagger UI**: http://localhost:8088/swagger-ui.html
-- **API Docs**: http://localhost:8088/api-docs
+- **Giao Diện Swagger**: http://localhost:8088/swagger-ui.html
+- **Tài Liệu API Chi Tiết**: http://localhost:8088/api-docs
 
 ## 🔑 Authentication
 
@@ -202,38 +214,41 @@ Content-Type: application/json
 ### Báo Cáo Doanh Thu
 
 ```http
-GET /api/v1/reports/daily-revenue?date=2025-11-01
+GET /api/v1/reports/doanh-thu?tuNgay=2025-01-01&denNgay=2025-12-31
 Authorization: Bearer {token}
 ```
 
-## 🗂 Cấu Trúc Dự Án
+## Cấu Trúc Dự Án
 
 ```
 src/main/java/com/giapho/coffee_shop_backend/
-├── common/              # Constants, Enums
-├── config/              # Spring Configuration
-├── controller/          # REST Controllers
+├── common/              # Hằng số, kiểu liệt kê
+├── config/              # Cấu hình Spring
+├── controller/          # Điều khiển API
 ├── domain/
-│   ├── entity/         # JPA Entities
-│   └── repository/     # JPA Repositories
-├── dto/                 # Data Transfer Objects
-├── exception/           # Exception Handling
-├── mapper/              # MapStruct Mappers
-├── security/            # Security Components
-└── service/             # Business Logic
+│   ├── entity/         # Thực thể cơ sở dữ liệu
+│   └── repository/     # Kho dữ liệu
+├── dto/                # Đối tượng truyền dữ liệu
+├── exception/          # Xử lý ngoại lệ
+├── mapper/             # Ánh xạ đối tượng
+├── security/           # Bảo mật
+└── service/            # Nghiệp vụ chính
 ```
 
-## 🧪 Testing
+## Kiểm Thử
 
 ```bash
-# Chạy tất cả tests
+# Chạy tất cả các bài test
 ./mvnw test
 
-# Chạy với coverage report
+# Chạy test với báo cáo độ phủ code
 ./mvnw test jacoco:report
+
+# Chạy kiểm thử tích hợp
+./mvnw verify
 ```
 
-## 🔧 Cấu Hình Nâng Cao
+## Cấu Hình Nâng Cao
 
 ### CORS Configuration
 

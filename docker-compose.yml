@@ -7,8 +7,6 @@ services:
     command: --default-authentication-plugin=caching_sha2_password
     environment:
       MYSQL_DATABASE: coffee_shop_db
-      MYSQL_USER: root
-      MYSQL_PASSWORD: admin123
       MYSQL_ROOT_PASSWORD: admin123
     ports:
       - "3306:3306"
