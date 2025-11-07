@@ -42,6 +42,11 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             "LEFT JOIN FETCH o.customer " +
             "WHERE o.id = :id AND o.status = 'PENDING'")
     Optional<Order> findPendingOrderByIdWithDetails(@Param("id") Long id);
+    
+    @Query("SELECT o FROM Order o " +
+            "LEFT JOIN FETCH o.customer " +
+            "WHERE o.id = :id")
+    Optional<Order> findByIdWithCustomer(@Param("id") Long id);
 
     @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.status = 'PAID' AND o.paidAt >= :startDateTime AND o.paidAt < :endDateTime")
     BigDecimal sumAmountBetweenDates(

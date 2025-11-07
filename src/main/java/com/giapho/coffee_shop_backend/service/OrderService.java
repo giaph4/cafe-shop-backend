@@ -38,6 +38,7 @@ public class OrderService {
     private final ProductIngredientRepository productIngredientRepository;
     private final OrderMapper orderMapper;
     private final VoucherService voucherService;
+    private final CustomerService customerService;
 
     /**
      * Lấy danh sách Order (có phân trang)
@@ -95,10 +96,14 @@ public class OrderService {
         User currentUser = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new EntityNotFoundException("Current user not found"));
 
+        // Load customer with proper error handling
         Customer customer = null;
         if (request.getCustomerId() != null) {
             customer = customerRepository.findById(request.getCustomerId())
                     .orElseThrow(() -> new EntityNotFoundException("Customer not found with id: " + request.getCustomerId()));
+            log.info("Associating customer ID {} with new order", customer.getId());
+        } else {
+            log.info("No customer associated with new order");
         }
 
         CafeTable table = null;
@@ -219,35 +224,51 @@ public class OrderService {
      */
     @Transactional
     public OrderResponseDTO payOrder(Long orderId, PaymentRequestDTO paymentRequest) {
-        Order order = findPendingOrderById(orderId);
+        // Load order with customer relationship
+        Order order = orderRepository.findByIdWithCustomer(orderId)
+                .orElseThrow(() -> new EntityNotFoundException("Order not found with id: " + orderId));
+                
+        if (!"PENDING".equals(order.getStatus())) {
+            throw new IllegalStateException("Cannot pay order with status: " + order.getStatus());
+        }
 
         String paymentMethod = validatePaymentMethod(paymentRequest.getPaymentMethod());
 
         subtractInventoryForOrder(order);
 
+        // Lưu lại mã voucher đã áp dụng trước khi cập nhật trạng thái đơn hàng
         String appliedVoucherCode = order.getVoucherCode();
 
+        // Cập nhật trạng thái đơn hàng
         order.setStatus("PAID");
         order.setPaidAt(LocalDateTime.now());
         order.setPaymentMethod(paymentMethod);
-        orderRepository.save(order);
-
-        log.info("Order {} paid successfully with payment method: {}", orderId, paymentMethod);
-
-        if (appliedVoucherCode != null && !appliedVoucherCode.isEmpty()) {
+        
+        // Cập nhật điểm tích lũy cho khách hàng nếu có
+        log.info("Processing loyalty points for order {}. Customer: {}, Total Amount: {}", 
+                orderId, 
+                order.getCustomer() != null ? order.getCustomer().getId() : "null", 
+                order.getTotalAmount());
+                
+        if (order.getCustomer() == null) {
+            log.warn("No customer associated with order {}. Cannot add loyalty points.", orderId);
+        } else if (order.getTotalAmount() == null || order.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            log.warn("Invalid total amount {} for order {}. Cannot add loyalty points.", order.getTotalAmount(), orderId);
+        } else {
             try {
-                voucherService.incrementUsageCount(appliedVoucherCode);
-                log.info("Incremented usage count for voucher: {}", appliedVoucherCode);
+                log.info("Attempting to add loyalty points for customer {} with amount {}", 
+                        order.getCustomer().getId(), order.getTotalAmount());
+                customerService.updateLoyaltyPoints(order.getCustomer().getId(), order.getTotalAmount());
+                log.info("Successfully updated loyalty points for customer {}", order.getCustomer().getId());
             } catch (Exception e) {
-                log.error("Failed to increment voucher usage for code: {}", appliedVoucherCode, e);
+                log.error("Failed to update loyalty points for customer: {}", order.getCustomer().getId(), e);
             }
         }
+        
+        order = orderRepository.save(order);
+        log.info("Order {} paid successfully with payment method: {}", orderId, paymentMethod);
 
         updateTableStatusOnOrderCompletion(order.getCafeTable());
-
-        if (order.getCustomer() != null) {
-            addLoyaltyPoints(order);
-        }
 
         return fetchAndMapOrder(orderId, "Failed to fetch paid order");
     }
