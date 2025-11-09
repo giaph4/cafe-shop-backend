@@ -1,11 +1,12 @@
+# Sử dụng JDK 21
 FROM eclipse-temurin:21-jdk-jammy
 
-RUN apt-get update && apt-get install -y maven
-
 WORKDIR /app
-COPY . .
 
-RUN mvn clean package -DskipTests
+# Copy file jar đã build sẵn
+COPY target/coffee-shop-backend-1.0.0.jar app.jar
 
 EXPOSE 8088
-ENTRYPOINT ["java", "-jar", "target/coffee-shop-backend-1.0.0.jar"]
+
+# Chạy Spring Boot jar
+ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -37,6 +37,7 @@ public class ReportService {
     private final IngredientMapper ingredientMapper;
     private final OrderDetailRepository orderDetailRepository;
     private final ExpenseRepository expenseRepository;
+    private final PurchaseOrderRepository purchaseOrderRepository;
     private final CustomerRepository customerRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
@@ -516,4 +517,33 @@ public class ReportService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public BigDecimal getTotalExpenses(LocalDate startDate, LocalDate endDate) {
+        validateDateRange(startDate, endDate);
+
+        BigDecimal total = expenseRepository.sumAmountByOptionalDateRange(startDate, endDate);
+        return total != null ? total : BigDecimal.ZERO;
+    }
+
+    @Transactional(readOnly = true)
+    public BigDecimal getTotalImportedIngredientCost(LocalDate startDate, LocalDate endDate) {
+        validateDateRange(startDate, endDate);
+
+        LocalDateTime startDateTime = startDate != null ? startDate.atStartOfDay() : null;
+        LocalDateTime endDateTime = endDate != null ? endDate.atTime(java.time.LocalTime.MAX) : null;
+
+        BigDecimal total = purchaseOrderRepository.sumTotalAmountByStatusAndOptionalDateRange(
+                "COMPLETED",
+                startDateTime,
+                endDateTime
+        );
+
+        return total != null ? total : BigDecimal.ZERO;
+    }
+
+    private void validateDateRange(LocalDate startDate, LocalDate endDate) {
+        if (startDate != null && endDate != null && endDate.isBefore(startDate)) {
+            throw new IllegalArgumentException("endDate must be greater than or equal to startDate");
+        }
+    }
 }

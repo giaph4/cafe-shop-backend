@@ -244,4 +244,32 @@ public class ReportController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
+
+    @GetMapping("/total-expenses")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ResponseEntity<Map<String, Object>> getTotalExpenses(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        BigDecimal total = reportService.getTotalExpenses(startDate, endDate);
+        return ResponseEntity.ok(Map.of(
+                "startDate", startDate,
+                "endDate", endDate,
+                "totalExpenses", total
+        ));
+    }
+
+    @GetMapping("/total-imported-ingredients")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ResponseEntity<Map<String, Object>> getTotalImportedIngredientCost(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        BigDecimal total = reportService.getTotalImportedIngredientCost(startDate, endDate);
+        return ResponseEntity.ok(Map.of(
+                "startDate", startDate,
+                "endDate", endDate,
+                "totalImportedIngredientCost", total
+        ));
+    }
 }
