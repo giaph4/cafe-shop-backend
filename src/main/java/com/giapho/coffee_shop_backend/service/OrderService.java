@@ -234,9 +234,16 @@ public class OrderService {
 
         String paymentMethod = validatePaymentMethod(paymentRequest.getPaymentMethod());
 
+        // Allow associating customer during payment if not already associated
+        if (paymentRequest.getCustomerId() != null && order.getCustomer() == null) {
+            Customer customer = customerRepository.findById(paymentRequest.getCustomerId())
+                    .orElseThrow(() -> new EntityNotFoundException("Customer not found with id: " + paymentRequest.getCustomerId()));
+            order.setCustomer(customer);
+            log.info("Associated customer ID {} with order {} during payment", customer.getId(), orderId);
+        }
+
         subtractInventoryForOrder(order);
 
-        // Lưu lại mã voucher đã áp dụng trước khi cập nhật trạng thái đơn hàng
         String appliedVoucherCode = order.getVoucherCode();
 
         // Cập nhật trạng thái đơn hàng

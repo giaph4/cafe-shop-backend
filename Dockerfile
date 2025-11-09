@@ -1,10 +1,11 @@
-
 FROM eclipse-temurin:21-jdk-jammy
 
-WORKDIR /app
+RUN apt-get update && apt-get install -y maven
 
-COPY target/coffee-shop-backend-1.0.0.jar app.jar
+WORKDIR /app
+COPY . .
+
+RUN mvn clean package -DskipTests
 
 EXPOSE 8088
-
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "target/coffee-shop-backend-1.0.0.jar"]
