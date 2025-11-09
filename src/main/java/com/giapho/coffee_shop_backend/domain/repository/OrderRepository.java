@@ -3,6 +3,7 @@ package com.giapho.coffee_shop_backend.domain.repository;
 import com.giapho.coffee_shop_backend.domain.entity.Order;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -42,7 +43,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             "LEFT JOIN FETCH o.customer " +
             "WHERE o.id = :id AND o.status = 'PENDING'")
     Optional<Order> findPendingOrderByIdWithDetails(@Param("id") Long id);
-    
+
     @Query("SELECT o FROM Order o " +
             "LEFT JOIN FETCH o.customer " +
             "WHERE o.id = :id")
@@ -74,5 +75,32 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.status = 'PAID' AND FUNCTION('YEAR', o.paidAt) = FUNCTION('YEAR', CURRENT_DATE)")
     BigDecimal sumYearRevenue();
+
+    @EntityGraph(attributePaths = {"orderDetails", "orderDetails.product", "cafeTable", "user"})
+    @Query("SELECT o FROM Order o " +
+            "WHERE o.customer.id = :customerId " +
+            "AND (:status IS NULL OR o.status = :status) " +
+            "AND (:startDateTime IS NULL OR COALESCE(o.paidAt, o.createdAt) >= :startDateTime) " +
+            "AND (:endDateTime IS NULL OR COALESCE(o.paidAt, o.createdAt) <= :endDateTime)")
+    Page<Order> findCustomerOrders(
+            @Param("customerId") Long customerId,
+            @Param("status") String status,
+            @Param("startDateTime") LocalDateTime startDateTime,
+            @Param("endDateTime") LocalDateTime endDateTime,
+            Pageable pageable);
+
+    @Query("SELECT COUNT(o) AS totalOrders, " +
+            "COALESCE(SUM(o.totalAmount), 0) AS totalAmount, " +
+            "MAX(COALESCE(o.paidAt, o.createdAt)) AS lastPurchaseDate " +
+            "FROM Order o " +
+            "WHERE o.customer.id = :customerId " +
+            "AND (:status IS NULL OR o.status = :status) " +
+            "AND (:startDateTime IS NULL OR COALESCE(o.paidAt, o.createdAt) >= :startDateTime) " +
+            "AND (:endDateTime IS NULL OR COALESCE(o.paidAt, o.createdAt) <= :endDateTime)")
+    CustomerPurchaseAggregate calculateCustomerPurchaseAggregate(
+            @Param("customerId") Long customerId,
+            @Param("status") String status,
+            @Param("startDateTime") LocalDateTime startDateTime,
+            @Param("endDateTime") LocalDateTime endDateTime);
 
 }
