@@ -20,6 +20,10 @@ public class CafeTableController {
 
     private final CafeTableService cafeTableService;
 
+    /**
+     * API to get all tables in the coffee shop
+     * @return a list of table responses
+     */
     @GetMapping
     @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<List<CafeTableResponse>> getAllTables() {
@@ -27,6 +31,11 @@ public class CafeTableController {
         return ResponseEntity.ok(tables);
     }
 
+    /**
+     * API to get a table by its ID
+     * @param id the ID of the table to be retrieved
+     * @return a table response object
+     */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<CafeTableResponse> getTableById(@PathVariable Long id) {

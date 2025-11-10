@@ -16,6 +16,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.Set;
 
 @Service
@@ -27,6 +29,7 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final LoginHistoryService loginHistoryService;
 
     public AuthenticationResponse register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
@@ -60,23 +63,42 @@ public class AuthenticationService {
                 .build();
     }
 
-    @Transactional(readOnly = true)
-    public AuthenticationResponse login(LoginRequest request) {
+    @Transactional
+    public AuthenticationResponse login(LoginRequest request, HttpServletRequest httpServletRequest) {
+        String username = request.getUsername();
+        String ipAddress = extractClientIp(httpServletRequest);
+        String userAgent = httpServletRequest != null ? httpServletRequest.getHeader("User-Agent") : null;
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            request.getUsername(),
+                            username,
                             request.getPassword()
                     )
             );
         } catch (Exception e) {
+            loginHistoryService.recordFailedLogin(
+                    username,
+                    ipAddress,
+                    userAgent,
+                    "Invalid username or password"
+            );
             throw new EntityNotFoundException("Invalid username or password");
         }
 
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> {
+                    loginHistoryService.recordFailedLogin(
+                            username,
+                            ipAddress,
+                            userAgent,
+                            "User not found"
+                    );
+                    return new EntityNotFoundException("User not found");
+                });
 
         String jwtToken = jwtService.generateToken(user);
+
+        loginHistoryService.recordSuccessfulLogin(user, ipAddress, userAgent);
 
         return AuthenticationResponse.builder()
                 .token(jwtToken)
@@ -84,4 +106,14 @@ public class AuthenticationService {
                 .build();
     }
 
+    private String extractClientIp(HttpServletRequest request) {
+        if (request == null) {
+            return null;
+        }
+        String header = request.getHeader("X-Forwarded-For");
+        if (header != null && !header.isBlank()) {
+            return header.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
+    }
 }

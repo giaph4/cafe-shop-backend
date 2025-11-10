@@ -29,28 +29,28 @@ public class OrderController {
     private static final Logger log = LoggerFactory.getLogger(OrderController.class);
 
     private final OrderService orderService;
+
+    /**
+     * API to create a new order
+     * Only ADMIN or STAFF roles can create a new order
+     *
+     * @param request the order create request DTO
+     * @return the created order response DTO with HTTP status CREATED
+     */
     @PostMapping
     @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
     public ResponseEntity<OrderResponseDTO> createOrder(@Valid @RequestBody OrderCreateRequestDTO request) {
-        log.info("Creating new order with customer ID: {}", request.getCustomerId());
-        log.info("Order create request: {}", request);
         OrderResponseDTO order = orderService.createOrder(request);
-        log.info("Created order {} with customer ID: {}", order.getId(), request.getCustomerId());
         return new ResponseEntity<>(order, HttpStatus.CREATED);
     }
 
-    @GetMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('MANAGER')")
-    public ResponseEntity<Page<OrderResponseDTO>> getAllOrders(
-            @PageableDefault(size = 10, page = 0, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<OrderResponseDTO> orders = orderService.getAllOrders(pageable);
-        return ResponseEntity.ok(orders);
-    }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<OrderResponseDTO> getOrderById(@PathVariable Long id) {
+        log.info("Getting order by ID: {}", id);
         OrderResponseDTO order = orderService.getOrderById(id);
+        log.info("Retrieved order {}", order);
         return ResponseEntity.ok(order);
     }
 

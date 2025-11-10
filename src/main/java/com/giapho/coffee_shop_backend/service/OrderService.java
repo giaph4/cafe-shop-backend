@@ -87,9 +87,7 @@ public class OrderService {
         return orderMapper.entityToResponse(order);
     }
 
-    /**
-     * Tạo một Order mới
-     */
+
     @Transactional
     public OrderResponseDTO createOrder(OrderCreateRequestDTO request) {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
