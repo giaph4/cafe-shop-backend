@@ -232,7 +232,6 @@ public class OrderService {
 
         String paymentMethod = validatePaymentMethod(paymentRequest.getPaymentMethod());
 
-        // Allow associating customer during payment if not already associated
         if (paymentRequest.getCustomerId() != null && order.getCustomer() == null) {
             Customer customer = customerRepository.findById(paymentRequest.getCustomerId())
                     .orElseThrow(() -> new EntityNotFoundException("Customer not found with id: " + paymentRequest.getCustomerId()));
@@ -244,12 +243,10 @@ public class OrderService {
 
         String appliedVoucherCode = order.getVoucherCode();
 
-        // Cập nhật trạng thái đơn hàng
         order.setStatus("PAID");
         order.setPaidAt(LocalDateTime.now());
         order.setPaymentMethod(paymentMethod);
-        
-        // Cập nhật điểm tích lũy cho khách hàng nếu có
+
         log.info("Processing loyalty points for order {}. Customer: {}, Total Amount: {}", 
                 orderId, 
                 order.getCustomer() != null ? order.getCustomer().getId() : "null", 
@@ -451,10 +448,6 @@ public class OrderService {
         order.setTotalAmount(totalAmount.max(BigDecimal.ZERO));
     }
 
-    /**
-     * SỬA LỖI: Xóa hàm `calculateDiscount` hard-coded
-     * (Hàm private calculateDiscount(String voucherCode, BigDecimal subTotal) đã bị xóa)
-     */
 
     /**
      * Reset tiền và voucher khi order rỗng
