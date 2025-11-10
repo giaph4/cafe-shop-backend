@@ -191,6 +191,31 @@ public class ReportService {
     }
 
     @Transactional(readOnly = true)
+    public ProductSalesSummaryResponseDTO getProductSalesSummary(LocalDate startDate, LocalDate endDate) {
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.plusDays(1).atStartOfDay();
+
+        List<ProductSalesSummaryDTO> summaries = orderDetailRepository.findProductSalesSummaryBetweenDates(startDateTime, endDateTime);
+
+        long totalQuantity = summaries.stream()
+                .map(ProductSalesSummaryDTO::getTotalQuantitySold)
+                .filter(Objects::nonNull)
+                .mapToLong(Long::longValue)
+                .sum();
+
+        BigDecimal totalRevenue = summaries.stream()
+                .map(ProductSalesSummaryDTO::getTotalRevenueGenerated)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return ProductSalesSummaryResponseDTO.builder()
+                .products(summaries)
+                .totalQuantitySold(totalQuantity)
+                .totalRevenueGenerated(totalRevenue)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
     public Map<LocalDate, BigDecimal> getRevenueReportByDateRange(LocalDate startDate, LocalDate endDate) {
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.plusDays(1).atStartOfDay();

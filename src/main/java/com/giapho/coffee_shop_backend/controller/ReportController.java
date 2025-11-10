@@ -1,14 +1,6 @@
 package com.giapho.coffee_shop_backend.controller;
 
-import com.giapho.coffee_shop_backend.dto.BestSellerDTO;
-import com.giapho.coffee_shop_backend.dto.CategorySalesDTO;
-import com.giapho.coffee_shop_backend.dto.CustomerAnalyticsDTO;
-import com.giapho.coffee_shop_backend.dto.DashboardStatsDTO;
-import com.giapho.coffee_shop_backend.dto.HourlySalesDTO;
-import com.giapho.coffee_shop_backend.dto.IngredientResponseDTO;
-import com.giapho.coffee_shop_backend.dto.PaymentMethodStatsDTO;
-import com.giapho.coffee_shop_backend.dto.SalesComparisonDTO;
-import com.giapho.coffee_shop_backend.dto.StaffPerformanceDTO;
+import com.giapho.coffee_shop_backend.dto.*;
 import com.giapho.coffee_shop_backend.service.ReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -114,6 +106,16 @@ public class ReportController {
         }
         List<BestSellerDTO> bestSellers = reportService.getBestSellingProducts(startDate, endDate, top, sortBy);
         return ResponseEntity.ok(bestSellers);
+    }
+
+    @GetMapping("/product-sales-summary")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ResponseEntity<ProductSalesSummaryResponseDTO> getProductSalesSummary(
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        ProductSalesSummaryResponseDTO summary = reportService.getProductSalesSummary(startDate, endDate);
+        return ResponseEntity.ok(summary);
     }
 
     @GetMapping("/revenue-by-date")

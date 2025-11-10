@@ -50,6 +50,19 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
             @Param("endDate") LocalDateTime endDate,
             Pageable pageable);
 
+    @Query("SELECT new com.giapho.coffee_shop_backend.dto.ProductSalesSummaryDTO(" +
+            "  od.product.id, " +
+            "  od.product.name, " +
+            "  CAST(SUM(od.quantity) AS long), " +
+            "  CAST(SUM(od.quantity * od.priceAtOrder) AS java.math.BigDecimal)) " +
+            "FROM OrderDetail od JOIN od.order o " +
+            "WHERE o.status = 'PAID' AND o.paidAt BETWEEN :startDate AND :endDate " +
+            "GROUP BY od.product.id, od.product.name " +
+            "ORDER BY od.product.name ASC")
+    List<com.giapho.coffee_shop_backend.dto.ProductSalesSummaryDTO> findProductSalesSummaryBetweenDates(
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
+
     long countByProductId(Long productId);
 
     @Query("SELECT new com.giapho.coffee_shop_backend.dto.CategorySalesDTO(" +
