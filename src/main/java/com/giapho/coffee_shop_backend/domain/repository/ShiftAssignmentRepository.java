@@ -44,4 +44,6 @@ public interface ShiftAssignmentRepository extends JpaRepository<ShiftAssignment
     Optional<ShiftAssignment> findByShiftIdAndUserId(Long shiftId, Long userId);
 
     List<ShiftAssignment> findByStatus(ShiftAssignmentStatus status);
+
+    List<ShiftAssignment> findByShift_ShiftDateBetween(LocalDate start, LocalDate end);
 }

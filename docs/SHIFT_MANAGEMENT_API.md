@@ -259,21 +259,96 @@ Tài liệu mô tả các endpoint quản lý ca làm, chấm công và thưởn
 
 ---
 
-## 6. Quy ước status & enum
+## 6. Bảng lương (Payroll)
+
+| Method | URL | Quyền | Mô tả |
+| --- | --- | --- | --- |
+| `GET` | `/api/v1/shifts/payroll/cycles` | MANAGER, ADMIN | Danh sách chu kỳ lương, hỗ trợ lọc theo trạng thái/khoảng ngày. |
+| `GET` | `/api/v1/shifts/payroll/cycles/{id}` | MANAGER, ADMIN | Chi tiết chu kỳ lương. |
+| `POST` | `/api/v1/shifts/payroll/cycles` | MANAGER, ADMIN | Tạo chu kỳ lương mới (mặc định trạng thái `DRAFT`). |
+| `PUT` | `/api/v1/shifts/payroll/cycles/{id}` | MANAGER, ADMIN | Cập nhật thông tin, trạng thái chu kỳ (khi chuyển `APPROVED` sẽ lưu người duyệt). |
+| `POST` | `/api/v1/shifts/payroll/cycles/{id}/regenerate` | MANAGER, ADMIN | Gom lại dữ liệu lương cho chu kỳ theo khoảng ngày. |
+| `GET` | `/api/v1/shifts/payroll/summaries` | MANAGER, ADMIN | Danh sách tổng hợp lương theo chu kỳ/nhân viên. |
+
+### 6.1. Request `PayrollCycleRequestDTO`
+
+```json
+{
+  "code": "JAN_2025",
+  "name": "Lương tháng 01/2025",
+  "startDate": "2025-01-01",
+  "endDate": "2025-01-31",
+  "status": "DRAFT",
+  "notes": "Ghi chú tùy chọn"
+}
+```
+
+### 6.2. Response `PayrollCycleResponseDTO`
+
+```json
+{
+  "id": 10,
+  "code": "JAN_2025",
+  "name": "Lương tháng 01/2025",
+  "startDate": "2025-01-01",
+  "endDate": "2025-01-31",
+  "status": "IN_PROGRESS",
+  "notes": "Ghi chú",
+  "approvedBy": "manager01",
+  "approvedAt": "2025-02-02T09:30:00",
+  "createdBy": "manager01",
+  "updatedBy": "manager01",
+  "createdAt": "2025-01-25T08:00:00",
+  "updatedAt": "2025-02-02T09:30:00"
+}
+```
+
+### 6.3. Response `PayrollSummaryDTO`
+
+```json
+{
+  "cycleId": 10,
+  "cycleCode": "JAN_2025",
+  "cycleName": "Lương tháng 01/2025",
+  "cycleStartDate": "2025-01-01",
+  "cycleEndDate": "2025-01-31",
+  "userId": 5,
+  "username": "staff01",
+  "fullName": "Nguyễn Văn A",
+  "assignmentCount": 6,
+  "attendanceCount": 12,
+  "totalActualMinutes": 1440,
+  "totalOrders": 85,
+  "totalRevenue": 9500000,
+  "totalBasePayroll": 4200000,
+  "totalBonus": 250000,
+  "totalPenalty": 50000,
+  "totalAdjustment": 200000,
+  "totalNetPayroll": 4400000,
+  "notes": null
+}
+```
+
+> **Ghi chú**: Backend luôn recalculated payroll mỗi khi có thay đổi attendance/thưởng phạt. Khi gọi regenerate summaries, hệ thống sẽ chắc chắn cập nhật lại các assignment trước khi tổng hợp.
+
+---
+
+## 7. Quy ước status & enum
 
 - `ShiftStatus`: `PLANNED`, `LOCKED`, `IN_PROGRESS`, `DONE`, `CANCELLED`.
 - `ShiftAssignmentStatus`: `SCHEDULED`, `CONFIRMED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`.
 - `AttendanceSource`: `QR`, `APP`, `WEB`, `MANUAL`.
 - `AdjustmentType`: `BONUS`, `PENALTY`.
+- `PayrollCycleStatus`: `DRAFT`, `IN_PROGRESS`, `READY_FOR_APPROVAL`, `APPROVED`, `CLOSED`.
 
 ---
 
-## 7. Ghi chú cho FE
+## 8. Ghi chú cho FE
 
 1. **Xử lý lỗi**: các service trả về HTTP status chuẩn (`400`, `404`, `409`, `500`) kèm message tiếng Việt.
 2. **Phân trang**: mặc định `size = 20`; truyền `sort=createdAt,desc` nếu cần.
 3. **Chấm công**: FE ưu tiên gửi `assignmentId`. Nếu chỉ biết `shiftId`, backend sẽ tìm assignment theo user hiện tại, cần đảm bảo user đã được gán.
-4. **Tự động cập nhật lương**: sau mỗi check-in/out hoặc thêm thưởng/phạt, backend tự recalculated, FE chỉ cần refetch assignment.
+4. **Tự động cập nhật lương**: sau mỗi check-in/out hoặc thêm thưởng/phạt, backend tự recalculated assignment. Regenerate payroll cycle chỉ dùng khi cần tổng hợp lại toàn bộ chu kỳ.
 5. **OpenAPI/Swagger**: truy cập `http://<host>:8088/swagger-ui.html` để xem schema đầy đủ.
 
 Cập nhật tài liệu khi có thay đổi API mới để FE luôn đồng bộ với backend.
