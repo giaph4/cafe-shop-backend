@@ -60,7 +60,7 @@ public class SecurityConfig {
                 )
                 .authenticationProvider(authenticationProvider)
                 .exceptionHandling(exception -> exception
-                    .accessDeniedHandler(accessDeniedHandler)
+                        .accessDeniedHandler(accessDeniedHandler)
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -73,9 +73,10 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(List.of("http://localhost:5173"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
+        configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L); // 1 giờ
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/api/v1/**", configuration);
+        source.registerCorsConfiguration("/api/**", configuration);
         return source;
     }
 }

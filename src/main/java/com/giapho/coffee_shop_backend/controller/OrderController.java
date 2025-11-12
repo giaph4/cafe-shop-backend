@@ -44,6 +44,15 @@ public class OrderController {
         return new ResponseEntity<>(order, HttpStatus.CREATED);
     }
 
+    //Get All Orders
+    @GetMapping
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<Page<OrderResponseDTO>> getAllOrders(
+            @PageableDefault(size = 10, page = 0, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        Page<OrderResponseDTO> orders = orderService.getAllOrders(pageable);
+        return ResponseEntity.ok(orders);
+    }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
@@ -61,6 +70,15 @@ public class OrderController {
         return ResponseEntity.ok(order);
     }
 
+/* <<<<<<<<<<<<<<  ✨ Windsurf Command ⭐ >>>>>>>>>>>>>>>> */
+    /**
+     * Thêm một món mới vào Order đang PENDING
+     *
+     * @param orderId ID của Order
+     * @param itemDTO Thông tin của món (OrderDetail) cần thêm
+     * @return OrderResponseDTO sau khi thêm món xong
+     */
+/* <<<<<<<<<<  574f19ce-89bb-48f7-834b-d982db8ee3af  >>>>>>>>>>> */
     @PostMapping("/{orderId}/items")
     @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<OrderResponseDTO> addItemToOrder(

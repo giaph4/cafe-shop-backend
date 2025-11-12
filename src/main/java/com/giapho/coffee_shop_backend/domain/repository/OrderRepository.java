@@ -89,7 +89,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("endDateTime") LocalDateTime endDateTime,
             Pageable pageable);
 
-    @Query("SELECT COUNT(o) AS totalOrders, " +
+    @Query("SELECT COUNT(o.id) AS totalOrders, " +
             "COALESCE(SUM(o.totalAmount), 0) AS totalAmount, " +
             "MAX(COALESCE(o.paidAt, o.createdAt)) AS lastPurchaseDate " +
             "FROM Order o " +
@@ -103,4 +103,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("startDateTime") LocalDateTime startDateTime,
             @Param("endDateTime") LocalDateTime endDateTime);
 
+    @Query("SELECT o FROM Order o " +
+            "WHERE o.status = :status " +
+            "AND COALESCE(o.paidAt, o.createdAt) >= :startDateTime " +
+            "AND COALESCE(o.paidAt, o.createdAt) < :endDateTime")
+    List<Order> findByStatusAndDateRange(
+            @Param("status") String status,
+            @Param("startDateTime") LocalDateTime startDateTime,
+            @Param("endDateTime") LocalDateTime endDateTime);
+
 }
+

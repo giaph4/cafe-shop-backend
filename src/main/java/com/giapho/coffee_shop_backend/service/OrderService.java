@@ -3,7 +3,6 @@ package com.giapho.coffee_shop_backend.service;
 import com.giapho.coffee_shop_backend.domain.entity.*;
 import com.giapho.coffee_shop_backend.domain.repository.*;
 import com.giapho.coffee_shop_backend.dto.*;
-import com.giapho.coffee_shop_backend.mapper.OrderDetailMapper;
 import com.giapho.coffee_shop_backend.mapper.OrderMapper;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +28,6 @@ import java.util.Set;
 public class OrderService {
 
     private final OrderRepository orderRepository;
-    private final OrderDetailRepository orderDetailRepository;
     private final ProductRepository productRepository;
     private final CafeTableRepository cafeTableRepository;
     private final UserRepository userRepository;
@@ -225,7 +223,7 @@ public class OrderService {
         // Load order with customer relationship
         Order order = orderRepository.findByIdWithCustomer(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("Order not found with id: " + orderId));
-                
+
         if (!"PENDING".equals(order.getStatus())) {
             throw new IllegalStateException("Cannot pay order with status: " + order.getStatus());
         }
@@ -241,24 +239,22 @@ public class OrderService {
 
         subtractInventoryForOrder(order);
 
-        String appliedVoucherCode = order.getVoucherCode();
-
         order.setStatus("PAID");
         order.setPaidAt(LocalDateTime.now());
         order.setPaymentMethod(paymentMethod);
 
-        log.info("Processing loyalty points for order {}. Customer: {}, Total Amount: {}", 
-                orderId, 
-                order.getCustomer() != null ? order.getCustomer().getId() : "null", 
+        log.info("Processing loyalty points for order {}. Customer: {}, Total Amount: {}",
+                orderId,
+                order.getCustomer() != null ? order.getCustomer().getId() : "null",
                 order.getTotalAmount());
-                
+
         if (order.getCustomer() == null) {
             log.warn("No customer associated with order {}. Cannot add loyalty points.", orderId);
         } else if (order.getTotalAmount() == null || order.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
             log.warn("Invalid total amount {} for order {}. Cannot add loyalty points.", order.getTotalAmount(), orderId);
         } else {
             try {
-                log.info("Attempting to add loyalty points for customer {} with amount {}", 
+                log.info("Attempting to add loyalty points for customer {} with amount {}",
                         order.getCustomer().getId(), order.getTotalAmount());
                 customerService.updateLoyaltyPoints(order.getCustomer().getId(), order.getTotalAmount());
                 log.info("Successfully updated loyalty points for customer {}", order.getCustomer().getId());
@@ -266,7 +262,7 @@ public class OrderService {
                 log.error("Failed to update loyalty points for customer: {}", order.getCustomer().getId(), e);
             }
         }
-        
+
         order = orderRepository.save(order);
         log.info("Order {} paid successfully with payment method: {}", orderId, paymentMethod);
 
@@ -355,10 +351,9 @@ public class OrderService {
      * Tìm Order theo ID và kiểm tra trạng thái PENDING
      */
     private Order findPendingOrderById(Long orderId) {
-        Order order = orderRepository.findPendingOrderByIdWithDetails(orderId)
+        return orderRepository.findPendingOrderByIdWithDetails(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("Order not found with id: " + orderId + " or is not in PENDING status."));
 
-        return order;
     }
 
     /**
@@ -499,34 +494,7 @@ public class OrderService {
     }
 
     /**
-     * Hàm helper cộng điểm (đã có)
-     */
-    private void addLoyaltyPoints(Order order) {
-        if (order.getCustomer() == null || order.getTotalAmount() == null ||
-                order.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            return;
-        }
-
-        int pointsToAdd = order.getTotalAmount()
-                .divide(BigDecimal.valueOf(10000), 0, RoundingMode.DOWN)
-                .intValue();
-
-        if (pointsToAdd > 0) {
-            Customer currentCustomer = customerRepository.findById(order.getCustomer().getId())
-                    .orElseThrow(() -> new EntityNotFoundException(
-                            "Customer disappeared during point calculation"));
-
-            int oldPoints = currentCustomer.getLoyaltyPoints();
-            currentCustomer.setLoyaltyPoints(oldPoints + pointsToAdd);
-
-            log.info("Added {} points to customer {} (ID: {}). Old: {}, New: {}",
-                    pointsToAdd, currentCustomer.getPhone(), currentCustomer.getId(),
-                    oldPoints, currentCustomer.getLoyaltyPoints());
-        }
-    }
-
-    /**
-     * Hàm helper trừ kho (đã có)
+     * Hàm helper trừ kho
      */
     private void subtractInventoryForOrder(Order order) {
         if (order.getOrderDetails() == null) {

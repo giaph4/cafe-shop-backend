@@ -2,12 +2,12 @@ package com.giapho.coffee_shop_backend.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-@Data
+@Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -20,4 +20,12 @@ public class CustomerAnalyticsDTO {
     private BigDecimal averageOrderValue;
     private Integer loyaltyPoints;
     private String lastOrderDate;
+
+    public String getFullName() {
+        return customerName;
+    }
+
+    public BigDecimal getAverageSpent() {
+        return averageOrderValue;
+    }
 }
