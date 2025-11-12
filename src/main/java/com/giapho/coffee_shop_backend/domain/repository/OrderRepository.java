@@ -112,5 +112,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("startDateTime") LocalDateTime startDateTime,
             @Param("endDateTime") LocalDateTime endDateTime);
 
-}
+    @Query("SELECT o FROM Order o " +
+            "WHERE o.user.id = :userId " +
+            "AND o.status = 'PAID' " +
+            "AND o.paidAt BETWEEN :startDateTime AND :endDateTime")
+    List<Order> findPaidOrdersForStaffBetween(
+            @Param("userId") Long userId,
+            @Param("startDateTime") LocalDateTime startDateTime,
+            @Param("endDateTime") LocalDateTime endDateTime);
 
+}
