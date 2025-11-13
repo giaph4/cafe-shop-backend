@@ -2,11 +2,14 @@ package com.giapho.coffee_shop_backend.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.Set;
 
 @Data
 @Builder
@@ -30,5 +33,8 @@ public class RegisterRequest {
     private String email;
 
     @NotBlank(message = "Phone number is required")
+    @Pattern(regexp = "^(\\+?84|0)\\d{9}$", message = "Invalid Vietnamese phone number format")
     private String phone;
+
+    private Set<Long> roleIds;
 }

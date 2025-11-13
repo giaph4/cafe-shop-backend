@@ -1,8 +1,6 @@
 package com.giapho.coffee_shop_backend.domain.repository;
 
 import com.giapho.coffee_shop_backend.domain.entity.User;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -38,6 +36,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("endDate") LocalDateTime endDate,
             Pageable pageable);
 
-    boolean existsByPhone(@NotBlank(message = "Phone number is required") @Pattern(regexp = "^(\\+?84|0)\\d{9}$", message = "Invalid Vietnamese phone number format") String phone);
+    boolean existsByPhone(String phone);
 }
 

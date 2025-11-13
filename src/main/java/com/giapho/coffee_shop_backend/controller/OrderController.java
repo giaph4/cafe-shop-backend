@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -15,12 +16,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
-import java.util.Map;
 
-
+/**
+ * API to create a new order
+ * Only ADMIN or STAFF roles can create a new order
+ *
+ * @param request the order create request DTO
+ * @return the created order response DTO with HTTP status CREATED
+ */
 @RestController
 @RequestMapping("/api/v1/orders")
 @RequiredArgsConstructor
@@ -124,13 +129,9 @@ public class OrderController {
     @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<OrderResponseDTO> applyVoucher(
             @PathVariable Long orderId,
-            @RequestBody Map<String, String> voucherMap
+            @Valid @RequestBody VoucherApplyRequestDTO voucherRequest
     ) {
-        String voucherCode = voucherMap.get("voucherCode");
-        if (voucherCode == null || voucherCode.trim().isEmpty()) {
-            throw new IllegalArgumentException("Voucher code is required");
-        }
-        OrderResponseDTO updatedOrder = orderService.applyVoucher(orderId, voucherCode);
+        OrderResponseDTO updatedOrder = orderService.applyVoucher(orderId, voucherRequest.getVoucherCode());
         return ResponseEntity.ok(updatedOrder);
     }
 

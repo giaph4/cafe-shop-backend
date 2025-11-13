@@ -8,8 +8,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,30 +18,33 @@ import java.util.Optional;
 @Component
 public class GeminiClient {
 
-    private final WebClient webClient;
+    private final RestClient restClient;
     private final String apiKey;
     private final String model;
     private final double temperature;
 
     public GeminiClient(
-            WebClient.Builder webClientBuilder,
             @Value("${gemini.api-key}") String apiKey,
             @Value("${gemini.model:gemini-1.5-flash}") String model,
             @Value("${gemini.temperature:0.3}") double temperature
     ) {
         if (apiKey == null || apiKey.isBlank()) {
-            throw new IllegalStateException("Gemini API key is not configured. Please set GEMINI_API_KEY environment variable.");
+            log.warn("Gemini API key is not configured. GeminiClient will return empty responses.");
         }
         this.apiKey = apiKey;
         this.model = model;
         this.temperature = temperature;
-        this.webClient = webClientBuilder
+        this.restClient = RestClient.builder()
                 .baseUrl("https://generativelanguage.googleapis.com/v1beta")
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }
 
     public Optional<String> generateContent(String prompt) {
+        if (apiKey == null || apiKey.isBlank()) {
+            return Optional.empty();
+        }
+
         if (prompt == null || prompt.isBlank()) {
             return Optional.empty();
         }
@@ -52,19 +55,15 @@ public class GeminiClient {
                 .build();
 
         try {
-            GenerateContentResponse response = webClient.post()
+            GenerateContentResponse response = restClient.post()
                     .uri(uriBuilder -> uriBuilder
                             .path("/models/{model}:generateContent")
                             .queryParam("key", apiKey)
                             .build(model))
-                    .bodyValue(requestBody)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(requestBody)
                     .retrieve()
-                    .bodyToMono(GenerateContentResponse.class)
-                    .onErrorResume(error -> {
-                        log.error("Gemini API call failed", error);
-                        return Mono.empty();
-                    })
-                    .block();
+                    .body(GenerateContentResponse.class);
 
             if (response == null || response.candidates == null || response.candidates.isEmpty()) {
                 return Optional.empty();
@@ -78,7 +77,7 @@ public class GeminiClient {
                     .filter(text -> text != null && !text.isBlank())
                     .findFirst()
                     .map(String::trim);
-        } catch (Exception ex) {
+        } catch (RestClientException ex) {
             log.error("Gemini generateContent failed", ex);
             return Optional.empty();
         }

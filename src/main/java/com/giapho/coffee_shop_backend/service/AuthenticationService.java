@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -43,8 +44,18 @@ public class AuthenticationService {
             throw new IllegalArgumentException("Error: Email is already in use!");
         }
 
-        Role staffRole = roleRepository.findByName("ROLE_STAFF")
-                .orElseThrow(() -> new EntityNotFoundException("Error: Role 'STAFF' not found"));
+        Set<Role> roles = new HashSet<>();
+        if (request.getRoleIds() == null || request.getRoleIds().isEmpty()) {
+            Role staffRole = roleRepository.findByName("ROLE_STAFF")
+                    .orElseThrow(() -> new EntityNotFoundException("Error: Role 'STAFF' not found"));
+            roles.add(staffRole);
+        } else {
+            for (Long roleId : request.getRoleIds()) {
+                Role role = roleRepository.findById(roleId)
+                        .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
+                roles.add(role);
+            }
+        }
 
         User user = User.builder()
                 .username(request.getUsername())
@@ -53,7 +64,7 @@ public class AuthenticationService {
                 .email(request.getEmail())
                 .phone(request.getPhone())
                 .status("ACTIVE")
-                .roles(Set.of(staffRole))
+                .roles(roles)
                 .build();
 
         userRepository.save(user);

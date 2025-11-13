@@ -95,11 +95,19 @@ Truy cập ứng dụng tại: http://localhost:8088
 **LƯU Ý QUAN TRỌNG**: Trong môi trường thật, cần thay đổi khóa bí mật JWT:
 
 ```properties
-# Sử dụng biến môi trường
+# Sử dụng biến môi trường để truyền vào khi chạy ứng dụng
 application.jwt.secretKey=${JWT_SECRET_KEY}
+gemini.api-key=${GEMINI_API_KEY}
+spring.datasource.password=${DB_PASSWORD}
 ```
 
-Tạo khóa bảo mật mạnh:
+> 💡 **Khuyến nghị**: Không commit bất kỳ giá trị mặc định nào lên repository. Thiết lập biến môi trường khi khởi động:
+>
+> ```bash
+> ./mvnw spring-boot:run -DJWT_SECRET_KEY="<jwt_key>" -DGEMINI_API_KEY="<gemini_key>" -DDB_PASSWORD="<db_password>"
+> ```
+
+Tạo khóa bảo mật mạnh cho JWT:
 
 ```bash
 openssl rand -base64 64
@@ -132,9 +140,13 @@ Content-Type: application/json
   "password": "password123",
   "fullName": "Nguyen Van A",
   "email": "staff01@example.com",
-  "phone": "0901234567"
+  "phone": "0901234567",
+  "roleIds": [2]
 }
 ```
+
+- Nếu `roleIds` không được cung cấp, hệ thống sẽ tự động gán `ROLE_STAFF`.
+- Chỉ người có quyền `ADMIN` hoặc `MANAGER` mới có thể gán vai trò khác.
 
 ### 2. Login (Đăng nhập)
 

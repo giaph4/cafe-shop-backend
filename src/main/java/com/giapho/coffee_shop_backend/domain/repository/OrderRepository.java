@@ -10,7 +10,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -25,8 +24,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT o FROM Order o WHERE o.cafeTable.id = :tableId AND o.status = 'PENDING'")
     Optional<Order> findPendingOrderByTableId(@Param("tableId") Long tableId);
 
-    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.status = 'PAID' AND FUNCTION('DATE', o.paidAt) = :date")
-    BigDecimal findTotalRevenueByDate(@Param("date") LocalDate date); // Nhận vào LocalDate
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.status = 'PAID' AND o.paidAt >= :startOfDay AND o.paidAt < :endOfDay")
+    BigDecimal findTotalRevenueByDateRange(@Param("startOfDay") LocalDateTime startOfDay,
+                                           @Param("endOfDay") LocalDateTime endOfDay);
 
     @Query("SELECT o FROM Order o " +
             "LEFT JOIN FETCH o.orderDetails " +
@@ -103,7 +103,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("startDateTime") LocalDateTime startDateTime,
             @Param("endDateTime") LocalDateTime endDateTime);
 
-    @Query("SELECT o FROM Order o " +
+    @Query("SELECT DISTINCT o FROM Order o " +
+            "LEFT JOIN FETCH o.cafeTable " +
             "WHERE o.status = :status " +
             "AND COALESCE(o.paidAt, o.createdAt) >= :startDateTime " +
             "AND COALESCE(o.paidAt, o.createdAt) < :endDateTime")

@@ -45,8 +45,9 @@ public class ReportService {
 
     @Transactional(readOnly = true)
     public BigDecimal getDailyRevenue(LocalDate date) {
-        return orderRepository.findTotalRevenueByDate(date);
-
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = date.plusDays(1).atStartOfDay();
+        return orderRepository.findTotalRevenueByDateRange(startOfDay, endOfDay);
     }
 
     @Transactional(readOnly = true)
