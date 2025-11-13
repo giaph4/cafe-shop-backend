@@ -202,11 +202,24 @@ public class RoleDashboardService {
     private AdminDashboardDTO.RevenueSnapshot buildAdminRevenueSnapshot(DateRange range) {
         LocalDate today = range.getEnd();
         BigDecimal todayRevenue = defaultZero(reportService.getDailyRevenue(today));
-        BigDecimal monthRevenue = defaultZero(orderRepository.sumMonthRevenue());
-        BigDecimal yearRevenue = defaultZero(orderRepository.sumYearRevenue());
 
-        Long todayOrders = orderRepository.countTodayOrders();
-        BigDecimal averageOrderValue = (todayOrders != null && todayOrders > 0)
+        LocalDate firstDayOfMonth = today.withDayOfMonth(1);
+        LocalDate firstDayOfNextMonth = firstDayOfMonth.plusMonths(1);
+        LocalDate firstDayOfYear = today.withDayOfYear(1);
+        LocalDate firstDayOfNextYear = firstDayOfYear.plusYears(1);
+
+        BigDecimal monthRevenue = defaultZero(orderRepository.sumPaidRevenueBetween(
+                firstDayOfMonth.atStartOfDay(),
+                firstDayOfNextMonth.atStartOfDay()));
+        BigDecimal yearRevenue = defaultZero(orderRepository.sumPaidRevenueBetween(
+                firstDayOfYear.atStartOfDay(),
+                firstDayOfNextYear.atStartOfDay()));
+
+        LocalDateTime startOfToday = today.atStartOfDay();
+        LocalDateTime startOfTomorrow = today.plusDays(1).atStartOfDay();
+        Long todayOrdersValue = orderRepository.countPaidOrdersBetween(startOfToday, startOfTomorrow);
+        long todayOrders = todayOrdersValue != null ? todayOrdersValue : 0L;
+        BigDecimal averageOrderValue = todayOrders > 0
                 ? todayRevenue.divide(BigDecimal.valueOf(todayOrders), 2, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
@@ -224,10 +237,21 @@ public class RoleDashboardService {
     }
 
     private AdminDashboardDTO.OrderSnapshot buildAdminOrderSnapshot(DateRange range) {
-        LocalDate today = LocalDate.now();
-        Long todayOrders = orderRepository.countTodayOrders();
-        Long monthOrders = orderRepository.countMonthOrders();
-        Long yearOrders = orderRepository.countYearOrders();
+        LocalDate today = range.getEnd();
+        LocalDate firstDayOfMonth = today.withDayOfMonth(1);
+        LocalDate firstDayOfNextMonth = firstDayOfMonth.plusMonths(1);
+        LocalDate firstDayOfYear = today.withDayOfYear(1);
+        LocalDate firstDayOfNextYear = firstDayOfYear.plusYears(1);
+
+        long todayOrders = defaultZero(orderRepository.countPaidOrdersBetween(
+                today.atStartOfDay(),
+                today.plusDays(1).atStartOfDay()));
+        long monthOrders = defaultZero(orderRepository.countPaidOrdersBetween(
+                firstDayOfMonth.atStartOfDay(),
+                firstDayOfNextMonth.atStartOfDay()));
+        long yearOrders = defaultZero(orderRepository.countPaidOrdersBetween(
+                firstDayOfYear.atStartOfDay(),
+                firstDayOfNextYear.atStartOfDay()));
 
         long cancelledToday = orderRepository.findByStatusAndDateRange(
                         "CANCELLED",
@@ -237,14 +261,14 @@ public class RoleDashboardService {
 
         long cancelledMonth = orderRepository.findByStatusAndDateRange(
                         "CANCELLED",
-                        today.withDayOfMonth(1).atStartOfDay(),
-                        today.plusDays(1).atStartOfDay())
+                        firstDayOfMonth.atStartOfDay(),
+                        firstDayOfNextMonth.atStartOfDay())
                 .size();
 
         return AdminDashboardDTO.OrderSnapshot.builder()
-                .today(todayOrders == null ? 0 : todayOrders)
-                .month(monthOrders == null ? 0 : monthOrders)
-                .year(yearOrders == null ? 0 : yearOrders)
+                .today(todayOrders)
+                .month(monthOrders)
+                .year(yearOrders)
                 .cancelledToday(cancelledToday)
                 .cancelledMonth(cancelledMonth)
                 .build();
@@ -681,6 +705,10 @@ public class RoleDashboardService {
 
     private BigDecimal defaultZero(BigDecimal value) {
         return value != null ? value : BigDecimal.ZERO;
+    }
+
+    private long defaultZero(Long value) {
+        return value != null ? value : 0L;
     }
 
     private int calculateConsecutiveOnTimeDays(List<AttendanceRecord> records) {

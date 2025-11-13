@@ -91,11 +91,10 @@ class RoleDashboardServiceTest {
     @Test
     void buildAdminDashboard_shouldAggregateMetrics() {
         when(reportService.getDailyRevenue(any())).thenReturn(BigDecimal.valueOf(120));
-        when(orderRepository.sumMonthRevenue()).thenReturn(BigDecimal.valueOf(2400));
-        when(orderRepository.sumYearRevenue()).thenReturn(BigDecimal.valueOf(28000));
-        when(orderRepository.countTodayOrders()).thenReturn(20L);
-        when(orderRepository.countMonthOrders()).thenReturn(400L);
-        when(orderRepository.countYearOrders()).thenReturn(4200L);
+        when(orderRepository.sumPaidRevenueBetween(any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(BigDecimal.valueOf(2400), BigDecimal.valueOf(28000));
+        when(orderRepository.countPaidOrdersBetween(any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(20L, 20L, 400L, 4200L);
         when(orderRepository.findByStatusAndDateRange(anyString(), any(), any()))
                 .thenReturn(List.of(TestDataFactory.order(1L)));
         Map<String, BigDecimal> profitMap = Map.of(

@@ -418,12 +418,26 @@ public class ReportService {
         LocalDate firstDayOfMonth = today.withDayOfMonth(1);
 
         BigDecimal todayRevenue = getDailyRevenue(today);
-        BigDecimal monthRevenue = orderRepository.sumMonthRevenue();
-        BigDecimal yearRevenue = orderRepository.sumYearRevenue();
+        LocalDate firstDayOfNextMonth = firstDayOfMonth.plusMonths(1);
+        LocalDate firstDayOfYear = today.withDayOfYear(1);
+        LocalDate firstDayOfNextYear = firstDayOfYear.plusYears(1);
 
-        Long todayOrders = orderRepository.countTodayOrders();
-        Long monthOrders = orderRepository.countMonthOrders();
-        Long yearOrders = orderRepository.countYearOrders();
+        BigDecimal monthRevenue = orderRepository.sumPaidRevenueBetween(
+                firstDayOfMonth.atStartOfDay(),
+                firstDayOfNextMonth.atStartOfDay());
+        BigDecimal yearRevenue = orderRepository.sumPaidRevenueBetween(
+                firstDayOfYear.atStartOfDay(),
+                firstDayOfNextYear.atStartOfDay());
+
+        Long todayOrders = orderRepository.countPaidOrdersBetween(
+                today.atStartOfDay(),
+                today.plusDays(1).atStartOfDay());
+        Long monthOrders = orderRepository.countPaidOrdersBetween(
+                firstDayOfMonth.atStartOfDay(),
+                firstDayOfNextMonth.atStartOfDay());
+        Long yearOrders = orderRepository.countPaidOrdersBetween(
+                firstDayOfYear.atStartOfDay(),
+                firstDayOfNextYear.atStartOfDay());
 
         Long totalCustomers = customerRepository.count();
         Long totalProducts = productRepository.count();
