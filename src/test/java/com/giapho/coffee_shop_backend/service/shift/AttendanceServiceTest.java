@@ -163,13 +163,9 @@ class AttendanceServiceTest {
 
         given(shiftAssignmentRepository.findByShiftIdAndUserId(eq(10L), eq(5L))).willReturn(Optional.of(assignment));
         given(userRepository.findByUsername("staff01")).willReturn(Optional.of(User.builder().id(5L).username("staff01").build()));
-
-        given(attendanceRecordMapper.toResponseDTO(any(AttendanceRecord.class))).willReturn(null);
-
-        // Simulate check-in path
-        given(shiftAssignmentRepository.findById(300L)).willReturn(Optional.of(assignment));
         given(attendanceRecordRepository.findFirstByAssignmentIdAndCheckOutAtIsNullOrderByCheckInAtDesc(300L)).willReturn(Optional.empty());
         given(attendanceRecordRepository.save(any(AttendanceRecord.class))).willAnswer(invocation -> invocation.getArgument(0));
+        given(attendanceRecordMapper.toResponseDTO(any(AttendanceRecord.class))).willReturn(null);
 
         attendanceService.checkIn(request);
 

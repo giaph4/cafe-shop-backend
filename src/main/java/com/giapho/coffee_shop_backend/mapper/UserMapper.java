@@ -26,6 +26,8 @@ public interface UserMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "authorities", ignore = true)
     @Mapping(target = "roles", ignore = true) // Roles are handled manually in the service // Map ID -> Set<Role>
+    @Mapping(target = "avatarUrl", ignore = true)
+    @Mapping(target = "address", ignore = true)
 
     void updateUserFromDto(UserUpdateRequestDTO dto, @MappingTarget User user);
 

@@ -5,17 +5,23 @@ import com.giapho.coffee_shop_backend.domain.enums.PayrollCycleStatus;
 import com.giapho.coffee_shop_backend.dto.shift.PayrollCycleRequestDTO;
 import com.giapho.coffee_shop_backend.dto.shift.PayrollCycleResponseDTO;
 import com.giapho.coffee_shop_backend.dto.shift.PayrollSummaryDTO;
+import com.giapho.coffee_shop_backend.security.JwtService;
 import com.giapho.coffee_shop_backend.service.shift.PayrollService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.http.MediaType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.security.web.SecurityFilterChain;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -34,7 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(controllers = PayrollController.class)
 @org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc(addFilters = false)
-@Import(PayrollControllerTest.TestConfig.class)
+@Import({PayrollControllerTest.TestConfig.class, PayrollControllerTest.SecurityTestConfig.class})
 class PayrollControllerTest {
 
     @Autowired
@@ -46,11 +52,28 @@ class PayrollControllerTest {
     @Autowired
     private PayrollService payrollService;
 
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private UserDetailsService userDetailsService;
+
     @TestConfiguration
     static class TestConfig {
         @Bean
         PayrollService payrollService() {
             return mock(PayrollService.class);
+        }
+    }
+
+    @TestConfiguration
+    @EnableMethodSecurity(prePostEnabled = true)
+    static class SecurityTestConfig {
+        @Bean
+        SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+            return http
+                    .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                    .build();
         }
     }
 

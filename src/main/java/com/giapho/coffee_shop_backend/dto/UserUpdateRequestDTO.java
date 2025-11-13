@@ -4,7 +4,11 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+
+
 import lombok.Data;
+import org.hibernate.validator.constraints.URL;
 
 import java.util.Set;
 
@@ -26,4 +30,13 @@ public class UserUpdateRequestDTO {
 
     @NotEmpty(message = "User must have at least one role")
     private Set<Long> roleIds; // Danh sách ID của các quyền muốn gán
+
+    @org.hibernate.validator.constraints.URL(message = "Avatar URL must be a valid URL")
+    @Size(max = 255, message = "Avatar URL must not exceed 255 characters")
+    private String avatarUrl;
+
+    @Size(max = 255, message = "Address must not exceed 255 characters")
+    private String address;
+
+    private Boolean removeAvatar;
 }

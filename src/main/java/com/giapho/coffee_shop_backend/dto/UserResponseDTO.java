@@ -13,6 +13,8 @@ public class UserResponseDTO {
     private String fullName;
     private String phone;
     private String email;
+    private String avatarUrl;
+    private String address;
     private String status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

@@ -93,6 +93,20 @@ public class UserService {
 
         userMapper.updateUserFromDto(updateDTO, existingUser);
 
+        // Update avatar URL if present or remove when requested
+        if (updateDTO.getAvatarUrl() != null) {
+            String trimmedAvatarUrl = updateDTO.getAvatarUrl().trim();
+            existingUser.setAvatarUrl(trimmedAvatarUrl.isEmpty() ? null : trimmedAvatarUrl);
+        } else if (Boolean.TRUE.equals(updateDTO.getRemoveAvatar())) {
+            existingUser.setAvatarUrl(null);
+        }
+
+        // Update address when provided (allow clearing with blank string)
+        if (updateDTO.getAddress() != null) {
+            String trimmedAddress = updateDTO.getAddress().trim();
+            existingUser.setAddress(trimmedAddress.isEmpty() ? null : trimmedAddress);
+        }
+
         existingUser.setRoles(roles);
 
         User updatedUser = userRepository.save(existingUser);
