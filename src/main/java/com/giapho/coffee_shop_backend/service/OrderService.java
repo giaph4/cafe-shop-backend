@@ -131,7 +131,7 @@ public class OrderService {
 
         updateTableStatusOnOrderCreate(savedOrder.getCafeTable());
 
-        return fetchAndMapOrder(savedOrder.getId(), "Failed to fetch newly created order");
+        return orderMapper.entityToResponse(savedOrder);
     }
 
     /**
@@ -164,9 +164,9 @@ public class OrderService {
         }
 
         recalculateOrderTotals(order);
-        orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
 
-        return fetchAndMapOrder(orderId, "Failed to fetch order after adding item");
+        return orderMapper.entityToResponse(savedOrder);
     }
 
     /**
@@ -185,9 +185,9 @@ public class OrderService {
         detailToUpdate.setNotes(updateDTO.getNotes());
 
         recalculateOrderTotals(order);
-        orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
 
-        return fetchAndMapOrder(orderId, "Failed to fetch order after updating item");
+        return orderMapper.entityToResponse(savedOrder);
     }
 
     /**
@@ -210,9 +210,9 @@ public class OrderService {
             recalculateOrderTotals(order);
         }
 
-        orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
 
-        return fetchAndMapOrder(orderId, "Failed to fetch order after removing item");
+        return orderMapper.entityToResponse(savedOrder);
     }
 
     /**
@@ -268,7 +268,7 @@ public class OrderService {
 
         updateTableStatusOnOrderCompletion(order.getCafeTable());
 
-        return fetchAndMapOrder(orderId, "Failed to fetch paid order");
+        return orderMapper.entityToResponse(order);
     }
 
     @Transactional
@@ -292,12 +292,12 @@ public class OrderService {
         order.setDiscountAmount(voucherCheck.getDiscountAmount());
         order.setTotalAmount(order.getSubTotal().subtract(voucherCheck.getDiscountAmount()));
 
-        orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
 
         log.info("Applied voucher {} to order {}. Discount: {}",
                 voucherCode, orderId, voucherCheck.getDiscountAmount());
 
-        return fetchAndMapOrder(orderId, "Failed to fetch order after applying voucher");
+        return orderMapper.entityToResponse(savedOrder);
     }
 
     @Transactional
@@ -314,11 +314,11 @@ public class OrderService {
         order.setDiscountAmount(BigDecimal.ZERO);
         order.setTotalAmount(order.getSubTotal());
 
-        orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
 
         log.info("Removed voucher {} from order {}", removedVoucher, orderId);
 
-        return fetchAndMapOrder(orderId, "Failed to fetch order after removing voucher");
+        return orderMapper.entityToResponse(savedOrder);
     }
 
     @Transactional(readOnly = true)
@@ -338,12 +338,11 @@ public class OrderService {
         Order order = findPendingOrderById(orderId);
 
         order.setStatus("CANCELLED");
-        orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
 
         updateTableStatusOnOrderCompletion(order.getCafeTable());
 
-
-        return fetchAndMapOrder(orderId, "Failed to fetch cancelled order");
+        return orderMapper.entityToResponse(savedOrder);
     }
 
 
@@ -509,7 +508,7 @@ public class OrderService {
             List<ProductIngredient> recipe = productIngredientRepository.findByProductId(product.getId());
 
             if (recipe.isEmpty()) {
-                System.out.println("WARN: No recipe found for product ID: " + product.getId() + ", Name: " + product.getName() + ". Skipping stock deduction.");
+                log.warn("No recipe found for product ID: {}. Skipping stock deduction.", product.getId());
                 continue;
             }
 
@@ -520,7 +519,7 @@ public class OrderService {
                 BigDecimal quantityNeededPerProduct = pi.getQuantityNeeded();
                 BigDecimal totalQuantityToSubtract = quantityNeededPerProduct.multiply(BigDecimal.valueOf(orderQuantity));
 
-                Ingredient currentIngredient = ingredientRepository.findById(ingredient.getId())
+                Ingredient currentIngredient = ingredientRepository.findByIdForUpdate(ingredient.getId())
                         .orElseThrow(() -> new EntityNotFoundException("Ingredient not found during stock deduction: ID " + ingredient.getId()));
 
                 BigDecimal currentStock = currentIngredient.getQuantityOnHand();
@@ -533,11 +532,5 @@ public class OrderService {
                 currentIngredient.setQuantityOnHand(currentStock.subtract(totalQuantityToSubtract));
             }
         }
-    }
-
-    private OrderResponseDTO fetchAndMapOrder(Long orderId, String errorMessage) {
-        Order fetchedOrder = orderRepository.findByIdWithDetails(orderId)
-                .orElseThrow(() -> new EntityNotFoundException(errorMessage + " with id: " + orderId));
-        return orderMapper.entityToResponse(fetchedOrder);
     }
 }

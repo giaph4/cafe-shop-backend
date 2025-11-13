@@ -163,7 +163,7 @@ public class OrderController {
         return ResponseEntity.ok(orders);
     }
 
-    @PostMapping("/{orderId}/cancel")
+    @PutMapping("/{orderId}/cancel")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<OrderResponseDTO> cancelOrder(@PathVariable Long orderId) {
         OrderResponseDTO cancelledOrder = orderService.cancelOrder(orderId);

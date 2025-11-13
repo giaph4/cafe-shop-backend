@@ -92,7 +92,6 @@ class OrderServiceTest {
         when(orderRepository.findPendingOrderByIdWithDetails(orderId)).thenReturn(Optional.of(order));
         when(productRepository.findById(productId)).thenReturn(Optional.of(product));
         when(orderRepository.save(order)).thenReturn(order);
-        when(orderRepository.findByIdWithDetails(orderId)).thenReturn(Optional.of(order));
 
         OrderDetailRequestDTO request = new OrderDetailRequestDTO();
         request.setProductId(productId);
@@ -137,7 +136,6 @@ class OrderServiceTest {
                         .message("OK")
                         .build());
         when(orderRepository.save(order)).thenReturn(order);
-        when(orderRepository.findByIdWithDetails(orderId)).thenReturn(Optional.of(order));
 
         OrderResponseDTO response = orderService.applyVoucher(orderId, "SAVE10");
 
@@ -187,11 +185,10 @@ class OrderServiceTest {
 
         when(orderRepository.findByIdWithCustomer(orderId)).thenReturn(Optional.of(order));
         when(productIngredientRepository.findByProductId(productId)).thenReturn(List.of(recipeItem));
-        when(ingredientRepository.findById(ingredientId)).thenReturn(Optional.of(ingredient));
+        when(ingredientRepository.findByIdForUpdate(ingredientId)).thenReturn(Optional.of(ingredient));
         when(orderRepository.save(order)).thenReturn(order);
         when(orderRepository.findPendingOrderByTableId(table.getId())).thenReturn(Optional.empty());
         when(cafeTableRepository.save(table)).thenAnswer(invocation -> invocation.getArgument(0));
-        when(orderRepository.findByIdWithDetails(orderId)).thenReturn(Optional.of(order));
 
         PaymentRequestDTO paymentRequest = new PaymentRequestDTO();
         paymentRequest.setPaymentMethod("cash");
@@ -261,7 +258,7 @@ class OrderServiceTest {
 
         when(orderRepository.findByIdWithCustomer(orderId)).thenReturn(Optional.of(order));
         when(productIngredientRepository.findByProductId(productId)).thenReturn(List.of(recipeItem));
-        when(ingredientRepository.findById(ingredientId)).thenReturn(Optional.of(ingredient));
+        when(ingredientRepository.findByIdForUpdate(ingredientId)).thenReturn(Optional.of(ingredient));
 
         PaymentRequestDTO paymentRequest = new PaymentRequestDTO();
         paymentRequest.setPaymentMethod("card");

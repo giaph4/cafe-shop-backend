@@ -3,7 +3,6 @@ package com.giapho.coffee_shop_backend.domain.repository;
 import com.giapho.coffee_shop_backend.domain.entity.Order;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -76,18 +75,25 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.status = 'PAID' AND FUNCTION('YEAR', o.paidAt) = FUNCTION('YEAR', CURRENT_DATE)")
     BigDecimal sumYearRevenue();
 
-    @EntityGraph(attributePaths = {"orderDetails", "orderDetails.product", "cafeTable", "user"})
-    @Query("SELECT o FROM Order o " +
+    @Query("SELECT o.id FROM Order o " +
             "WHERE o.customer.id = :customerId " +
             "AND (:status IS NULL OR o.status = :status) " +
             "AND (:startDateTime IS NULL OR COALESCE(o.paidAt, o.createdAt) >= :startDateTime) " +
             "AND (:endDateTime IS NULL OR COALESCE(o.paidAt, o.createdAt) <= :endDateTime)")
-    Page<Order> findCustomerOrders(
+    Page<Long> findCustomerOrderIds(
             @Param("customerId") Long customerId,
             @Param("status") String status,
             @Param("startDateTime") LocalDateTime startDateTime,
             @Param("endDateTime") LocalDateTime endDateTime,
             Pageable pageable);
+
+    @Query("SELECT DISTINCT o FROM Order o " +
+            "LEFT JOIN FETCH o.orderDetails od " +
+            "LEFT JOIN FETCH od.product " +
+            "LEFT JOIN FETCH o.cafeTable " +
+            "LEFT JOIN FETCH o.user " +
+            "WHERE o.id IN :ids")
+    List<Order> findCustomerOrdersByIds(@Param("ids") List<Long> ids);
 
     @Query("SELECT COUNT(o.id) AS totalOrders, " +
             "COALESCE(SUM(o.totalAmount), 0) AS totalAmount, " +

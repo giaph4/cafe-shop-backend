@@ -61,29 +61,30 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, Object> handleValidationExceptions(
+    public ResponseEntity<ErrorResponse> handleValidationExceptions(
             MethodArgumentNotValidException ex,
             HttpServletRequest request
     ) {
         log.warn("Validation failed - Path: {}", request.getRequestURI());
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("timestamp", LocalDateTime.now().toString());
-        response.put("status", HttpStatus.BAD_REQUEST.value());
-        response.put("error", "Validation Failed");
-        response.put("path", request.getRequestURI());
-
         Map<String, String> fieldErrors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach((error) -> {
+        ex.getBindingResult().getAllErrors().forEach(error -> {
             String fieldName = ((FieldError) error).getField();
             String errorMessage = error.getDefaultMessage();
             fieldErrors.put(fieldName, errorMessage);
             log.debug("Field validation error - {}: {}", fieldName, errorMessage);
         });
-        response.put("errors", fieldErrors);
 
-        return response;
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "Validation Failed",
+                "Dữ liệu đầu vào không hợp lệ",
+                request.getRequestURI(),
+                fieldErrors
+        );
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(AccessDeniedException.class)

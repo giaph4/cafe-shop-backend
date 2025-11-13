@@ -1,9 +1,10 @@
 package com.giapho.coffee_shop_backend.service;
 
 import com.giapho.coffee_shop_backend.domain.entity.Customer;
+import com.giapho.coffee_shop_backend.domain.entity.Order;
+import com.giapho.coffee_shop_backend.domain.repository.CustomerPurchaseAggregate;
 import com.giapho.coffee_shop_backend.domain.repository.CustomerRepository;
 import com.giapho.coffee_shop_backend.domain.repository.OrderRepository;
-import com.giapho.coffee_shop_backend.domain.repository.CustomerPurchaseAggregate;
 import com.giapho.coffee_shop_backend.dto.CustomerDTO;
 import com.giapho.coffee_shop_backend.dto.CustomerPurchaseHistoryItemDTO;
 import com.giapho.coffee_shop_backend.dto.CustomerPurchaseHistoryResponseDTO;
@@ -20,7 +21,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -171,9 +178,32 @@ public class CustomerService {
         LocalDateTime startDateTime = startDate != null ? startDate.atStartOfDay() : null;
         LocalDateTime endDateTime = endDate != null ? endDate.plusDays(1).atStartOfDay().minusNanos(1) : null;
 
-        Page<CustomerPurchaseHistoryItemDTO> historyPage = orderRepository
-                .findCustomerOrders(customerId, normalizeStatus(status), startDateTime, endDateTime, pageable)
-                .map(customerPurchaseHistoryMapper::orderToHistoryItem);
+        Page<Long> orderIdPage = orderRepository.findCustomerOrderIds(
+                customerId,
+                normalizeStatus(status),
+                startDateTime,
+                endDateTime,
+                pageable
+        );
+
+        List<CustomerPurchaseHistoryItemDTO> historyItems;
+        if (orderIdPage.isEmpty()) {
+            historyItems = Collections.emptyList();
+        } else {
+            Map<Long, Order> orderMap = orderRepository.findCustomerOrdersByIds(orderIdPage.getContent()).stream()
+                    .collect(Collectors.toMap(
+                            Order::getId,
+                            Function.identity(),
+                            (existing, replacement) -> existing,
+                            LinkedHashMap::new
+                    ));
+
+            historyItems = orderIdPage.getContent().stream()
+                    .map(orderMap::get)
+                    .filter(Objects::nonNull)
+                    .map(customerPurchaseHistoryMapper::orderToHistoryItem)
+                    .toList();
+        }
 
         CustomerPurchaseAggregate aggregate = orderRepository.calculateCustomerPurchaseAggregate(
                 customerId,
@@ -187,13 +217,13 @@ public class CustomerService {
                 customer.getFullName(),
                 customer.getPhone(),
                 aggregate,
-                historyPage.getContent(),
-                historyPage.getNumber(),
-                historyPage.getSize(),
-                historyPage.getTotalElements(),
-                historyPage.getTotalPages(),
-                historyPage.hasNext(),
-                historyPage.hasPrevious()
+                historyItems,
+                orderIdPage.getNumber(),
+                orderIdPage.getSize(),
+                orderIdPage.getTotalElements(),
+                orderIdPage.getTotalPages(),
+                orderIdPage.hasNext(),
+                orderIdPage.hasPrevious()
         );
     }
 
