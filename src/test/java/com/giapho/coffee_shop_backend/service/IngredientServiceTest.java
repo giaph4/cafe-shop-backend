@@ -33,6 +33,8 @@ class IngredientServiceTest {
     private IngredientRepository ingredientRepository;
     @Mock
     private IngredientMapper ingredientMapper;
+    @Mock
+    private AuditLogService auditLogService;
 
     @InjectMocks
     private IngredientService ingredientService;
@@ -138,6 +140,7 @@ class IngredientServiceTest {
         assertThat(ingredient.getQuantityOnHand()).isEqualByComparingTo("75");
         assertThat(result.getQuantityOnHand()).isEqualByComparingTo("75");
         verify(ingredientRepository).save(ingredient);
+        verify(auditLogService).recordAction(eq("INGREDIENT_INVENTORY_ADJUSTED"), eq("INGREDIENT"), eq("3"), eq(true), anyString(), anyString(), isNull());
     }
 
     @Test
@@ -149,5 +152,6 @@ class IngredientServiceTest {
         when(ingredientRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class, () -> ingredientService.adjustInventory(request));
+        verify(auditLogService).recordAction(eq("INGREDIENT_INVENTORY_ADJUSTMENT_FAILED"), eq("INGREDIENT"), eq("999"), eq(false), anyString(), isNull(), anyString());
     }
 }

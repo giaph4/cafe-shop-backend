@@ -10,12 +10,10 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +21,7 @@ public class IngredientService {
 
     private final IngredientRepository ingredientRepository;
     private final IngredientMapper ingredientMapper;
+    private final AuditLogService auditLogService;
 
     @Transactional(readOnly = true)
     public Page<IngredientResponseDTO> getAllIngredients(Pageable pageable) {
@@ -79,27 +78,51 @@ public class IngredientService {
 
     @Transactional
     public IngredientResponseDTO adjustInventory(InventoryAdjustmentRequestDTO request) {
+        String resourceId = String.valueOf(request.getIngredientId());
         Ingredient ingredient = ingredientRepository.findById(request.getIngredientId())
-                .orElseThrow(() -> new EntityNotFoundException("Ingredient not found with id: " + request.getIngredientId()));
+                .orElseThrow(() -> {
+                    EntityNotFoundException ex = new EntityNotFoundException("Ingredient not found with id: " + request.getIngredientId());
+                    auditLogService.recordAction(
+                            "INGREDIENT_INVENTORY_ADJUSTMENT_FAILED",
+                            "INGREDIENT",
+                            resourceId,
+                            false,
+                            "Inventory adjustment failed for ingredient ID=" + resourceId,
+                            null,
+                            ex.getMessage()
+                    );
+                    return ex;
+                });
 
         BigDecimal oldQuantity = ingredient.getQuantityOnHand();
         BigDecimal newQuantity = request.getNewQuantityOnHand();
 
         ingredient.setQuantityOnHand(newQuantity);
 
-        String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
-        System.out.println(String.format(
-                "[%s] Inventory Adjusted: Ingredient ID=%d (%s), Old Qty=%.3f, New Qty=%.3f, Reason: %s, By: %s",
-                LocalDateTime.now(),
-                ingredient.getId(),
-                ingredient.getName(),
+        Ingredient updatedIngredient = ingredientRepository.save(ingredient);
+
+        String summary = String.format(
+                "Inventory adjusted for ingredient ID=%s (%s)",
+                resourceId,
+                ingredient.getName()
+        );
+
+        String details = String.format(
+                "{\"oldQuantity\":\"%s\",\"newQuantity\":\"%s\",\"reason\":\"%s\"}",
                 oldQuantity,
                 newQuantity,
-                request.getReason() != null ? request.getReason() : "N/A",
-                currentUser
-        ));
+                request.getReason() != null ? request.getReason().replace("\"", "\\\"") : ""
+        );
 
-        Ingredient updatedIngredient = ingredientRepository.save(ingredient);
+        auditLogService.recordAction(
+                "INGREDIENT_INVENTORY_ADJUSTED",
+                "INGREDIENT",
+                resourceId,
+                true,
+                summary,
+                details,
+                null
+        );
 
         return ingredientMapper.entityToResponse(updatedIngredient);
     }
