@@ -59,11 +59,10 @@ public class ProductService {
                 .orElseThrow(() -> new EntityNotFoundException("Category not found: " + productRequest.getCategoryId()));
 
         Product product = productMapper.toProduct(productRequest);
-        System.out.println(">>> DEBUG: Set isAvailable to: " + product.isAvailable());
         product.setCategory(category);
         product.setAvailable(true);
 
-        System.out.println(">>> DEBUG: Set isAvailable to: " + product.isAvailable());
+        log.debug("Set product '{}' availability to {} on creation", product.getName(), product.isAvailable());
 
         Product savedProduct = productRepository.save(product);
 

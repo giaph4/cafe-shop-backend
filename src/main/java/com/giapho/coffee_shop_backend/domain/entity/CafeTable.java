@@ -1,5 +1,6 @@
 package com.giapho.coffee_shop_backend.domain.entity;
 
+import com.giapho.coffee_shop_backend.domain.enums.TableStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.proxy.HibernateProxy;
@@ -26,9 +27,10 @@ public class CafeTable {
     @Column(nullable = false)
     private int capacity;
     
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
-    private String status = "EMPTY";
+    private TableStatus status = TableStatus.EMPTY;
 
     @Override
     public final boolean equals(Object o) {

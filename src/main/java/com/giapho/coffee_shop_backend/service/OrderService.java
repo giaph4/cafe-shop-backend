@@ -1,6 +1,7 @@
 package com.giapho.coffee_shop_backend.service;
 
 import com.giapho.coffee_shop_backend.domain.entity.*;
+import com.giapho.coffee_shop_backend.domain.enums.TableStatus;
 import com.giapho.coffee_shop_backend.domain.repository.*;
 import com.giapho.coffee_shop_backend.dto.*;
 import com.giapho.coffee_shop_backend.mapper.OrderMapper;
@@ -371,7 +372,7 @@ public class OrderService {
      * Kiểm tra trạng thái bàn khi tạo đơn mới
      */
     private void validateTableForNewOrder(CafeTable table) {
-        if (!"EMPTY".equals(table.getStatus())) {
+        if (table.getStatus() != TableStatus.EMPTY) {
             orderRepository.findPendingOrderByTableId(table.getId()).ifPresent(existingOrder -> {
                 throw new IllegalArgumentException("Table " + table.getName() + " already has a pending order (ID: " + existingOrder.getId() + ")");
             });
@@ -457,8 +458,8 @@ public class OrderService {
      * Cập nhật trạng thái bàn khi Order được tạo (chỉ nếu bàn EMPTY)
      */
     private void updateTableStatusOnOrderCreate(CafeTable table) {
-        if (table != null && "EMPTY".equals(table.getStatus())) {
-            table.setStatus("SERVING");
+        if (table != null && table.getStatus() == TableStatus.EMPTY) {
+            table.setStatus(TableStatus.SERVING);
             cafeTableRepository.save(table);
         }
     }
@@ -471,8 +472,8 @@ public class OrderService {
             boolean hasOtherPendingOrder = orderRepository.findPendingOrderByTableId(table.getId())
                     .isPresent();
 
-            if (!hasOtherPendingOrder && "SERVING".equals(table.getStatus())) {
-                table.setStatus("EMPTY");
+            if (!hasOtherPendingOrder && table.getStatus() == TableStatus.SERVING) {
+                table.setStatus(TableStatus.EMPTY);
                 cafeTableRepository.save(table);
             }
         }

@@ -1,6 +1,7 @@
 package com.giapho.coffee_shop_backend.service;
 
 import com.giapho.coffee_shop_backend.domain.entity.*;
+import com.giapho.coffee_shop_backend.domain.enums.TableStatus;
 import com.giapho.coffee_shop_backend.domain.repository.*;
 import com.giapho.coffee_shop_backend.dto.OrderDetailRequestDTO;
 import com.giapho.coffee_shop_backend.dto.OrderResponseDTO;
@@ -152,7 +153,7 @@ class OrderServiceTest {
         Long productId = 30L;
         Long ingredientId = 40L;
 
-        CafeTable table = CafeTable.builder().id(5L).name("T1").status("SERVING").build();
+        CafeTable table = CafeTable.builder().id(5L).name("T1").status(TableStatus.valueOf("SERVING")).build();
         Customer customer = Customer.builder().id(6L).fullName("Loyal Customer").build();
 
         Order order = buildPendingOrder(orderId);

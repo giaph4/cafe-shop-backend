@@ -44,11 +44,13 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -309,16 +311,20 @@ public class RoleDashboardService {
     }
 
     private ManagerDashboardDTO.ShiftOverview buildManagerShiftOverview(LocalDate today) {
-        List<ShiftInstance> todayInstances = shiftInstanceRepository.findByShiftDateBetween(today, today);
+        List<ShiftInstance> todayInstances = deduplicateShiftInstances(
+                shiftInstanceRepository.findWithTemplateAndAssignmentsBetween(today, today)
+        );
         int scheduledToday = todayInstances.size();
         int locked = (int) todayInstances.stream().filter(instance -> instance.getStatus() == ShiftStatus.LOCKED).count();
         int completed = shiftAssignmentRepository.findByStatus(ShiftAssignmentStatus.COMPLETED).size();
         int inProgress = shiftAssignmentRepository.findByStatus(ShiftAssignmentStatus.IN_PROGRESS).size();
         int cancelled = shiftAssignmentRepository.findByStatus(ShiftAssignmentStatus.CANCELLED).size();
 
-        List<ManagerDashboardDTO.ShiftCard> upcomingShifts = shiftInstanceRepository
-                .findByShiftDateBetween(today, today.plusDays(MANAGER_SHIFT_LOOKAHEAD_DAYS))
-                .stream()
+        List<ShiftInstance> upcomingInstances = deduplicateShiftInstances(
+                shiftInstanceRepository.findWithTemplateAndAssignmentsBetween(today, today.plusDays(MANAGER_SHIFT_LOOKAHEAD_DAYS))
+        );
+
+        List<ManagerDashboardDTO.ShiftCard> upcomingShifts = upcomingInstances.stream()
                 .sorted(Comparator.comparing(ShiftInstance::getShiftDate).thenComparing(ShiftInstance::getStartTime))
                 .limit(6)
                 .map(instance -> ManagerDashboardDTO.ShiftCard.builder()
@@ -339,6 +345,15 @@ public class RoleDashboardService {
                 .cancelled(cancelled)
                 .upcomingShifts(upcomingShifts)
                 .build();
+    }
+
+    private List<ShiftInstance> deduplicateShiftInstances(List<ShiftInstance> instances) {
+        if (instances == null || instances.isEmpty()) {
+            return List.of();
+        }
+        return new ArrayList<>(instances.stream()
+                .collect(Collectors.toMap(ShiftInstance::getId, Function.identity(), (existing, replacement) -> existing, LinkedHashMap::new))
+                .values());
     }
 
     private ManagerDashboardDTO.TeamPerformance buildManagerTeamPerformance(DateRange range) {

@@ -6,7 +6,6 @@ import com.giapho.coffee_shop_backend.domain.repository.UserRepository;
 import com.giapho.coffee_shop_backend.dto.AuthenticationResponse;
 import com.giapho.coffee_shop_backend.dto.LoginRequest;
 import com.giapho.coffee_shop_backend.security.JwtService;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -94,9 +94,9 @@ public class AuthenticationServiceTest {
         when(httpServletRequest.getHeader("X-Forwarded-For")).thenReturn("192.168.1.2");
 
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenThrow(new RuntimeException("Bad credentials"));
+                .thenThrow(new BadCredentialsException("Bad credentials"));
 
-        assertThrows(EntityNotFoundException.class, () -> authenticationService.login(request, httpServletRequest));
+        assertThrows(BadCredentialsException.class, () -> authenticationService.login(request, httpServletRequest));
 
         verify(loginHistoryService).recordFailedLogin(eq("admin"), eq("192.168.1.2"), eq("JUnit"), eq("Invalid username or password"));
         verify(loginHistoryService, never()).recordSuccessfulLogin(any(), any(), any());
@@ -116,9 +116,9 @@ public class AuthenticationServiceTest {
         when(httpServletRequest.getHeader("X-Forwarded-For")).thenReturn(null);
         when(httpServletRequest.getRemoteAddr()).thenReturn("10.0.0.1");
 
-        assertThrows(EntityNotFoundException.class, () -> authenticationService.login(request, httpServletRequest));
+        assertThrows(BadCredentialsException.class, () -> authenticationService.login(request, httpServletRequest));
 
-        verify(loginHistoryService).recordFailedLogin(eq("missing"), eq("10.0.0.1"), eq("JUnit"), eq("User not found"));
+        verify(loginHistoryService).recordFailedLogin(eq("missing"), eq("10.0.0.1"), eq("JUnit"), eq("Invalid username or password"));
         verify(loginHistoryService, never()).recordSuccessfulLogin(any(), any(), any());
     }
 }

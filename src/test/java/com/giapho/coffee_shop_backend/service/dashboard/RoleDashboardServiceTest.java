@@ -174,7 +174,7 @@ class RoleDashboardServiceTest {
                 .template(template)
                 .assignments(Set.of())
                 .build();
-        when(shiftInstanceRepository.findByShiftDateBetween(any(), any())).thenReturn(List.of(instance));
+        when(shiftInstanceRepository.findWithTemplateAndAssignmentsBetween(any(), any())).thenReturn(List.of(instance));
         when(shiftAssignmentRepository.findByStatus(ShiftAssignmentStatus.COMPLETED))
                 .thenReturn(List.of(TestDataFactory.assignment(201L, ShiftAssignmentStatus.COMPLETED, today.minusDays(1))));
         when(shiftAssignmentRepository.findByStatus(ShiftAssignmentStatus.IN_PROGRESS))

@@ -1,6 +1,8 @@
 package com.giapho.coffee_shop_backend.service;
 
 import com.giapho.coffee_shop_backend.domain.entity.CafeTable;
+import com.giapho.coffee_shop_backend.domain.enums.TableStatus;
+
 import com.giapho.coffee_shop_backend.domain.repository.CafeTableRepository;
 import com.giapho.coffee_shop_backend.domain.repository.OrderRepository;
 import com.giapho.coffee_shop_backend.dto.CafeTableRequest;
@@ -11,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -67,15 +70,11 @@ public class CafeTableService {
 
     @Transactional
     public CafeTableResponse updateTableStatus(Long id, String status) {
-        // (Có thể thêm logic kiểm tra status hợp lệ: "EMPTY", "SERVING", "RESERVED")
-        if (status == null || (!status.equals("PENDING") && !status.equals("AVAILABLE") &&!status.equals("EMPTY") && !status.equals("SERVING") && !status.equals("RESERVED"))) {
-            throw new IllegalArgumentException("Invalid status. Must be one of: PENDING, AVAILABLE, EMPTY, SERVING, RESERVED");
-        }
-
+        TableStatus newStatus = parseStatus(status);
         CafeTable table = cafeTableRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Table not found with id: " + id));
 
-        table.setStatus(status);
+        table.setStatus(newStatus);
 
         CafeTable updatedTable = cafeTableRepository.save(table);
 
@@ -96,5 +95,20 @@ public class CafeTableService {
         // 3. Nếu không có order nào, tiến hành xóa bàn
         cafeTableRepository.deleteById(id);
         System.out.println("Deleted table with ID: " + id); // Log (tùy chọn)
+    }
+
+    private TableStatus parseStatus(String status) {
+        if (status == null) {
+            throw new IllegalArgumentException("Status must not be null");
+        }
+        try {
+            return TableStatus.valueOf(status.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            String allowedValues = Arrays.stream(TableStatus.values())
+                    .map(Enum::name)
+                    .reduce((left, right) -> left + ", " + right)
+                    .orElse("");
+            throw new IllegalArgumentException("Invalid status. Must be one of: " + allowedValues, ex);
+        }
     }
 }

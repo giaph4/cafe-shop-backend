@@ -12,7 +12,10 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -82,33 +85,40 @@ public class AuthenticationService {
         String username = request.getUsername();
         String ipAddress = extractClientIp(httpServletRequest);
         String userAgent = extractUserAgent(httpServletRequest);
+        Authentication authentication;
         try {
-            authenticationManager.authenticate(
+            authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             username,
                             request.getPassword()
                     )
             );
-        } catch (Exception e) {
+        } catch (AuthenticationException ex) {
             loginHistoryService.recordFailedLogin(
                     username,
                     ipAddress,
                     userAgent,
                     "Invalid username or password"
             );
-            throw new EntityNotFoundException("Invalid username or password");
+            throw new BadCredentialsException("Invalid username or password", ex);
         }
 
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> {
-                    loginHistoryService.recordFailedLogin(
-                            username,
-                            ipAddress,
-                            userAgent,
-                            "User not found"
-                    );
-                    return new EntityNotFoundException("User not found");
-                });
+        Object principal = authentication.getPrincipal();
+        User user;
+        if (principal instanceof User authenticatedUser) {
+            user = authenticatedUser;
+        } else {
+            user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> {
+                        loginHistoryService.recordFailedLogin(
+                                username,
+                                ipAddress,
+                                userAgent,
+                                "Invalid username or password"
+                        );
+                        return new BadCredentialsException("Invalid username or password");
+                    });
+        }
 
         String jwtToken = jwtService.generateToken(user);
 
