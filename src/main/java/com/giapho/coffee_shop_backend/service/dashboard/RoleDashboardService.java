@@ -490,11 +490,12 @@ public class RoleDashboardService {
         List<ShiftAssignment> assignments = shiftAssignmentRepository
                 .findByShift_ShiftDateBetween(today.minusDays(1), today.plusDays(1));
 
+        Map<Long, List<AttendanceRecord>> attendanceByAssignment = loadAttendanceRecordsForAssignments(assignments);
         List<ManagerDashboardDTO.AttendanceAlert> alerts = new ArrayList<>();
         LocalDateTime now = LocalDateTime.now();
 
         for (ShiftAssignment assignment : assignments) {
-            List<AttendanceRecord> records = attendanceRecordRepository.findByAssignmentId(assignment.getId());
+            List<AttendanceRecord> records = attendanceByAssignment.getOrDefault(assignment.getId(), List.of());
             boolean hasOpenCheckIn = records.stream().anyMatch(record -> record.getCheckOutAt() == null);
             boolean hasLate = records.stream().anyMatch(record -> record.getLateMinutes() != null && record.getLateMinutes() > 0);
             boolean hasEarlyLeave = records.stream().anyMatch(record -> record.getEarlyLeaveMinutes() != null && record.getEarlyLeaveMinutes() > 0);
@@ -562,17 +563,18 @@ public class RoleDashboardService {
 
         List<ShiftAssignment> assignments = shiftAssignmentRepository
                 .findByUserIdAndShift_ShiftDateBetween(userId, startOfWeek, endOfWeek);
+        Map<Long, List<AttendanceRecord>> attendanceByAssignment = loadAttendanceRecordsForAssignments(assignments);
 
         int completed = (int) assignments.stream().filter(a -> a.getStatus() == ShiftAssignmentStatus.COMPLETED).count();
         int pending = (int) assignments.stream().filter(a -> a.getStatus() == ShiftAssignmentStatus.SCHEDULED || a.getStatus() == ShiftAssignmentStatus.IN_PROGRESS).count();
 
-        long lateCheckIns = assignments.stream()
-                .flatMap(assignment -> attendanceRecordRepository.findByAssignmentId(assignment.getId()).stream())
+        long lateCheckIns = attendanceByAssignment.values().stream()
+                .flatMap(List::stream)
                 .filter(record -> record.getLateMinutes() != null && record.getLateMinutes() > 0)
                 .count();
 
-        long earlyCheckOuts = assignments.stream()
-                .flatMap(assignment -> attendanceRecordRepository.findByAssignmentId(assignment.getId()).stream())
+        long earlyCheckOuts = attendanceByAssignment.values().stream()
+                .flatMap(List::stream)
                 .filter(record -> record.getEarlyLeaveMinutes() != null && record.getEarlyLeaveMinutes() > 0)
                 .count();
 
@@ -634,14 +636,15 @@ public class RoleDashboardService {
         LocalDate today = LocalDate.now();
         List<ShiftAssignment> recentAssignments = shiftAssignmentRepository
                 .findByUserIdAndShift_ShiftDateBetween(userId, today.minusDays(7), today);
+        Map<Long, List<AttendanceRecord>> attendanceByAssignment = loadAttendanceRecordsForAssignments(recentAssignments);
 
         Comparator<AttendanceRecord> checkInComparator = Comparator.comparing(
                 AttendanceRecord::getCheckInAt,
                 Comparator.nullsLast(LocalDateTime::compareTo)
         );
 
-        List<AttendanceRecord> records = recentAssignments.stream()
-                .flatMap(assignment -> attendanceRecordRepository.findByAssignmentId(assignment.getId()).stream())
+        List<AttendanceRecord> records = attendanceByAssignment.values().stream()
+                .flatMap(List::stream)
                 .sorted(checkInComparator.reversed())
                 .toList();
 
@@ -665,6 +668,19 @@ public class RoleDashboardService {
                 .lastCheckOut(lastCheckOut)
                 .consecutiveOnTimeDays(consecutiveOnTimeDays)
                 .build();
+    }
+
+    private Map<Long, List<AttendanceRecord>> loadAttendanceRecordsForAssignments(List<ShiftAssignment> assignments) {
+        if (assignments.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Long> assignmentIds = assignments.stream()
+                .map(ShiftAssignment::getId)
+                .toList();
+
+        return attendanceRecordRepository.findByAssignmentIdIn(assignmentIds).stream()
+                .collect(Collectors.groupingBy(record -> record.getAssignment().getId(), Collectors.toList()));
     }
 
     private StaffDashboardDTO.PayrollSnapshot buildStaffPayrollSnapshot(Long userId) {

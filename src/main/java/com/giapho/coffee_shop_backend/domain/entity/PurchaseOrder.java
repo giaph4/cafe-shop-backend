@@ -2,6 +2,7 @@ package com.giapho.coffee_shop_backend.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.proxy.HibernateProxy;
 
 import java.math.BigDecimal;
@@ -48,7 +49,8 @@ public class PurchaseOrder {
     private BigDecimal totalAmount = BigDecimal.ZERO;
 
 
-    @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @BatchSize(size = 20)
     @ToString.Exclude
     @Builder.Default
     private Set<PurchaseOrderDetail> purchaseOrderDetails = new HashSet<>();

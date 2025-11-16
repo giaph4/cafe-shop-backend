@@ -13,8 +13,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -38,12 +38,25 @@ public class AuthenticationService {
     private final AuthenticationManager authenticationManager;
     private final LoginHistoryService loginHistoryService;
 
+    private static final Pattern PASSWORD_PATTERN = Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^\\w\\s]).{8,64}$");
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
+    private static final Pattern PHONE_PATTERN = Pattern.compile("^\\+?[0-9]{7,15}$");
+
+    @Transactional
     public AuthenticationResponse register(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
+        String username = normalize(request.getUsername());
+        String email = normalize(request.getEmail());
+        String phone = normalize(request.getPhone());
+        String fullName = normalize(request.getFullName());
+        String rawPassword = request.getPassword();
+
+        validateRegisterInputs(username, email, rawPassword, phone);
+
+        if (userRepository.existsByUsername(username)) {
             throw new IllegalArgumentException("Error: Username is already taken");
         }
 
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Error: Email is already in use!");
         }
 
@@ -61,11 +74,11 @@ public class AuthenticationService {
         }
 
         User user = User.builder()
-                .username(request.getUsername())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .fullName(request.getFullName())
-                .email(request.getEmail())
-                .phone(request.getPhone())
+                .username(username)
+                .password(passwordEncoder.encode(rawPassword))
+                .fullName(fullName)
+                .email(email)
+                .phone(phone)
                 .status("ACTIVE")
                 .roles(roles)
                 .build();
@@ -82,42 +95,73 @@ public class AuthenticationService {
 
     @Transactional
     public AuthenticationResponse login(LoginRequest request, HttpServletRequest httpServletRequest) {
-        String username = request.getUsername();
+        String username = normalize(request.getUsername());
+        String rawPassword = request.getPassword();
+        boolean missingCredentials = !StringUtils.hasText(username) || !StringUtils.hasText(rawPassword);
+        if (missingCredentials) {
+            loginHistoryService.recordFailedLogin(
+                    StringUtils.hasText(request.getUsername()) ? request.getUsername().trim() : null,
+                    null,
+                    null,
+                    "Username or password must not be blank"
+            );
+            throw new BadCredentialsException("Username or password must not be blank");
+        }
+
         String ipAddress = extractClientIp(httpServletRequest);
         String userAgent = extractUserAgent(httpServletRequest);
-        Authentication authentication;
         try {
-            authentication = authenticationManager.authenticate(
+            authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             username,
-                            request.getPassword()
+                            rawPassword
                     )
             );
-        } catch (AuthenticationException ex) {
+        } catch (BadCredentialsException ex) {
             loginHistoryService.recordFailedLogin(
                     username,
                     ipAddress,
                     userAgent,
                     "Invalid username or password"
             );
-            throw new BadCredentialsException("Invalid username or password", ex);
+            throw ex;
+        } catch (AuthenticationException ex) {
+            loginHistoryService.recordFailedLogin(
+                    username,
+                    ipAddress,
+                    userAgent,
+                    "Authentication error: " + ex.getMessage()
+            );
+            throw new BadCredentialsException("Authentication failed", ex);
+        } catch (Exception ex) {
+            loginHistoryService.recordFailedLogin(
+                    username,
+                    ipAddress,
+                    userAgent,
+                    "Authentication error: " + ex.getMessage()
+            );
+            throw new BadCredentialsException("Authentication failed", ex);
         }
 
-        Object principal = authentication.getPrincipal();
-        User user;
-        if (principal instanceof User authenticatedUser) {
-            user = authenticatedUser;
-        } else {
-            user = userRepository.findByUsername(username)
-                    .orElseThrow(() -> {
-                        loginHistoryService.recordFailedLogin(
-                                username,
-                                ipAddress,
-                                userAgent,
-                                "Invalid username or password"
-                        );
-                        return new BadCredentialsException("Invalid username or password");
-                    });
+        User user = userRepository.findWithRolesByUsername(username)
+                .orElseThrow(() -> {
+                    loginHistoryService.recordFailedLogin(
+                            username,
+                            ipAddress,
+                            userAgent,
+                            "Invalid username or password"
+                    );
+                    return new BadCredentialsException("Invalid username or password");
+                });
+
+        if (!user.isAccountNonLocked() || !user.isAccountNonExpired() || !user.isCredentialsNonExpired() || !user.isEnabled()) {
+            loginHistoryService.recordFailedLogin(
+                    username,
+                    ipAddress,
+                    userAgent,
+                    "Account is disabled or locked"
+            );
+            throw new DisabledException("Account is disabled or locked");
         }
 
         String jwtToken = jwtService.generateToken(user);
@@ -128,6 +172,38 @@ public class AuthenticationService {
                 .token(jwtToken)
                 .username(user.getUsername())
                 .build();
+    }
+
+    private void validateRegisterInputs(String username, String email, String password, String phone) {
+        if (!StringUtils.hasText(username)) {
+            throw new IllegalArgumentException("Username must not be blank");
+        }
+
+        if (!StringUtils.hasText(password) || !PASSWORD_PATTERN.matcher(password).matches()) {
+            throw new IllegalArgumentException("Password must be 8-64 characters and include upper, lower, digit, and special characters");
+        }
+
+        if (!StringUtils.hasText(email) || !EMAIL_PATTERN.matcher(email).matches()) {
+            throw new IllegalArgumentException("Email is invalid");
+        }
+
+        if (StringUtils.hasText(phone) && !PHONE_PATTERN.matcher(phone).matches()) {
+            throw new IllegalArgumentException("Phone number is invalid");
+        }
+    }
+
+    private void validateLoginInputs(String username, String password) {
+        if (!StringUtils.hasText(username) || !StringUtils.hasText(password)) {
+            throw new BadCredentialsException("Username or password must not be blank");
+        }
+    }
+
+    private String normalize(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private String extractClientIp(HttpServletRequest request) {

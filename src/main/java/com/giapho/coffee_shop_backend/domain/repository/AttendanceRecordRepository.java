@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,4 +35,6 @@ public interface AttendanceRecordRepository extends JpaRepository<AttendanceReco
     List<AttendanceRecord> findByAssignmentId(Long assignmentId);
 
     Optional<AttendanceRecord> findFirstByAssignmentIdAndCheckOutAtIsNullOrderByCheckInAtDesc(Long assignmentId);
+
+    List<AttendanceRecord> findByAssignmentIdIn(Collection<Long> assignmentIds);
 }

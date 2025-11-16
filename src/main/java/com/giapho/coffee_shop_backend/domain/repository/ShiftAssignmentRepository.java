@@ -2,6 +2,7 @@ package com.giapho.coffee_shop_backend.domain.repository;
 
 import com.giapho.coffee_shop_backend.domain.entity.ShiftAssignment;
 import com.giapho.coffee_shop_backend.domain.enums.ShiftAssignmentStatus;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -35,8 +36,10 @@ public interface ShiftAssignmentRepository extends JpaRepository<ShiftAssignment
                                                 @Param("startTime") LocalTime startTime,
                                                 @Param("endTime") LocalTime endTime);
 
+    @EntityGraph(attributePaths = {"shift", "user"})
     List<ShiftAssignment> findByShiftId(Long shiftId);
 
+    @EntityGraph(attributePaths = "shift")
     List<ShiftAssignment> findByUserIdAndShift_ShiftDateBetween(Long userId, LocalDate start, LocalDate end);
 
     List<ShiftAssignment> findByUserIdAndShift_ShiftDate(Long userId, LocalDate date);
@@ -45,5 +48,6 @@ public interface ShiftAssignmentRepository extends JpaRepository<ShiftAssignment
 
     List<ShiftAssignment> findByStatus(ShiftAssignmentStatus status);
 
+    @EntityGraph(attributePaths = {"shift", "user"})
     List<ShiftAssignment> findByShift_ShiftDateBetween(LocalDate start, LocalDate end);
 }

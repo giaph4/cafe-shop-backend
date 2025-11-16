@@ -10,4 +10,6 @@ public class PaymentRequestDTO {
     private String paymentMethod; // "CASH", "TRANSFER", "CARD"
 
     private Long customerId; // Optional: to associate customer during payment
+
+    private String voucherCode; // Optional: apply voucher during payment
 }

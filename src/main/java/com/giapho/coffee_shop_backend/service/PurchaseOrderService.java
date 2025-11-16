@@ -5,7 +5,6 @@ import com.giapho.coffee_shop_backend.domain.repository.*;
 import com.giapho.coffee_shop_backend.dto.PurchaseOrderDetailRequestDTO;
 import com.giapho.coffee_shop_backend.dto.PurchaseOrderRequestDTO;
 import com.giapho.coffee_shop_backend.dto.PurchaseOrderResponseDTO;
-import com.giapho.coffee_shop_backend.mapper.PurchaseOrderDetailMapper; // Cần mapper chi tiết
 import com.giapho.coffee_shop_backend.mapper.PurchaseOrderMapper;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +23,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Predicate;
 
 @Service
 @RequiredArgsConstructor
@@ -35,7 +33,6 @@ public class PurchaseOrderService {
     private final UserRepository userRepository;
     private final IngredientRepository ingredientRepository;
     private final PurchaseOrderMapper purchaseOrderMapper;
-    private final PurchaseOrderDetailMapper purchaseOrderDetailMapper;
 
     /**
      * Lấy danh sách phiếu nhập hàng (có phân trang VÀ LỌC)
@@ -57,36 +54,28 @@ public class PurchaseOrderService {
         // Tạo Specification dựa trên các tham số lọc
         Specification<PurchaseOrder> spec = (root, query, criteriaBuilder) -> {
             List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
-            jakarta.persistence.criteria.Predicate predicate = criteriaBuilder.conjunction();
 
-            // 1. Lọc theo trạng thái (status)
             if (status != null && !status.isEmpty()) {
-                predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("status"), status));
+                predicates.add(criteriaBuilder.equal(root.get("status"), status));
             }
 
-            // 2. Lọc theo nhà cung cấp (supplierId)
             if (supplierId != null) {
-                // Tùy chọn: Kiểm tra xem supplierId có hợp lệ không
-                // if (!supplierRepository.existsById(supplierId)) {
-                //     throw new EntityNotFoundException("Supplier not found with id: " + supplierId);
-                // }
-                predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("supplier").get("id"), supplierId));
+                predicates.add(criteriaBuilder.equal(root.get("supplier").get("id"), supplierId));
             }
 
-            // 3. Lọc theo khoảng ngày đặt hàng (orderDate)
             if (startDate != null && endDate != null) {
-                LocalDateTime startDateTime = startDate.atStartOfDay(); // Bắt đầu ngày startDate
-                LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX); // Kết thúc ngày endDate
-                predicate = criteriaBuilder.and(predicate, criteriaBuilder.between(root.get("orderDate"), startDateTime, endDateTime));
-            } else if (startDate != null) { // Chỉ có ngày bắt đầu
                 LocalDateTime startDateTime = startDate.atStartOfDay();
-                predicate = criteriaBuilder.and(predicate, criteriaBuilder.greaterThanOrEqualTo(root.get("orderDate"), startDateTime));
-            } else if (endDate != null) { // Chỉ có ngày kết thúc
                 LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
-                predicate = criteriaBuilder.and(predicate, criteriaBuilder.lessThanOrEqualTo(root.get("orderDate"), endDateTime));
+                predicates.add(criteriaBuilder.between(root.get("orderDate"), startDateTime, endDateTime));
+            } else if (startDate != null) {
+                LocalDateTime startDateTime = startDate.atStartOfDay();
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("orderDate"), startDateTime));
+            } else if (endDate != null) {
+                LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("orderDate"), endDateTime));
             }
 
-            return predicate;
+            return criteriaBuilder.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
         };
 
         // Gọi phương thức findAll của repository với Specification và Pageable
@@ -130,7 +119,7 @@ public class PurchaseOrderService {
                 .build();
 
         // 4. Xử lý từng chi tiết nhập hàng
-        Set<PurchaseOrderDetail> details = new HashSet<>();
+        Set<PurchaseOrderDetail> details = newPurchaseOrder.getPurchaseOrderDetails();
         BigDecimal totalAmount = BigDecimal.ZERO;
 
         for (PurchaseOrderDetailRequestDTO itemDTO : request.getItems()) {
@@ -152,16 +141,11 @@ public class PurchaseOrderService {
         }
 
         // 5. Cập nhật lại PurchaseOrder với chi tiết và tổng tiền
-        newPurchaseOrder.setPurchaseOrderDetails(details);
         newPurchaseOrder.setTotalAmount(totalAmount);
 
         // 6. Lưu PurchaseOrder (Cascade sẽ lưu Details)
         PurchaseOrder savedPO = purchaseOrderRepository.save(newPurchaseOrder);
-
-        // 7. Trả về DTO (Fetch lại để đảm bảo EAGER loading)
-        PurchaseOrder fetchedPO = purchaseOrderRepository.findById(savedPO.getId())
-                .orElseThrow(() -> new EntityNotFoundException("Failed to fetch newly created purchase order"));
-        return purchaseOrderMapper.entityToResponse(fetchedPO);
+        return purchaseOrderMapper.entityToResponse(savedPO);
     }
 
     /**

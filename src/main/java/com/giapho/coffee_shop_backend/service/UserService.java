@@ -35,25 +35,19 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final RoleMapper roleMapper;
 
-    //    lây tất cả role
     @Transactional(readOnly = true)
     public List<RoleDTO> getAllRoles() {
-        return roleRepository.findAll().stream().map(roleMapper::toDto)
+        return roleRepository.findAll().stream()
+                .map(roleMapper::toDto)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Lấy danh sách tất cả người dùng (phân trang)
-     */
     @Transactional(readOnly = true)
     public Page<UserResponseDTO> getAllUsers(Pageable pageable) {
         Page<User> userPage = userRepository.findAll(pageable);
         return userPage.map(userMapper::toUserResponseDto);
     }
 
-    /**
-     * Lấy chi tiết một người dùng theo ID
-     */
     @Transactional(readOnly = true)
     public UserResponseDTO getUserById(Long id) {
         User user = userRepository.findById(id)
@@ -61,21 +55,19 @@ public class UserService {
         return userMapper.toUserResponseDto(user);
     }
 
-    /**
-     * Cập nhật thông tin người dùng và quyền
-     */
     @Transactional
     public UserResponseDTO updateUser(Long id, UserUpdateRequestDTO updateDTO) {
         User existingUser = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
 
-        if (!existingUser.getPhone().equals(updateDTO.getPhone()) &&
-                userRepository.existsByPhone(updateDTO.getPhone())) {
+        if (!existingUser.getPhone().equals(updateDTO.getPhone())
+                && userRepository.existsByPhone(updateDTO.getPhone())) {
             throw new IllegalArgumentException("Phone number already exists: " + updateDTO.getPhone());
         }
-        if (updateDTO.getEmail() != null && !updateDTO.getEmail().isEmpty() &&
-                !updateDTO.getEmail().equals(existingUser.getEmail()) &&
-                userRepository.existsByEmail(updateDTO.getEmail())) {
+
+        if (updateDTO.getEmail() != null && !updateDTO.getEmail().isEmpty()
+                && !updateDTO.getEmail().equals(existingUser.getEmail())
+                && userRepository.existsByEmail(updateDTO.getEmail())) {
             throw new IllegalArgumentException("Email already exists: " + updateDTO.getEmail());
         }
 
@@ -87,13 +79,13 @@ public class UserService {
                 roles.add(role);
             }
         }
+
         if (roles.isEmpty()) {
             throw new IllegalArgumentException("User must have at least one role.");
         }
 
         userMapper.updateUserFromDto(updateDTO, existingUser);
 
-        // Update avatar URL if present or remove when requested
         if (updateDTO.getAvatarUrl() != null) {
             String trimmedAvatarUrl = updateDTO.getAvatarUrl().trim();
             existingUser.setAvatarUrl(trimmedAvatarUrl.isEmpty() ? null : trimmedAvatarUrl);
@@ -101,7 +93,6 @@ public class UserService {
             existingUser.setAvatarUrl(null);
         }
 
-        // Update address when provided (allow clearing with blank string)
         if (updateDTO.getAddress() != null) {
             String trimmedAddress = updateDTO.getAddress().trim();
             existingUser.setAddress(trimmedAddress.isEmpty() ? null : trimmedAddress);
@@ -110,21 +101,18 @@ public class UserService {
         existingUser.setRoles(roles);
 
         User updatedUser = userRepository.save(existingUser);
-
         return userMapper.toUserResponseDto(updatedUser);
     }
 
-    /**
-     * Thay đổi mật khẩu cho người dùng đang đăng nhập
-     */
     @Transactional
     public void changePassword(ChangePasswordRequestDTO request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated() || authentication.getPrincipal().equals("anonymousUser")) {
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication.getPrincipal().equals("anonymousUser")) {
             throw new IllegalStateException("User not authenticated");
         }
-        String currentUsername = authentication.getName();
 
+        String currentUsername = authentication.getName();
         User currentUser = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new EntityNotFoundException("Current user not found in database"));
 
@@ -141,9 +129,7 @@ public class UserService {
         }
 
         String encodedNewPassword = passwordEncoder.encode(request.getNewPassword());
-
         currentUser.setPassword(encodedNewPassword);
-
         userRepository.save(currentUser);
     }
 
@@ -153,5 +139,4 @@ public class UserService {
                 .orElseThrow(() -> new EntityNotFoundException("User not found with username: " + username));
         return userMapper.toUserResponseDto(user);
     }
-
 }

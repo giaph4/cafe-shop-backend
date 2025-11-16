@@ -12,15 +12,15 @@ import com.giapho.coffee_shop_backend.mapper.ProductMapper;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.ILoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Collections;
+import java.util.Locale;
 
 @Slf4j
 @Service
@@ -51,14 +51,17 @@ public class ProductService {
 
     @Transactional
     public ProductResponse createProduct(ProductRequest productRequest) {
-        if (productRepository.existsByCode(productRequest.getCode())) {
-            throw new IllegalArgumentException("Product code already exists: " + productRequest.getCode());
+        String normalizedCode = normalizeProductCode(productRequest.getCode());
+
+        if (productRepository.existsByCode(normalizedCode)) {
+            throw new IllegalArgumentException("Product code already exists: " + normalizedCode);
         }
 
         Category category = categoryRepository.findById(productRequest.getCategoryId())
                 .orElseThrow(() -> new EntityNotFoundException("Category not found: " + productRequest.getCategoryId()));
 
         Product product = productMapper.toProduct(productRequest);
+        product.setCode(normalizedCode);
         product.setCategory(category);
         product.setAvailable(true);
 
@@ -72,14 +75,14 @@ public class ProductService {
     @Transactional(readOnly = true)
     public Page<ProductResponse> getFilteredProducts(String name, Long categoryId, Pageable pageable) {
 
-        Specification<Product> spec = Specification.allOf(Collections.emptyList()); // Bắt đầu với một spec rỗng
+        Specification<Product> spec = Specification.allOf();
 
-        if (name != null && !name.isEmpty()) {
-            spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
+        if (StringUtils.hasText(name)) {
+            String keyword = "%" + name.trim().toLowerCase(Locale.ROOT) + "%";
+            spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("name")), keyword));
         }
 
         if (categoryId != null && categoryId > 0) {
-            // Tùy chọn: Kiểm tra Category có tồn tại không
             if (!categoryRepository.existsById(categoryId)) {
                 throw new EntityNotFoundException("Category not found with id: " + categoryId);
             }
@@ -96,6 +99,12 @@ public class ProductService {
         Product existingProduct = productRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + id));
 
+        String normalizedCode = normalizeProductCode(productRequest.getCode());
+        if (!normalizedCode.equalsIgnoreCase(existingProduct.getCode())
+                && productRepository.existsByCode(normalizedCode)) {
+            throw new IllegalArgumentException("Product code already exists: " + normalizedCode);
+        }
+
         Category category = categoryRepository.findById(productRequest.getCategoryId())
                 .orElseThrow(() ->
                         new EntityNotFoundException("Category not found with id: " + productRequest.getCategoryId()));
@@ -103,6 +112,7 @@ public class ProductService {
         productMapper.updateProductFromDto(productRequest, existingProduct);
 
         existingProduct.setCategory(category);
+        existingProduct.setCode(normalizedCode);
 
         Product updatedProduct = productRepository.save(existingProduct);
 
@@ -143,8 +153,10 @@ public class ProductService {
             ProductRequest productRequest,
             MultipartFile imageFile
     ) {
-        if (productRepository.existsByCode(productRequest.getCode())) {
-            throw new IllegalArgumentException("Product code already exists: " + productRequest.getCode());
+        String normalizedCode = normalizeProductCode(productRequest.getCode());
+
+        if (productRepository.existsByCode(normalizedCode)) {
+            throw new IllegalArgumentException("Product code already exists: " + normalizedCode);
         }
 
         Category category = categoryRepository.findById(productRequest.getCategoryId())
@@ -162,6 +174,7 @@ public class ProductService {
         product.setCategory(category);
         product.setAvailable(true);
         product.setImageUrl(imageUrl);
+        product.setCode(normalizedCode);
 
         Product savedProduct = productRepository.save(product);
         return productMapper.toProductResponse(savedProduct);
@@ -175,6 +188,12 @@ public class ProductService {
     ) {
         Product existingProduct = productRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + id));
+
+        String normalizedCode = normalizeProductCode(productRequest.getCode());
+        if (!normalizedCode.equalsIgnoreCase(existingProduct.getCode())
+                && productRepository.existsByCode(normalizedCode)) {
+            throw new IllegalArgumentException("Product code already exists: " + normalizedCode);
+        }
 
         Category category = categoryRepository.findById(productRequest.getCategoryId())
                 .orElseThrow(() -> new EntityNotFoundException(
@@ -209,6 +228,8 @@ public class ProductService {
         }
         // --- TRƯỜNG HỢP 3: Không upload file MỚI, và imageUrl trong request vẫn là URL cũ ---
         // (Chúng ta không làm gì cả, giữ nguyên ảnh cũ)
+
+        existingProduct.setCode(normalizedCode);
 
         Product updatedProduct = productRepository.save(existingProduct);
         return productMapper.toProductResponse(updatedProduct);
@@ -267,7 +288,7 @@ public class ProductService {
 
     // Hàm helper xóa ảnh cũ
     private void deleteOldImage(String oldImageUrl) {
-        if (oldImageUrl != null && !oldImageUrl.isEmpty()) {
+        if (StringUtils.hasText(oldImageUrl)) {
             try {
                 String oldFileName = fileStorageService.extractFileNameFromUrl(oldImageUrl);
                 fileStorageService.deleteFile(oldFileName);
@@ -277,5 +298,12 @@ public class ProductService {
                 // Không throw exception, chỉ log
             }
         }
+    }
+
+    private String normalizeProductCode(String code) {
+        if (!StringUtils.hasText(code)) {
+            throw new IllegalArgumentException("Product code must not be empty");
+        }
+        return code.trim().toUpperCase(Locale.ROOT);
     }
 }

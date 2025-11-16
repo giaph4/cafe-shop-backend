@@ -1,44 +1,44 @@
 package com.giapho.coffee_shop_backend.service;
 
-import com.giapho.coffee_shop_backend.domain.entity.*;
+import com.giapho.coffee_shop_backend.domain.entity.CafeTable;
+import com.giapho.coffee_shop_backend.domain.entity.Order;
+import com.giapho.coffee_shop_backend.domain.entity.OrderDetail;
+import com.giapho.coffee_shop_backend.domain.entity.Product;
 import com.giapho.coffee_shop_backend.domain.enums.TableStatus;
-import com.giapho.coffee_shop_backend.domain.repository.*;
+import com.giapho.coffee_shop_backend.domain.repository.CafeTableRepository;
+import com.giapho.coffee_shop_backend.domain.repository.CustomerRepository;
+import com.giapho.coffee_shop_backend.domain.repository.OrderRepository;
+import com.giapho.coffee_shop_backend.domain.repository.ProductRepository;
+import com.giapho.coffee_shop_backend.domain.repository.UserRepository;
 import com.giapho.coffee_shop_backend.dto.OrderDetailRequestDTO;
 import com.giapho.coffee_shop_backend.dto.OrderResponseDTO;
 import com.giapho.coffee_shop_backend.dto.PaymentRequestDTO;
 import com.giapho.coffee_shop_backend.dto.VoucherCheckResponseDTO;
-import com.giapho.coffee_shop_backend.mapper.OrderDetailMapper;
 import com.giapho.coffee_shop_backend.mapper.OrderMapper;
-import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
 
     @Mock
     private OrderRepository orderRepository;
-    @Mock
-    private OrderDetailRepository orderDetailRepository;
     @Mock
     private ProductRepository productRepository;
     @Mock
@@ -48,15 +48,11 @@ class OrderServiceTest {
     @Mock
     private CustomerRepository customerRepository;
     @Mock
-    private IngredientRepository ingredientRepository;
-    @Mock
-    private ProductIngredientRepository productIngredientRepository;
-    @Mock
     private OrderMapper orderMapper;
     @Mock
     private VoucherService voucherService;
     @Mock
-    private CustomerService customerService;
+    private PaymentService paymentService;
 
     @InjectMocks
     private OrderService orderService;
@@ -148,127 +144,25 @@ class OrderServiceTest {
     }
 
     @Test
-    void payOrder_shouldCompleteOrderAndSubtractInventory() {
+    void payOrder_shouldDelegateToPaymentServiceAndUpdateTableStatus() {
         Long orderId = 3L;
-        Long productId = 30L;
-        Long ingredientId = 40L;
+        CafeTable table = CafeTable.builder().id(5L).name("T1").status(TableStatus.SERVING).build();
+        Order paidOrder = buildPendingOrder(orderId);
+        paidOrder.setStatus("PAID");
+        paidOrder.setCafeTable(table);
 
-        CafeTable table = CafeTable.builder().id(5L).name("T1").status(TableStatus.valueOf("SERVING")).build();
-        Customer customer = Customer.builder().id(6L).fullName("Loyal Customer").build();
+        PaymentRequestDTO request = new PaymentRequestDTO();
+        request.setPaymentMethod("cash");
 
-        Order order = buildPendingOrder(orderId);
-        order.setCafeTable(table);
-        order.setCustomer(customer);
-        order.setSubTotal(new BigDecimal("150000"));
-        order.setTotalAmount(new BigDecimal("150000"));
-
-        Product product = Product.builder().id(productId).name("Mocha").price(new BigDecimal("50000")).build();
-        OrderDetail detail = OrderDetail.builder()
-                .order(order)
-                .product(product)
-                .quantity(3)
-                .priceAtOrder(product.getPrice())
-                .build();
-        order.getOrderDetails().add(detail);
-
-        Ingredient ingredient = Ingredient.builder()
-                .id(ingredientId)
-                .name("Coffee Beans")
-                .quantityOnHand(new BigDecimal("1000"))
-                .unit("g")
-                .build();
-
-        ProductIngredient recipeItem = ProductIngredient.builder()
-                .product(product)
-                .ingredient(ingredient)
-                .quantityNeeded(new BigDecimal("10"))
-                .build();
-
-        when(orderRepository.findByIdWithCustomer(orderId)).thenReturn(Optional.of(order));
-        when(productIngredientRepository.findByProductId(productId)).thenReturn(List.of(recipeItem));
-        when(ingredientRepository.findByIdForUpdate(ingredientId)).thenReturn(Optional.of(ingredient));
-        when(orderRepository.save(order)).thenReturn(order);
+        when(paymentService.processPayment(orderId, request)).thenReturn(paidOrder);
         when(orderRepository.findPendingOrderByTableId(table.getId())).thenReturn(Optional.empty());
         when(cafeTableRepository.save(table)).thenAnswer(invocation -> invocation.getArgument(0));
 
-        PaymentRequestDTO paymentRequest = new PaymentRequestDTO();
-        paymentRequest.setPaymentMethod("cash");
-
-        OrderResponseDTO response = orderService.payOrder(orderId, paymentRequest);
-
-        assertThat(order.getStatus()).isEqualTo("PAID");
-        assertThat(order.getPaymentMethod()).isEqualTo("CASH");
-        assertThat(order.getPaidAt()).isNotNull();
-        assertThat(ingredient.getQuantityOnHand()).isEqualByComparingTo("970");
-
-        verify(customerService).updateLoyaltyPoints(customer.getId(), new BigDecimal("150000"));
-        verify(orderRepository).save(order);
-        verify(cafeTableRepository).save(table);
+        OrderResponseDTO response = orderService.payOrder(orderId, request);
 
         assertThat(response.getStatus()).isEqualTo("PAID");
-        assertThat(response.getTotalAmount()).isEqualByComparingTo("150000");
-    }
-
-    @Test
-    void payOrder_shouldThrowWhenPaymentMethodInvalid() {
-        Long orderId = 4L;
-        Order order = buildPendingOrder(orderId);
-        when(orderRepository.findByIdWithCustomer(orderId)).thenReturn(Optional.of(order));
-
-        PaymentRequestDTO paymentRequest = new PaymentRequestDTO();
-        paymentRequest.setPaymentMethod("bitcoin");
-
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> orderService.payOrder(orderId, paymentRequest));
-
-        assertThat(exception.getMessage()).contains("Invalid payment method");
-        verify(orderRepository, never()).save(any());
-    }
-
-    @Test
-    void payOrder_shouldFailWhenInventoryInsufficient() {
-        Long orderId = 5L;
-        Long productId = 50L;
-        Long ingredientId = 60L;
-
-        Order order = buildPendingOrder(orderId);
-        order.setSubTotal(new BigDecimal("60000"));
-        order.setTotalAmount(new BigDecimal("60000"));
-
-        Product product = Product.builder().id(productId).name("Cappuccino").price(new BigDecimal("30000")).build();
-        OrderDetail detail = OrderDetail.builder()
-                .order(order)
-                .product(product)
-                .quantity(3)
-                .priceAtOrder(product.getPrice())
-                .build();
-        order.getOrderDetails().add(detail);
-
-        Ingredient ingredient = Ingredient.builder()
-                .id(ingredientId)
-                .name("Milk")
-                .quantityOnHand(new BigDecimal("10"))
-                .unit("ml")
-                .build();
-
-        ProductIngredient recipeItem = ProductIngredient.builder()
-                .product(product)
-                .ingredient(ingredient)
-                .quantityNeeded(new BigDecimal("5"))
-                .build();
-
-        when(orderRepository.findByIdWithCustomer(orderId)).thenReturn(Optional.of(order));
-        when(productIngredientRepository.findByProductId(productId)).thenReturn(List.of(recipeItem));
-        when(ingredientRepository.findByIdForUpdate(ingredientId)).thenReturn(Optional.of(ingredient));
-
-        PaymentRequestDTO paymentRequest = new PaymentRequestDTO();
-        paymentRequest.setPaymentMethod("card");
-
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> orderService.payOrder(orderId, paymentRequest));
-
-        assertThat(exception.getMessage()).contains("Not enough stock");
-        verify(orderRepository, never()).save(any());
+        verify(paymentService).processPayment(orderId, request);
+        verify(cafeTableRepository).save(table);
     }
 
     private Order buildPendingOrder(Long orderId) {

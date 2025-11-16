@@ -75,7 +75,6 @@ public class OrderController {
         return ResponseEntity.ok(order);
     }
 
-/* <<<<<<<<<<<<<<  ✨ Windsurf Command ⭐ >>>>>>>>>>>>>>>> */
     /**
      * Thêm một món mới vào Order đang PENDING
      *
@@ -83,7 +82,6 @@ public class OrderController {
      * @param itemDTO Thông tin của món (OrderDetail) cần thêm
      * @return OrderResponseDTO sau khi thêm món xong
      */
-/* <<<<<<<<<<  574f19ce-89bb-48f7-834b-d982db8ee3af  >>>>>>>>>>> */
     @PostMapping("/{orderId}/items")
     @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<OrderResponseDTO> addItemToOrder(

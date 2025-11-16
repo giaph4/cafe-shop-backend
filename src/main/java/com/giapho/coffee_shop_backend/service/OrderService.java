@@ -2,7 +2,11 @@ package com.giapho.coffee_shop_backend.service;
 
 import com.giapho.coffee_shop_backend.domain.entity.*;
 import com.giapho.coffee_shop_backend.domain.enums.TableStatus;
-import com.giapho.coffee_shop_backend.domain.repository.*;
+import com.giapho.coffee_shop_backend.domain.repository.CafeTableRepository;
+import com.giapho.coffee_shop_backend.domain.repository.CustomerRepository;
+import com.giapho.coffee_shop_backend.domain.repository.OrderRepository;
+import com.giapho.coffee_shop_backend.domain.repository.ProductRepository;
+import com.giapho.coffee_shop_backend.domain.repository.UserRepository;
 import com.giapho.coffee_shop_backend.dto.*;
 import com.giapho.coffee_shop_backend.mapper.OrderMapper;
 import jakarta.persistence.EntityNotFoundException;
@@ -15,7 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -33,11 +36,9 @@ public class OrderService {
     private final CafeTableRepository cafeTableRepository;
     private final UserRepository userRepository;
     private final CustomerRepository customerRepository;
-    private final IngredientRepository ingredientRepository;
-    private final ProductIngredientRepository productIngredientRepository;
     private final OrderMapper orderMapper;
     private final VoucherService voucherService;
-    private final CustomerService customerService;
+    private final PaymentService paymentService;
 
     /**
      * Lấy danh sách Order (có phân trang)
@@ -221,55 +222,11 @@ public class OrderService {
      */
     @Transactional
     public OrderResponseDTO payOrder(Long orderId, PaymentRequestDTO paymentRequest) {
-        // Load order with customer relationship
-        Order order = orderRepository.findByIdWithCustomer(orderId)
-                .orElseThrow(() -> new EntityNotFoundException("Order not found with id: " + orderId));
+        Order paidOrder = paymentService.processPayment(orderId, paymentRequest);
 
-        if (!"PENDING".equals(order.getStatus())) {
-            throw new IllegalStateException("Cannot pay order with status: " + order.getStatus());
-        }
+        updateTableStatusOnOrderCompletion(paidOrder.getCafeTable());
 
-        String paymentMethod = validatePaymentMethod(paymentRequest.getPaymentMethod());
-
-        if (paymentRequest.getCustomerId() != null && order.getCustomer() == null) {
-            Customer customer = customerRepository.findById(paymentRequest.getCustomerId())
-                    .orElseThrow(() -> new EntityNotFoundException("Customer not found with id: " + paymentRequest.getCustomerId()));
-            order.setCustomer(customer);
-            log.info("Associated customer ID {} with order {} during payment", customer.getId(), orderId);
-        }
-
-        subtractInventoryForOrder(order);
-
-        order.setStatus("PAID");
-        order.setPaidAt(LocalDateTime.now());
-        order.setPaymentMethod(paymentMethod);
-
-        log.info("Processing loyalty points for order {}. Customer: {}, Total Amount: {}",
-                orderId,
-                order.getCustomer() != null ? order.getCustomer().getId() : "null",
-                order.getTotalAmount());
-
-        if (order.getCustomer() == null) {
-            log.warn("No customer associated with order {}. Cannot add loyalty points.", orderId);
-        } else if (order.getTotalAmount() == null || order.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            log.warn("Invalid total amount {} for order {}. Cannot add loyalty points.", order.getTotalAmount(), orderId);
-        } else {
-            try {
-                log.info("Attempting to add loyalty points for customer {} with amount {}",
-                        order.getCustomer().getId(), order.getTotalAmount());
-                customerService.updateLoyaltyPoints(order.getCustomer().getId(), order.getTotalAmount());
-                log.info("Successfully updated loyalty points for customer {}", order.getCustomer().getId());
-            } catch (Exception e) {
-                log.error("Failed to update loyalty points for customer: {}", order.getCustomer().getId(), e);
-            }
-        }
-
-        order = orderRepository.save(order);
-        log.info("Order {} paid successfully with payment method: {}", orderId, paymentMethod);
-
-        updateTableStatusOnOrderCompletion(order.getCafeTable());
-
-        return orderMapper.entityToResponse(order);
+        return orderMapper.entityToResponse(paidOrder);
     }
 
     @Transactional
@@ -475,62 +432,6 @@ public class OrderService {
             if (!hasOtherPendingOrder && table.getStatus() == TableStatus.SERVING) {
                 table.setStatus(TableStatus.EMPTY);
                 cafeTableRepository.save(table);
-            }
-        }
-    }
-
-    /**
-     * Chuẩn hóa và kiểm tra paymentMethod
-     */
-    private String validatePaymentMethod(String paymentMethodInput) {
-        if (paymentMethodInput == null) {
-            throw new IllegalArgumentException("Payment method is required.");
-        }
-        String paymentMethod = paymentMethodInput.toUpperCase();
-        if (!paymentMethod.equals("CASH") && !paymentMethod.equals("TRANSFER") && !paymentMethod.equals("CARD")) {
-            throw new IllegalArgumentException("Invalid payment method. Supported methods: CASH, TRANSFER, CARD");
-        }
-        return paymentMethod;
-    }
-
-    /**
-     * Hàm helper trừ kho
-     */
-    private void subtractInventoryForOrder(Order order) {
-        if (order.getOrderDetails() == null) {
-            return;
-        }
-
-        for (OrderDetail detail : order.getOrderDetails()) {
-            Product product = detail.getProduct();
-            if (product == null) continue;
-            int orderQuantity = detail.getQuantity();
-
-            List<ProductIngredient> recipe = productIngredientRepository.findByProductId(product.getId());
-
-            if (recipe.isEmpty()) {
-                log.warn("No recipe found for product ID: {}. Skipping stock deduction.", product.getId());
-                continue;
-            }
-
-            for (ProductIngredient pi : recipe) {
-                Ingredient ingredient = pi.getIngredient();
-                if (ingredient == null) continue;
-
-                BigDecimal quantityNeededPerProduct = pi.getQuantityNeeded();
-                BigDecimal totalQuantityToSubtract = quantityNeededPerProduct.multiply(BigDecimal.valueOf(orderQuantity));
-
-                Ingredient currentIngredient = ingredientRepository.findByIdForUpdate(ingredient.getId())
-                        .orElseThrow(() -> new EntityNotFoundException("Ingredient not found during stock deduction: ID " + ingredient.getId()));
-
-                BigDecimal currentStock = currentIngredient.getQuantityOnHand();
-
-                if (currentStock.compareTo(totalQuantityToSubtract) < 0) {
-                    throw new IllegalArgumentException("Not enough stock for ingredient: " + currentIngredient.getName()
-                            + ". Required: " + totalQuantityToSubtract + ", Available: " + currentStock);
-                }
-
-                currentIngredient.setQuantityOnHand(currentStock.subtract(totalQuantityToSubtract));
             }
         }
     }

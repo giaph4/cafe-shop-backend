@@ -168,6 +168,8 @@ Content-Type: application/json
 }
 ```
 
+> 📌 **Lưu ý**: Nếu thông tin đăng nhập không chính xác, API sẽ trả về mã lỗi **401 Unauthorized** cùng thông báo "Invalid username or password". Điều này giúp client phân biệt rõ giữa tài khoản không tồn tại và các lỗi tài nguyên (404) khác.
+
 ### 3. Sử dụng Token
 
 Thêm header vào mọi request cần authentication:
@@ -175,6 +177,12 @@ Thêm header vào mọi request cần authentication:
 ```http
 Authorization: Bearer {your_token}
 ```
+
+### 4. Quy trình thanh toán (Payment Flow)
+
+- `OrderService` hiện chỉ điều phối và cập nhật trạng thái bàn. Toàn bộ nghiệp vụ thanh toán (kiểm tra phương thức, trừ kho, cộng điểm khách hàng) đã được tách sang `PaymentService` độc lập để dễ bảo trì và mở rộng.
+- Khi thanh toán thất bại do vi phạm ràng buộc dữ liệu (ví dụ trùng khóa, vi phạm khóa ngoại), `GlobalExceptionHandler` sẽ trả về thông báo chi tiết hơn dựa trên mã lỗi SQL của database, giúp frontend phản hồi chính xác cho người dùng.
+- Các đơn vị test (`PaymentServiceTest`, `OrderServiceTest`) đã được cập nhật để bao phủ cả luồng thành công và thất bại, đảm bảo hành vi mới hoạt động ổn định.
 
 ## 📊 Ví Dụ API Calls
 
