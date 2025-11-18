@@ -13,7 +13,15 @@ public class FileStorageProperties {
 
     private long maxFileSize = 5242880; // 5MB
 
-    private String[] allowedExtensions = {"jpg", "jpeg", "png", "gif", "webp"};
+    private String[] allowedExtensions = {
+            "jpg", "jpeg", "png", "gif", "webp",
+            "mp4", "mov", "avi", "mkv",
+            "mp3", "wav", "m4a", "aac",
+            "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
+            "txt"
+    };
+
+    private String[] imageExtensions = {"jpg", "jpeg", "png", "gif", "webp"};
 
     private String baseUrl = "http://localhost:8088";
 }

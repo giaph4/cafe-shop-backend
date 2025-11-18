@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.coffeeshop.local/chat/schemas/conversation-member.schema.json",
+  "title": "ConversationMember",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["userId", "fullName", "role", "pinned", "muted"],
+  "properties": {
+    "userId": {
+      "type": "integer",
+      "format": "int64"
+    },
+    "username": {
+      "type": ["string", "null"],
+      "maxLength": 100
+    },
+    "fullName": {
+      "type": "string",
+      "maxLength": 255
+    },
+    "avatarUrl": {
+      "type": ["string", "null"],
+      "format": "uri"
+    },
+    "role": {
+      "type": "string",
+      "enum": ["OWNER", "ADMIN", "MEMBER"]
+    },
+    "pinned": {
+      "type": "boolean"
+    },
+    "muted": {
+      "type": "boolean"
+    },
+    "lastReadMessageId": {
+      "type": ["integer", "null"],
+      "format": "int64"
+    }
+  }
+}

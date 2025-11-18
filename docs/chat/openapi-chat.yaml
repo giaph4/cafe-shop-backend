@@ -1,0 +1,733 @@
+openapi: 3.0.3
+info:
+  title: Chat Service API
+  version: 1.0.0
+  description: |
+    Tài liệu OpenAPI cho module chat realtime. Tất cả endpoint yêu cầu xác thực Bearer JWT.
+servers:
+  - url: https://api.coffeeshop.local
+    description: Môi trường sản xuất (ví dụ)
+  - url: https://staging.api.coffeeshop.local
+    description: Môi trường staging
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/auth/login:
+    post:
+      tags: [Authentication]
+      summary: Đăng nhập bằng username/password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Đăng nhập thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '401':
+          description: Sai thông tin đăng nhập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Làm mới access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Làm mới thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '401':
+          description: Refresh token không hợp lệ hoặc hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Đăng xuất và thu hồi refresh token
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Đăng xuất thành công
+        '401':
+          description: Access token không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/chat/conversations:
+    get:
+      tags: [Conversations]
+      summary: Danh sách hội thoại của người dùng hiện tại
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - in: query
+          name: size
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Trang hội thoại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationPage'
+        '401':
+          description: Chưa đăng nhập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/chat/conversations/{conversationId}:
+    get:
+      tags: [Conversations]
+      summary: Lấy chi tiết hội thoại
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      responses:
+        '200':
+          description: Hội thoại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationSummary'
+        '404':
+          description: Không tìm thấy hội thoại hoặc người dùng không phải thành viên
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/chat/conversations/direct/{targetUserId}:
+    post:
+      tags: [Conversations]
+      summary: Tạo hội thoại 1-1 với người dùng khác
+      parameters:
+        - name: targetUserId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '201':
+          description: Hội thoại đã được tạo hoặc trả về hội thoại tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationSummary'
+        '400':
+          description: Tự tạo với chính mình
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/chat/conversations/group:
+    post:
+      tags: [Conversations]
+      summary: Tạo hội thoại nhóm
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGroupConversationRequest'
+      responses:
+        '201':
+          description: Hội thoại nhóm đã được tạo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationSummary'
+        '400':
+          description: Dữ liệu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/chat/conversations/{conversationId}/members:
+    get:
+      tags: [Conversations]
+      summary: Danh sách thành viên trong hội thoại
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      responses:
+        '200':
+          description: Danh sách thành viên
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConversationMember'
+        '404':
+          description: Không tìm thấy hội thoại hoặc không có quyền
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags: [Conversations]
+      summary: Thêm thành viên vào hội thoại (chỉ OWNER)
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberIdsRequest'
+      responses:
+        '204':
+          description: Thêm thành công
+        '403':
+          description: Không đủ quyền
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/chat/conversations/{conversationId}/members/{memberId}:
+    delete:
+      tags: [Conversations]
+      summary: Xóa thành viên khỏi hội thoại (OWNER)
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Xóa thành công
+        '403':
+          description: Không đủ quyền hoặc cố gắng xóa OWNER
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/chat/conversations/{conversationId}/members/{memberId}/role:
+    patch:
+      tags: [Conversations]
+      summary: Cập nhật vai trò thành viên
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: role
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/ConversationMemberRoleEnum'
+      responses:
+        '204':
+          description: Cập nhật thành công
+        '400':
+          description: Role không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/chat/conversations/{conversationId}/pin:
+    patch:
+      tags: [Conversations]
+      summary: Ghim hoặc bỏ ghim hội thoại cho người dùng hiện tại
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - name: pinned
+          in: query
+          required: true
+          schema:
+            type: boolean
+      responses:
+        '204':
+          description: Cập nhật thành công
+        '404':
+          description: Không tìm thấy hội thoại hoặc không phải thành viên
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/chat/conversations/{conversationId}/messages:
+    get:
+      tags: [Messages]
+      summary: Lấy danh sách tin nhắn trong hội thoại (phân trang)
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - name: beforeMessageId
+          in: query
+          schema:
+            type: integer
+            format: int64
+            description: Lấy các tin nhắn được tạo trước messageId này (cursor ngược)
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - in: query
+          name: size
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: Trang tin nhắn
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessagePage'
+  /api/chat/conversations/{conversationId}/messages/text:
+    post:
+      tags: [Messages]
+      summary: Gửi tin nhắn văn bản
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 4000
+      responses:
+        '201':
+          description: Tin nhắn mới
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+  /api/chat/conversations/{conversationId}/messages/emoji:
+    post:
+      tags: [Messages]
+      summary: Gửi tin nhắn emoji
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  description: Mã emoji (unicode)
+                  minLength: 1
+                  maxLength: 16
+      responses:
+        '201':
+          description: Tin nhắn emoji
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+  /api/chat/conversations/{conversationId}/messages/attachments:
+    post:
+      tags: [Messages]
+      summary: Gửi tin nhắn đính kèm
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SendAttachmentMessageRequest'
+      responses:
+        '201':
+          description: Tin nhắn đính kèm
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '400':
+          description: Không có file hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/chat/messages/{messageId}/recall:
+    post:
+      tags: [Messages]
+      summary: Thu hồi tin nhắn (chỉ người gửi)
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Tin nhắn đã thu hồi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '403':
+          description: Không phải người gửi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/chat/messages/{messageId}:
+    delete:
+      tags: [Messages]
+      summary: Xóa tin nhắn phía client (chỉ hiện tại)
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Đánh dấu xóa thành công
+  /api/chat/conversations/{conversationId}/messages/{messageId}/seen:
+    post:
+      tags: [Messages]
+      summary: Đánh dấu đã đọc tin nhắn
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Đánh dấu thành công
+        '404':
+          description: Không tìm thấy tin nhắn hoặc không thuộc hội thoại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    ConversationId:
+      name: conversationId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+  schemas:
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          example: nguyen.vana
+        password:
+          type: string
+          format: password
+          example: 12345678
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+          description: Refresh token đã được cấp ở lần đăng nhập trước
+    AuthTokenResponse:
+      type: object
+      required: [accessToken, refreshToken, expiresIn, tokenType]
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+          description: Thời gian sống của access token (giây)
+        refreshExpiresIn:
+          type: integer
+          description: Thời gian sống của refresh token (giây)
+        user:
+          $ref: '#/components/schemas/UserSummary'
+    UserSummary:
+      type: object
+      required: [id, username, fullName]
+      properties:
+        id:
+          type: integer
+          format: int64
+        username:
+          type: string
+        fullName:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+        statusMessage:
+          type: string
+          nullable: true
+        lastSeenAt:
+          type: string
+          format: date-time
+          nullable: true
+    ConversationPage:
+      type: object
+      required: [items, page, size, totalPages, totalElements]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConversationSummary'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalPages:
+          type: integer
+        totalElements:
+          type: integer
+    ConversationSummary:
+      type: object
+      required: [id, type, updatedAt, unreadCount, pinned, participants]
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+          nullable: true
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+        type:
+          type: string
+          enum: [DIRECT, GROUP]
+        updatedAt:
+          type: string
+          format: date-time
+        lastMessage:
+          $ref: '#/components/schemas/Message'
+        unreadCount:
+          type: integer
+          minimum: 0
+        pinned:
+          type: boolean
+        participants:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ConversationMember'
+    ConversationMember:
+      type: object
+      required: [userId, fullName, role, pinned, muted]
+      properties:
+        userId:
+          type: integer
+          format: int64
+        username:
+          type: string
+          nullable: true
+        fullName:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+        role:
+          $ref: '#/components/schemas/ConversationMemberRoleEnum'
+        pinned:
+          type: boolean
+        muted:
+          type: boolean
+        lastReadMessageId:
+          type: integer
+          format: int64
+          nullable: true
+    ConversationMemberRoleEnum:
+      type: string
+      enum: [OWNER, ADMIN, MEMBER]
+    MemberIdsRequest:
+      type: object
+      required: [memberIds]
+      properties:
+        memberIds:
+          type: array
+          minItems: 1
+          items:
+            type: integer
+            format: int64
+    MessagePage:
+      type: object
+      required: [items, page, size, totalPages, totalElements]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalPages:
+          type: integer
+        totalElements:
+          type: integer
+    Message:
+      type: object
+      required: [id, conversationId, senderId, contentType, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+          format: int64
+        conversationId:
+          type: integer
+          format: int64
+        senderId:
+          type: integer
+          format: int64
+        senderName:
+          type: string
+        senderAvatar:
+          type: string
+          format: uri
+          nullable: true
+        content:
+          type: string
+          nullable: true
+        contentType:
+          type: string
+          enum: [TEXT, IMAGE, VIDEO, AUDIO, FILE, EMOJI]
+        status:
+          type: string
+          enum: [SENT, RECALLED]
+        metadata:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageAttachment'
+        seenByUserIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+    MessageAttachment:
+      type: object
+      required: [id, originalName, storedUrl]
+      properties:
+        id:
+          type: integer
+          format: int64
+        originalName:
+          type: string
+        storedUrl:
+          type: string
+          format: uri
+        previewUrl:
+          type: string
+          format: uri
+          nullable: true
+        mimeType:
+          type: string
+          nullable: true
+        size:
+          type: integer
+          format: int64
+          nullable: true
+    CreateGroupConversationRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+        memberIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+          maxItems: 100
+    SendAttachmentMessageRequest:
+      type: object
+      required: [files]
+      properties:
+        messageText:
+          type: string
+          maxLength: 4000
+          nullable: true
+        files:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: binary
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+

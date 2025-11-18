@@ -55,6 +55,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/files/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/files/**").hasAnyRole("MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/files/**").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers("/api/chat/**").authenticated()
+                        .requestMatchers("/ws/**").authenticated()
                         .anyRequest()
                         .authenticated()
                 )

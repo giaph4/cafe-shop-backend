@@ -130,12 +130,15 @@ public class FileStorageService {
             );
         }
 
-        validateImageFile(file);
+        if (isImageExtension(extension)) {
+            validateImageFile(file);
+        }
     }
 
     private void validateImageFile(MultipartFile file) {
         try (InputStream input = file.getInputStream()) {
             BufferedImage image = ImageIO.read(input);
+
             if (image == null) {
                 throw new FileStorageException("File is not a valid image");
             }
@@ -154,5 +157,10 @@ public class FileStorageService {
 
     private String generateUniqueFileName() {
         return UUID.randomUUID().toString();
+    }
+
+    private boolean isImageExtension(String extension) {
+        return Arrays.stream(fileStorageProperties.getImageExtensions())
+                .anyMatch(ext -> ext.equalsIgnoreCase(extension));
     }
 }

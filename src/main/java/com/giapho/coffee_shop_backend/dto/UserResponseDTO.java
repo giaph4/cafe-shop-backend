@@ -16,6 +16,8 @@ public class UserResponseDTO {
     private String avatarUrl;
     private String address;
     private String status;
+    private String statusMessage;
+    private LocalDateTime lastSeenAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Set<RoleDTO> roles;

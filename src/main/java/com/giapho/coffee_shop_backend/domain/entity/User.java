@@ -52,6 +52,12 @@ public class User implements UserDetails {
     @Column(length = 20)
     private String status;
 
+    @Column(name = "status_message", length = 255)
+    private String statusMessage;
+
+    @Column(name = "last_seen_at")
+    private LocalDateTime lastSeenAt;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -99,6 +105,7 @@ public class User implements UserDetails {
     public void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
+        this.lastSeenAt = LocalDateTime.now();
     }
 
     @PreUpdate
