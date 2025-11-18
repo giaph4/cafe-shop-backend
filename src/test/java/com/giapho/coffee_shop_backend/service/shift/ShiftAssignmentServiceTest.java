@@ -18,8 +18,11 @@ import com.giapho.coffee_shop_backend.domain.repository.UserRepository;
 import com.giapho.coffee_shop_backend.dto.shift.ShiftAssignmentRequestDTO;
 import com.giapho.coffee_shop_backend.dto.shift.ShiftAssignmentStatusUpdateRequestDTO;
 import com.giapho.coffee_shop_backend.dto.shift.ShiftAssignmentUpdateRequestDTO;
+import com.giapho.coffee_shop_backend.exception.shift.ShiftAssignmentNotFoundException;
+import com.giapho.coffee_shop_backend.exception.shift.ShiftAssignmentOverlapException;
+import com.giapho.coffee_shop_backend.exception.shift.ShiftAssignmentStateException;
 import com.giapho.coffee_shop_backend.mapper.ShiftAssignmentMapper;
-import jakarta.persistence.EntityNotFoundException;
+import com.giapho.coffee_shop_backend.service.impl.ShiftAssignmentServiceImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -66,7 +69,7 @@ class ShiftAssignmentServiceTest {
     private ShiftAssignmentMapper shiftAssignmentMapper;
 
     @InjectMocks
-    private ShiftAssignmentService shiftAssignmentService;
+    private ShiftAssignmentServiceImpl shiftAssignmentService;
 
     private ShiftInstance shiftInstance;
     private User user;
@@ -150,7 +153,7 @@ class ShiftAssignmentServiceTest {
         given(userRepository.findById(5L)).willReturn(Optional.of(user));
         given(shiftAssignmentRepository.hasOverlappingAssignment(eq(5L), eq(shiftInstance.getShiftDate()), any(), any())).willReturn(true);
 
-        assertThrows(IllegalArgumentException.class, () -> shiftAssignmentService.createAssignment(request));
+        assertThrows(ShiftAssignmentOverlapException.class, () -> shiftAssignmentService.createAssignment(request));
         verify(shiftAssignmentRepository, never()).save(any());
     }
 
@@ -189,7 +192,7 @@ class ShiftAssignmentServiceTest {
         given(shiftAssignmentRepository.findById(300L)).willReturn(Optional.of(assignment));
 
         ShiftAssignmentStatusUpdateRequestDTO request = new ShiftAssignmentStatusUpdateRequestDTO(ShiftAssignmentStatus.CANCELLED, "try cancel");
-        assertThrows(IllegalStateException.class, () -> shiftAssignmentService.updateStatus(300L, request));
+        assertThrows(ShiftAssignmentStateException.class, () -> shiftAssignmentService.updateStatus(300L, request));
     }
 
     @Test
@@ -219,7 +222,7 @@ class ShiftAssignmentServiceTest {
     @Test
     void getAssignment_ShouldThrow_WhenNotFound() {
         given(shiftAssignmentRepository.findById(999L)).willReturn(Optional.empty());
-        assertThrows(EntityNotFoundException.class, () -> shiftAssignmentService.getAssignment(999L));
+        assertThrows(ShiftAssignmentNotFoundException.class, () -> shiftAssignmentService.getAssignment(999L));
     }
 
     private ShiftAssignment buildAssignment() {

@@ -4,7 +4,7 @@ import com.giapho.coffee_shop_backend.dto.shift.ShiftAssignmentRequestDTO;
 import com.giapho.coffee_shop_backend.dto.shift.ShiftAssignmentResponseDTO;
 import com.giapho.coffee_shop_backend.dto.shift.ShiftAssignmentStatusUpdateRequestDTO;
 import com.giapho.coffee_shop_backend.dto.shift.ShiftAssignmentUpdateRequestDTO;
-import com.giapho.coffee_shop_backend.service.shift.ShiftAssignmentService;
+import com.giapho.coffee_shop_backend.service.ShiftAssignmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

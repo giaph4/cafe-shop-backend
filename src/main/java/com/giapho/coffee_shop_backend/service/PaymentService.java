@@ -12,8 +12,14 @@ import com.giapho.coffee_shop_backend.domain.repository.OrderRepository;
 import com.giapho.coffee_shop_backend.domain.repository.ProductIngredientRepository;
 import com.giapho.coffee_shop_backend.dto.PaymentRequestDTO;
 import com.giapho.coffee_shop_backend.dto.VoucherCheckResponseDTO;
-import com.giapho.coffee_shop_backend.service.VoucherService;
-import jakarta.persistence.EntityNotFoundException;
+import com.giapho.coffee_shop_backend.exception.customer.CustomerNotFoundException;
+import com.giapho.coffee_shop_backend.exception.ingredient.IngredientNotFoundException;
+import com.giapho.coffee_shop_backend.exception.inventory.InsufficientInventoryException;
+import com.giapho.coffee_shop_backend.exception.order.OrderInvalidStateException;
+import com.giapho.coffee_shop_backend.exception.order.OrderNotFoundException;
+import com.giapho.coffee_shop_backend.exception.order.PaymentMethodInvalidException;
+import com.giapho.coffee_shop_backend.exception.voucher.VoucherInvalidException;
+import com.giapho.coffee_shop_backend.service.order.OrderPricingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,21 +41,22 @@ public class PaymentService {
     private final ProductIngredientRepository productIngredientRepository;
     private final CustomerService customerService;
     private final VoucherService voucherService;
+    private final OrderPricingService orderPricingService;
 
     @Transactional
     public Order processPayment(Long orderId, PaymentRequestDTO paymentRequest) {
         Order order = orderRepository.findByIdWithCustomer(orderId)
-                .orElseThrow(() -> new EntityNotFoundException("Order not found with id: " + orderId));
+                .orElseThrow(() -> new OrderNotFoundException(orderId));
 
-        if (!order.getStatus().equals("PENDING")) {
-            throw new IllegalStateException("Cannot pay order with status: " + order.getStatus());
+        if (!"PENDING".equals(order.getStatus())) {
+            throw new OrderInvalidStateException(orderId, order.getStatus());
         }
 
         String paymentMethod = validatePaymentMethod(paymentRequest.getPaymentMethod());
 
         if (paymentRequest.getCustomerId() != null && order.getCustomer() == null) {
             Customer customer = customerRepository.findById(paymentRequest.getCustomerId())
-                    .orElseThrow(() -> new EntityNotFoundException("Customer not found with id: " + paymentRequest.getCustomerId()));
+                    .orElseThrow(() -> new CustomerNotFoundException(paymentRequest.getCustomerId()));
             order.setCustomer(customer);
             log.info("Associated customer ID {} with order {} during payment", customer.getId(), orderId);
         }
@@ -61,7 +68,7 @@ public class PaymentService {
             VoucherCheckResponseDTO voucherCheck = voucherService.checkAndCalculateDiscount(normalizedVoucherCode, orderSubTotal);
 
             if (!voucherCheck.isValid()) {
-                throw new IllegalArgumentException(voucherCheck.getMessage());
+                throw new VoucherInvalidException(normalizedVoucherCode, voucherCheck.getMessage());
             }
 
             BigDecimal discountAmount = voucherCheck.getDiscountAmount() != null ? voucherCheck.getDiscountAmount() : BigDecimal.ZERO;
@@ -91,6 +98,7 @@ public class PaymentService {
         }
 
         subtractInventoryForOrder(order);
+        orderPricingService.recalculateTotals(order);
 
         order.setStatus("PAID");
         order.setPaidAt(LocalDateTime.now());
@@ -162,13 +170,15 @@ public class PaymentService {
                 BigDecimal totalQuantityToSubtract = quantityNeededPerProduct.multiply(BigDecimal.valueOf(orderQuantity));
 
                 Ingredient currentIngredient = ingredientRepository.findByIdForUpdate(ingredient.getId())
-                        .orElseThrow(() -> new EntityNotFoundException("Ingredient not found during stock deduction: ID " + ingredient.getId()));
+                        .orElseThrow(() -> new IngredientNotFoundException(ingredient.getId()));
 
                 BigDecimal currentStock = currentIngredient.getQuantityOnHand();
 
                 if (currentStock.compareTo(totalQuantityToSubtract) < 0) {
-                    throw new IllegalArgumentException("Not enough stock for ingredient: " + currentIngredient.getName()
-                            + ". Required: " + totalQuantityToSubtract + ", Available: " + currentStock);
+                    throw new InsufficientInventoryException(
+                            currentIngredient.getName(),
+                            totalQuantityToSubtract.toPlainString(),
+                            currentStock.toPlainString());
                 }
 
                 currentIngredient.setQuantityOnHand(currentStock.subtract(totalQuantityToSubtract));
@@ -179,11 +189,11 @@ public class PaymentService {
 
     private String validatePaymentMethod(String paymentMethodInput) {
         if (!StringUtils.hasText(paymentMethodInput)) {
-            throw new IllegalArgumentException("Payment method is required.");
+            throw new PaymentMethodInvalidException("Payment method is required.");
         }
         String paymentMethod = paymentMethodInput.trim().toUpperCase();
         if (!paymentMethod.equals("CASH") && !paymentMethod.equals("TRANSFER") && !paymentMethod.equals("CARD")) {
-            throw new IllegalArgumentException("Invalid payment method. Supported methods: CASH, TRANSFER, CARD");
+            throw new PaymentMethodInvalidException("Invalid payment method. Supported methods: CASH, TRANSFER, CARD");
         }
         return paymentMethod;
     }

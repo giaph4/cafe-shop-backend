@@ -4,15 +4,12 @@ import com.giapho.coffee_shop_backend.dto.*;
 import com.giapho.coffee_shop_backend.service.ReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -59,20 +56,13 @@ public class ReportController {
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
-        try {
-            ByteArrayInputStream excelStream = reportService.exportOrdersToExcel(startDate, endDate);
-            InputStreamResource resource = new InputStreamResource(excelStream);
+        InputStreamResource resource = new InputStreamResource(reportService.exportOrdersToExcel(startDate, endDate));
+        String filename = "Orders_" + startDate + "_to_" + endDate + ".xlsx";
 
-            String filename = "Orders_" + startDate + "_to_" + endDate + ".xlsx";
-
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
-                    .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                    .body(resource);
-
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-        }
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
+                .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .body(resource);
     }
 
     @GetMapping("/profit")
@@ -211,19 +201,13 @@ public class ReportController {
     @GetMapping("/inventory/export")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<Resource> exportInventory() {
-        try {
-            ByteArrayInputStream excelStream = reportService.exportInventoryToExcel();
-            InputStreamResource resource = new InputStreamResource(excelStream);
+        InputStreamResource resource = new InputStreamResource(reportService.exportInventoryToExcel());
+        String filename = "Inventory_" + LocalDate.now() + ".xlsx";
 
-            String filename = "Inventory_" + LocalDate.now() + ".xlsx";
-
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
-                    .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                    .body(resource);
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-        }
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
+                .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .body(resource);
     }
 
     @GetMapping("/expenses/export")
@@ -232,19 +216,13 @@ public class ReportController {
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
-        try {
-            ByteArrayInputStream excelStream = reportService.exportExpensesToExcel(startDate, endDate);
-            InputStreamResource resource = new InputStreamResource(excelStream);
+        InputStreamResource resource = new InputStreamResource(reportService.exportExpensesToExcel(startDate, endDate));
+        String filename = "Expenses_" + startDate + "_to_" + endDate + ".xlsx";
 
-            String filename = "Expenses_" + startDate + "_to_" + endDate + ".xlsx";
-
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
-                    .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                    .body(resource);
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-        }
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
+                .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .body(resource);
     }
 
     @GetMapping("/total-expenses")

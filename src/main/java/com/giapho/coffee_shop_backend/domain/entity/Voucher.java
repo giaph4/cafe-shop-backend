@@ -52,8 +52,7 @@ public class Voucher {
     @Column(nullable = false)
     private boolean active = true;
 
-
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public enum VoucherType {
@@ -61,6 +60,17 @@ public class Voucher {
         PERCENTAGE
     }
 
+    @PrePersist
+    public void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    @PreUpdate
+    public void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 
     public boolean isValid() {
         LocalDateTime now = LocalDateTime.now();

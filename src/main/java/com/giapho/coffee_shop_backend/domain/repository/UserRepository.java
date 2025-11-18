@@ -1,6 +1,7 @@
 package com.giapho.coffee_shop_backend.domain.repository;
 
 import com.giapho.coffee_shop_backend.domain.entity.User;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,9 +20,18 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @EntityGraph(attributePaths = "roles")
     Optional<User> findWithRolesByUsername(String username);
 
+    @EntityGraph(attributePaths = "roles")
+    Optional<User> findById(Long id);
+
+    @Override
+    @EntityGraph(attributePaths = "roles")
+    Page<User> findAll(Pageable pageable);
+
     boolean existsByUsername(String username);
 
     boolean existsByEmail(String email);
+
+    boolean existsByEmailAndIdNot(String email, Long id);
 
     @Query("SELECT new com.giapho.coffee_shop_backend.dto.StaffPerformanceDTO(" +
             "  u.id, " +
@@ -39,7 +49,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate,
             Pageable pageable);
-
     boolean existsByPhone(String phone);
+
+    boolean existsByPhoneAndIdNot(String phone, Long id);
 }
 

@@ -1,6 +1,5 @@
 package com.giapho.coffee_shop_backend.service;
 
-import com.giapho.coffee_shop_backend.domain.entity.CafeTable;
 import com.giapho.coffee_shop_backend.domain.entity.Customer;
 import com.giapho.coffee_shop_backend.domain.entity.Ingredient;
 import com.giapho.coffee_shop_backend.domain.entity.Order;
@@ -13,7 +12,10 @@ import com.giapho.coffee_shop_backend.domain.repository.OrderRepository;
 import com.giapho.coffee_shop_backend.domain.repository.ProductIngredientRepository;
 import com.giapho.coffee_shop_backend.dto.PaymentRequestDTO;
 import com.giapho.coffee_shop_backend.dto.VoucherCheckResponseDTO;
-import jakarta.persistence.EntityNotFoundException;
+import com.giapho.coffee_shop_backend.exception.inventory.InsufficientInventoryException;
+import com.giapho.coffee_shop_backend.exception.order.PaymentMethodInvalidException;
+import com.giapho.coffee_shop_backend.exception.voucher.VoucherInvalidException;
+import com.giapho.coffee_shop_backend.service.order.OrderPricingService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -21,7 +23,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -48,6 +49,8 @@ class PaymentServiceTest {
     private CustomerService customerService;
     @Mock
     private VoucherService voucherService;
+    @Mock
+    private OrderPricingService orderPricingService;
 
     @InjectMocks
     private PaymentService paymentService;
@@ -104,6 +107,7 @@ class PaymentServiceTest {
 
         verify(orderRepository).save(order);
         verify(customerService).updateLoyaltyPoints(customer.getId(), new BigDecimal("150000"));
+        verify(orderPricingService).recalculateTotals(order);
         verify(ingredientRepository).save(ingredient);
     }
 
@@ -130,6 +134,7 @@ class PaymentServiceTest {
 
         assertThat(order.getCustomer()).isEqualTo(customer);
         assertThat(order.getPaymentMethod()).isEqualTo("CARD");
+        verify(orderPricingService).recalculateTotals(order);
     }
 
     @Test
@@ -166,6 +171,7 @@ class PaymentServiceTest {
 
         verify(voucherService).checkAndCalculateDiscount(voucherCode, new BigDecimal("200000"));
         verify(voucherService).incrementUsageCount(voucherCode);
+        verify(orderPricingService).recalculateTotals(order);
     }
 
     @Test
@@ -192,10 +198,8 @@ class PaymentServiceTest {
         request.setPaymentMethod("cash");
         request.setVoucherCode(voucherCode);
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> paymentService.processPayment(orderId, request));
+        assertThrows(VoucherInvalidException.class, () -> paymentService.processPayment(orderId, request));
 
-        assertThat(exception.getMessage()).contains("Voucher đã hết hạn.");
         verify(orderRepository, never()).save(any());
         verify(voucherService, never()).incrementUsageCount(any());
     }
@@ -210,10 +214,9 @@ class PaymentServiceTest {
         PaymentRequestDTO request = new PaymentRequestDTO();
         request.setPaymentMethod("bitcoin");
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        assertThrows(PaymentMethodInvalidException.class,
                 () -> paymentService.processPayment(orderId, request));
 
-        assertThat(exception.getMessage()).contains("Invalid payment method");
         verify(orderRepository, never()).save(any());
     }
 
@@ -256,7 +259,7 @@ class PaymentServiceTest {
         PaymentRequestDTO request = new PaymentRequestDTO();
         request.setPaymentMethod("transfer");
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        InsufficientInventoryException exception = assertThrows(InsufficientInventoryException.class,
                 () -> paymentService.processPayment(orderId, request));
 
         assertThat(exception.getMessage()).contains("Not enough stock");

@@ -50,4 +50,6 @@ public interface ShiftAssignmentRepository extends JpaRepository<ShiftAssignment
 
     @EntityGraph(attributePaths = {"shift", "user"})
     List<ShiftAssignment> findByShift_ShiftDateBetween(LocalDate start, LocalDate end);
+
+    boolean existsByShiftId(Long shiftId);
 }

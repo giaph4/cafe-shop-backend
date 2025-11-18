@@ -38,6 +38,17 @@ public class GlobalExceptionHandler {
         return buildResponseEntity(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage(), request);
     }
 
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessException(
+            BusinessException ex,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = ex.getStatus();
+        log.warn("Business rule violated: {} - Path: {}", ex.getMessage(), request.getRequestURI());
+
+        return buildResponseEntity(status, status.getReasonPhrase(), ex.getMessage(), request);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(
             IllegalArgumentException ex,

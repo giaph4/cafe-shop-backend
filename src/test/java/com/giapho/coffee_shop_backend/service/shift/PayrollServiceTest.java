@@ -15,7 +15,10 @@ import com.giapho.coffee_shop_backend.domain.repository.ShiftAssignmentRepositor
 import com.giapho.coffee_shop_backend.dto.shift.PayrollCycleRequestDTO;
 import com.giapho.coffee_shop_backend.dto.shift.PayrollCycleResponseDTO;
 import com.giapho.coffee_shop_backend.dto.shift.PayrollSummaryDTO;
-import jakarta.persistence.EntityNotFoundException;
+import com.giapho.coffee_shop_backend.exception.shift.PayrollCycleNotFoundException;
+import com.giapho.coffee_shop_backend.exception.shift.PayrollCycleValidationException;
+import com.giapho.coffee_shop_backend.service.ShiftAssignmentService;
+import com.giapho.coffee_shop_backend.service.impl.PayrollServiceImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,7 +64,7 @@ class PayrollServiceTest {
     private ShiftAssignmentService shiftAssignmentService;
 
     @InjectMocks
-    private PayrollService payrollService;
+    private PayrollServiceImpl payrollService;
 
     private MockedStatic<com.giapho.coffee_shop_backend.util.SecurityUtil> securityUtilMock;
 
@@ -116,7 +119,7 @@ class PayrollServiceTest {
         when(cycleRepository.findByCode("JAN_2025")).thenReturn(Optional.of(PayrollCycle.builder().build()));
 
         assertThatThrownBy(() -> payrollService.createCycle(request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(PayrollCycleValidationException.class)
                 .hasMessageContaining("Mã chu kỳ lương đã tồn tại");
     }
 
@@ -240,6 +243,6 @@ class PayrollServiceTest {
     void getCycle_ShouldThrowWhenNotFound() {
         when(cycleRepository.findById(999L)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> payrollService.getCycle(999L))
-                .isInstanceOf(EntityNotFoundException.class);
+                .isInstanceOf(PayrollCycleNotFoundException.class);
     }
 }

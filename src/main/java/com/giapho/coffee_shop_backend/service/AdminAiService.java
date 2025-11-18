@@ -3,11 +3,15 @@ package com.giapho.coffee_shop_backend.service;
 import com.giapho.coffee_shop_backend.dto.analytics.AdminAnalyticsRequest;
 import com.giapho.coffee_shop_backend.dto.analytics.AdminAnalyticsResponse;
 import com.giapho.coffee_shop_backend.dto.analytics.DashboardMetricsDTO;
+import com.giapho.coffee_shop_backend.dto.shift.AttendanceCheckRequestDTO;
+import com.giapho.coffee_shop_backend.dto.shift.AttendanceRecordResponseDTO;
 import com.giapho.coffee_shop_backend.integration.gemini.GeminiClient;
+import com.giapho.coffee_shop_backend.util.PromptBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -40,5 +44,16 @@ public class AdminAiService {
 
     private Optional<String> callModel(String prompt) {
         return geminiClient.generateContent(prompt);
+    }
+
+    public static interface AttendanceService {
+
+        AttendanceRecordResponseDTO checkIn(AttendanceCheckRequestDTO request);
+
+        AttendanceRecordResponseDTO checkOut(AttendanceCheckRequestDTO request);
+
+        List<AttendanceRecordResponseDTO> getAttendanceForAssignment(Long assignmentId);
+
+        List<AttendanceRecordResponseDTO> getAttendanceForShift(Long shiftId);
     }
 }

@@ -65,9 +65,10 @@ public class AuthenticationServiceTest {
         User user = User.builder()
                 .id(1L)
                 .username("admin")
+                .status("ACTIVE")
                 .build();
 
-        when(userRepository.findByUsername("admin")).thenReturn(java.util.Optional.of(user));
+        when(userRepository.findWithRolesByUsername("admin")).thenReturn(java.util.Optional.of(user));
         when(jwtService.generateToken(user)).thenReturn("token");
         when(httpServletRequest.getHeader("User-Agent")).thenReturn("JUnit");
         when(httpServletRequest.getHeader("X-Forwarded-For")).thenReturn(null);
@@ -111,7 +112,7 @@ public class AuthenticationServiceTest {
 
         Authentication authentication = mock(Authentication.class);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(authentication);
-        when(userRepository.findByUsername("missing")).thenReturn(java.util.Optional.empty());
+        when(userRepository.findWithRolesByUsername("missing")).thenReturn(java.util.Optional.empty());
         when(httpServletRequest.getHeader("User-Agent")).thenReturn("JUnit");
         when(httpServletRequest.getHeader("X-Forwarded-For")).thenReturn(null);
         when(httpServletRequest.getRemoteAddr()).thenReturn("10.0.0.1");

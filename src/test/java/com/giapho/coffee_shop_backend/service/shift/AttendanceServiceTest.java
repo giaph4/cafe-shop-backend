@@ -10,9 +10,11 @@ import com.giapho.coffee_shop_backend.domain.repository.AttendanceRecordReposito
 import com.giapho.coffee_shop_backend.domain.repository.ShiftAssignmentRepository;
 import com.giapho.coffee_shop_backend.domain.repository.UserRepository;
 import com.giapho.coffee_shop_backend.dto.shift.AttendanceCheckRequestDTO;
+import com.giapho.coffee_shop_backend.exception.shift.AttendanceValidationException;
 import com.giapho.coffee_shop_backend.mapper.AttendanceRecordMapper;
+import com.giapho.coffee_shop_backend.service.ShiftAssignmentService;
+import com.giapho.coffee_shop_backend.service.impl.AttendanceServiceImpl;
 import com.giapho.coffee_shop_backend.util.SecurityUtil;
-import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,7 +57,7 @@ class AttendanceServiceTest {
     private ShiftAssignmentService shiftAssignmentService;
 
     @InjectMocks
-    private AttendanceService attendanceService;
+    private AttendanceServiceImpl attendanceService;
 
     private ShiftAssignment assignment;
     private MockedStatic<SecurityUtil> securityUtilMock;
@@ -119,7 +121,7 @@ class AttendanceServiceTest {
         given(attendanceRecordRepository.findFirstByAssignmentIdAndCheckOutAtIsNullOrderByCheckInAtDesc(300L))
                 .willReturn(Optional.of(new AttendanceRecord()));
 
-        assertThrows(IllegalStateException.class, () -> attendanceService.checkIn(request));
+        assertThrows(AttendanceValidationException.class, () -> attendanceService.checkIn(request));
         verify(attendanceRecordRepository, never()).save(any());
     }
 
@@ -154,7 +156,7 @@ class AttendanceServiceTest {
         given(attendanceRecordRepository.findFirstByAssignmentIdAndCheckOutAtIsNullOrderByCheckInAtDesc(300L))
                 .willReturn(Optional.empty());
 
-        assertThrows(IllegalStateException.class, () -> attendanceService.checkOut(request));
+        assertThrows(AttendanceValidationException.class, () -> attendanceService.checkOut(request));
     }
 
     @Test
@@ -176,7 +178,7 @@ class AttendanceServiceTest {
     void checkIn_ShouldThrow_WhenShiftCancelled() {
         attendanceCancelledSetup();
         AttendanceCheckRequestDTO request = new AttendanceCheckRequestDTO(10L, 300L, 5L, null, null);
-        assertThrows(IllegalStateException.class, () -> attendanceService.checkIn(request));
+        assertThrows(AttendanceValidationException.class, () -> attendanceService.checkIn(request));
     }
 
     private void attendanceCancelledSetup() {

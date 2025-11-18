@@ -3,6 +3,7 @@ package com.giapho.coffee_shop_backend.domain.repository;
 import com.giapho.coffee_shop_backend.domain.entity.Order;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,8 +17,10 @@ import java.util.Optional;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
+    @EntityGraph(attributePaths = {"orderDetails", "orderDetails.product", "cafeTable", "user", "customer"})
     Page<Order> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"orderDetails", "orderDetails.product", "cafeTable", "user", "customer"})
     Page<Order> findByStatus(String status, Pageable pageable);
 
     @Query("SELECT o FROM Order o WHERE o.cafeTable.id = :tableId AND o.status = 'PENDING'")
@@ -28,7 +31,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
                                            @Param("endOfDay") LocalDateTime endOfDay);
 
     @Query("SELECT o FROM Order o " +
-            "LEFT JOIN FETCH o.orderDetails " +
+            "LEFT JOIN FETCH o.orderDetails od " +
+            "LEFT JOIN FETCH od.product " +
             "LEFT JOIN FETCH o.cafeTable " +
             "LEFT JOIN FETCH o.user " +
             "LEFT JOIN FETCH o.customer " +
@@ -36,7 +40,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Optional<Order> findByIdWithDetails(@Param("id") Long id);
 
     @Query("SELECT o FROM Order o " +
-            "LEFT JOIN FETCH o.orderDetails " +
+            "LEFT JOIN FETCH o.orderDetails od " +
+            "LEFT JOIN FETCH od.product " +
             "LEFT JOIN FETCH o.cafeTable " +
             "LEFT JOIN FETCH o.user " +
             "LEFT JOIN FETCH o.customer " +
@@ -45,6 +50,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("SELECT o FROM Order o " +
             "LEFT JOIN FETCH o.customer " +
+            "LEFT JOIN FETCH o.cafeTable " +
             "WHERE o.id = :id")
     Optional<Order> findByIdWithCustomer(@Param("id") Long id);
 
@@ -119,5 +125,4 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("userId") Long userId,
             @Param("startDateTime") LocalDateTime startDateTime,
             @Param("endDateTime") LocalDateTime endDateTime);
-
 }

@@ -4,7 +4,7 @@ import com.giapho.coffee_shop_backend.domain.enums.ShiftStatus;
 import com.giapho.coffee_shop_backend.dto.shift.ShiftInstanceCreateRequestDTO;
 import com.giapho.coffee_shop_backend.dto.shift.ShiftInstanceResponseDTO;
 import com.giapho.coffee_shop_backend.dto.shift.ShiftInstanceStatusUpdateRequestDTO;
-import com.giapho.coffee_shop_backend.service.shift.ShiftInstanceService;
+import com.giapho.coffee_shop_backend.service.ShiftInstanceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

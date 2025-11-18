@@ -1,7 +1,8 @@
 package com.giapho.coffee_shop_backend.controller.dashboard;
 
+import com.giapho.coffee_shop_backend.controller.AdminDashboardController;
 import com.giapho.coffee_shop_backend.dto.dashboard.AdminDashboardDTO;
-import com.giapho.coffee_shop_backend.service.dashboard.RoleDashboardService;
+import com.giapho.coffee_shop_backend.service.RoleDashboardService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

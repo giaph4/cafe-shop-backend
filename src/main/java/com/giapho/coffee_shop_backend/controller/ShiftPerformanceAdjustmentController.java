@@ -3,7 +3,7 @@ package com.giapho.coffee_shop_backend.controller;
 import com.giapho.coffee_shop_backend.dto.shift.ShiftPerformanceAdjustmentRequestDTO;
 import com.giapho.coffee_shop_backend.dto.shift.ShiftPerformanceAdjustmentResponseDTO;
 import com.giapho.coffee_shop_backend.dto.shift.ShiftPerformanceAdjustmentRevokeRequestDTO;
-import com.giapho.coffee_shop_backend.service.shift.ShiftPerformanceAdjustmentService;
+import com.giapho.coffee_shop_backend.service.ShiftPerformanceAdjustmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

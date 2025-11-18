@@ -1,7 +1,8 @@
 package com.giapho.coffee_shop_backend.controller.dashboard;
 
+import com.giapho.coffee_shop_backend.controller.ManagerDashboardController;
 import com.giapho.coffee_shop_backend.dto.dashboard.ManagerDashboardDTO;
-import com.giapho.coffee_shop_backend.service.dashboard.RoleDashboardService;
+import com.giapho.coffee_shop_backend.service.RoleDashboardService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -12,7 +13,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;

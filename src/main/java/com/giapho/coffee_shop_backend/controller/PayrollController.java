@@ -4,7 +4,7 @@ import com.giapho.coffee_shop_backend.domain.enums.PayrollCycleStatus;
 import com.giapho.coffee_shop_backend.dto.shift.PayrollCycleRequestDTO;
 import com.giapho.coffee_shop_backend.dto.shift.PayrollCycleResponseDTO;
 import com.giapho.coffee_shop_backend.dto.shift.PayrollSummaryDTO;
-import com.giapho.coffee_shop_backend.service.shift.PayrollService;
+import com.giapho.coffee_shop_backend.service.PayrollService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;

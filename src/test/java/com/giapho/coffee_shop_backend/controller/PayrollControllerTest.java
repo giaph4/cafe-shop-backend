@@ -6,7 +6,7 @@ import com.giapho.coffee_shop_backend.dto.shift.PayrollCycleRequestDTO;
 import com.giapho.coffee_shop_backend.dto.shift.PayrollCycleResponseDTO;
 import com.giapho.coffee_shop_backend.dto.shift.PayrollSummaryDTO;
 import com.giapho.coffee_shop_backend.security.JwtService;
-import com.giapho.coffee_shop_backend.service.shift.PayrollService;
+import com.giapho.coffee_shop_backend.service.PayrollService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

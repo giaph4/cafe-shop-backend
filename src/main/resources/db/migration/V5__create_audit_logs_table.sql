@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    event_time DATETIME(6) NOT NULL,
+    action VARCHAR(100) NOT NULL,
+    resource_type VARCHAR(100) NOT NULL,
+    resource_id VARCHAR(100),
+    actor_id BIGINT,
+    actor_username VARCHAR(100),
+    actor_roles VARCHAR(255),
+    success BOOLEAN NOT NULL,
+    error_message VARCHAR(500),
+    summary VARCHAR(500),
+    details LONGTEXT,
+    request_uri VARCHAR(255),
+    http_method VARCHAR(10),
+    ip_address VARCHAR(64),
+    user_agent VARCHAR(500),
+    INDEX idx_audit_logs_event_time (event_time),
+    INDEX idx_audit_logs_actor (actor_id, actor_username),
+    INDEX idx_audit_logs_resource (resource_type, resource_id)
+) ENGINE=InnoDB;

@@ -2,7 +2,7 @@ package com.giapho.coffee_shop_backend.controller;
 
 import com.giapho.coffee_shop_backend.dto.shift.ShiftTemplateRequestDTO;
 import com.giapho.coffee_shop_backend.dto.shift.ShiftTemplateResponseDTO;
-import com.giapho.coffee_shop_backend.service.shift.ShiftTemplateService;
+import com.giapho.coffee_shop_backend.service.ShiftTemplateService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

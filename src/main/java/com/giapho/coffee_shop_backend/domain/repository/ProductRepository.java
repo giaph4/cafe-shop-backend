@@ -30,6 +30,8 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     Page<Product> findByCategoryId(Long categoryId, Pageable pageable);
 
+    Optional<Product> findByCode(String code);
+
     @Query("SELECT p FROM Product p WHERE LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) AND p.isAvailable = :available")
     Page<Product> searchByNameAndAvailability(String keyword, boolean available, Pageable pageable);
 

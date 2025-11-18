@@ -8,7 +8,9 @@ import com.giapho.coffee_shop_backend.domain.repository.ProductIngredientReposit
 import com.giapho.coffee_shop_backend.domain.repository.ProductRepository;
 import com.giapho.coffee_shop_backend.dto.ProductRequest;
 import com.giapho.coffee_shop_backend.dto.ProductResponse;
+import com.giapho.coffee_shop_backend.exception.product.InvalidProductDataException;
 import com.giapho.coffee_shop_backend.mapper.ProductMapper;
+import com.giapho.coffee_shop_backend.service.impl.ProductServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -42,7 +44,7 @@ class ProductServiceTest {
     private FileStorageService fileStorageService;
 
     @InjectMocks
-    private ProductService productService;
+    private ProductServiceImpl productService;
 
     @Test
     void createProduct_shouldNormalizeCodeBeforePersisting() {
@@ -62,7 +64,7 @@ class ProductServiceTest {
                 .price(new BigDecimal("45000"))
                 .build();
 
-        when(productRepository.existsByCode("PRD001")).thenReturn(false);
+        when(productRepository.findByCode("PRD001")).thenReturn(Optional.empty());
         when(categoryRepository.findById(5L)).thenReturn(Optional.of(category));
         when(productMapper.toProduct(request)).thenReturn(mappedProduct);
         when(productRepository.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -88,8 +90,7 @@ class ProductServiceTest {
         Product saved = productCaptor.getValue();
         assertThat(saved.getCode()).isEqualTo("PRD001");
         assertThat(saved.isAvailable()).isTrue();
-
-        verify(productRepository).existsByCode("PRD001");
+        verify(productRepository).findByCode("PRD001");
     }
 
     @Test
@@ -102,7 +103,7 @@ class ProductServiceTest {
                 .build();
 
         assertThatThrownBy(() -> productService.createProduct(request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidProductDataException.class)
                 .hasMessageContaining("Product code must not be empty");
     }
 }

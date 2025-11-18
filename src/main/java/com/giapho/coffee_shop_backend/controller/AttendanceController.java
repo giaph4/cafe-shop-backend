@@ -2,7 +2,7 @@ package com.giapho.coffee_shop_backend.controller;
 
 import com.giapho.coffee_shop_backend.dto.shift.AttendanceCheckRequestDTO;
 import com.giapho.coffee_shop_backend.dto.shift.AttendanceRecordResponseDTO;
-import com.giapho.coffee_shop_backend.service.shift.AttendanceService;
+import com.giapho.coffee_shop_backend.service.AdminAiService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,7 +22,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AttendanceController {
 
-    private final AttendanceService attendanceService;
+    private final AdminAiService.AttendanceService attendanceService;
 
     @PostMapping("/check-in")
     @PreAuthorize("hasAnyRole('STAFF','MANAGER','ADMIN')")

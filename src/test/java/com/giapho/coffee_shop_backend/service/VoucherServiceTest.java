@@ -5,7 +5,15 @@ import com.giapho.coffee_shop_backend.domain.repository.VoucherRepository;
 import com.giapho.coffee_shop_backend.dto.VoucherRequestDTO;
 import com.giapho.coffee_shop_backend.dto.VoucherResponseDTO;
 import com.giapho.coffee_shop_backend.dto.VoucherSummaryDTO;
-import jakarta.persistence.EntityNotFoundException;
+import com.giapho.coffee_shop_backend.exception.voucher.VoucherConflictException;
+import com.giapho.coffee_shop_backend.exception.voucher.VoucherInvalidException;
+import com.giapho.coffee_shop_backend.exception.voucher.VoucherNotFoundException;
+import com.giapho.coffee_shop_backend.exception.voucher.VoucherValidationException;
+import com.giapho.coffee_shop_backend.service.impl.VoucherServiceImpl;
+import com.giapho.coffee_shop_backend.service.voucher.helper.VoucherDiscountCalculator;
+import com.giapho.coffee_shop_backend.service.voucher.helper.VoucherMapper;
+import com.giapho.coffee_shop_backend.service.voucher.helper.VoucherSearchSpecificationBuilder;
+import com.giapho.coffee_shop_backend.service.voucher.helper.VoucherValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,18 +21,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
-
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Expression;
-import jakarta.persistence.criteria.Path;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -38,13 +38,22 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings({"unchecked", "rawtypes"})
 class VoucherServiceTest {
 
     @Mock
     private VoucherRepository voucherRepository;
+    @Mock
+    private VoucherValidator voucherValidator;
+    @Mock
+    private VoucherMapper voucherMapper;
+    @Mock
+    private VoucherDiscountCalculator discountCalculator;
+    @Mock
+    private VoucherSearchSpecificationBuilder specificationBuilder;
 
     @InjectMocks
-    private VoucherService voucherService;
+    private VoucherServiceImpl voucherService;
 
     private VoucherRequestDTO baseRequest;
 
@@ -67,28 +76,31 @@ class VoucherServiceTest {
 
     @Test
     void createVoucher_shouldNormalizeCodeAndPersist() {
-        when(voucherRepository.existsByCodeIgnoreCase("SAVE20")).thenReturn(false);
+        when(voucherValidator.normalizeCode("save20")).thenReturn("SAVE20");
+        when(voucherMapper.toEntity(baseRequest)).thenReturn(new Voucher());
         when(voucherRepository.save(any(Voucher.class))).thenAnswer(invocation -> {
             Voucher voucher = invocation.getArgument(0);
             voucher.setId(10L);
             return voucher;
         });
+        when(voucherMapper.toResponse(any(Voucher.class))).thenReturn(VoucherResponseDTO.builder().id(10L).code("SAVE20").timesUsed(0).build());
 
         VoucherResponseDTO response = voucherService.createVoucher(baseRequest);
 
         assertThat(response.getId()).isEqualTo(10L);
         assertThat(response.getCode()).isEqualTo("SAVE20");
-        assertThat(response.getTimesUsed()).isZero();
-        verify(voucherRepository).existsByCodeIgnoreCase("SAVE20");
+        verify(voucherValidator).ensureCodeUnique(eq("SAVE20"), any());
         verify(voucherRepository).save(any(Voucher.class));
     }
 
     @Test
     void createVoucher_shouldThrowWhenCodeExists() {
-        when(voucherRepository.existsByCodeIgnoreCase("SAVE20")).thenReturn(true);
+        when(voucherValidator.normalizeCode("save20")).thenReturn("SAVE20");
+        doThrow(new VoucherConflictException("Voucher code đã tồn tại: SAVE20"))
+                .when(voucherValidator).ensureCodeUnique(eq("SAVE20"), any());
 
         assertThatThrownBy(() -> voucherService.createVoucher(baseRequest))
-                .isInstanceOf(DataIntegrityViolationException.class)
+                .isInstanceOf(VoucherConflictException.class)
                 .hasMessageContaining("Voucher code đã tồn tại");
     }
 
@@ -98,13 +110,13 @@ class VoucherServiceTest {
         existing.setTimesUsed(5);
 
         when(voucherRepository.findById(1L)).thenReturn(Optional.of(existing));
-
-        VoucherRequestDTO request = baseRequest.toBuilder()
-                .usageLimit(4)
-                .build();
+        when(voucherValidator.normalizeCode("save20")).thenReturn("SAVE20");
+        VoucherRequestDTO request = baseRequest.toBuilder().usageLimit(4).build();
+        doThrow(new VoucherValidationException("usageLimit không thể nhỏ hơn số lượt đã sử dụng"))
+                .when(voucherValidator).ensureUsageLimitNotLessThanTimesUsed(existing, 4);
 
         assertThatThrownBy(() -> voucherService.updateVoucher(1L, request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(VoucherValidationException.class)
                 .hasMessageContaining("usageLimit");
     }
 
@@ -114,12 +126,14 @@ class VoucherServiceTest {
         existing.setId(1L);
 
         when(voucherRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(voucherRepository.save(any(Voucher.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        VoucherRequestDTO request = baseRequest.toBuilder()
+        when(voucherValidator.normalizeCode("save20")).thenReturn("SAVE20");
+        when(voucherMapper.toResponse(any(Voucher.class))).thenReturn(VoucherResponseDTO.builder()
                 .description("Cập nhật mô tả")
                 .usageLimit(200)
-                .build();
+                .build());
+        when(voucherRepository.save(any(Voucher.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        VoucherRequestDTO request = baseRequest.toBuilder().description("Cập nhật mô tả").usageLimit(200).build();
 
         VoucherResponseDTO response = voucherService.updateVoucher(1L, request);
 
@@ -133,6 +147,7 @@ class VoucherServiceTest {
         Voucher existing = buildVoucherEntity();
         existing.setActive(true);
         when(voucherRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(voucherMapper.toResponse(any(Voucher.class))).thenReturn(VoucherResponseDTO.builder().active(false).build());
         when(voucherRepository.save(any(Voucher.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         VoucherResponseDTO response = voucherService.toggleVoucherActive(1L);
@@ -148,7 +163,7 @@ class VoucherServiceTest {
         when(voucherRepository.findById(1L)).thenReturn(Optional.of(existing));
 
         assertThatThrownBy(() -> voucherService.deleteVoucher(1L))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(VoucherInvalidException.class)
                 .hasMessageContaining("Không thể xóa voucher");
     }
 
@@ -166,86 +181,36 @@ class VoucherServiceTest {
     @Test
     void searchVouchers_shouldDelegateToRepository() {
         PageRequest pageable = PageRequest.of(0, 10);
-        when(voucherRepository.findAll(any(Specification.class), eq(pageable)))
+        Specification<Voucher> specification = mock(Specification.class);
+        when(specificationBuilder.build(eq("save"), eq(Voucher.VoucherType.FIXED_AMOUNT), eq(Boolean.TRUE), any(), any()))
+                .thenReturn(specification);
+        when(voucherRepository.findAll(specification, pageable))
                 .thenReturn(new PageImpl<>(List.of(buildVoucherEntity())));
 
         Page<VoucherResponseDTO> result = voucherService.searchVouchers("save", Voucher.VoucherType.FIXED_AMOUNT, true,
                 baseRequest.getValidFrom(), baseRequest.getValidTo(), pageable);
 
         assertThat(result.getContent()).hasSize(1);
-        verify(voucherRepository).findAll(any(Specification.class), eq(pageable));
+        verify(voucherRepository).findAll(specification, pageable);
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void searchVouchers_shouldBuildSpecificationWithAllFilters() {
         PageRequest pageable = PageRequest.of(0, 5);
-        ArgumentCaptor<Specification<Voucher>> specCaptor = ArgumentCaptor.forClass(Specification.class);
-
-        when(voucherRepository.findAll(any(Specification.class), eq(pageable)))
-                .thenReturn(new PageImpl<>(List.of(buildVoucherEntity())));
-
         LocalDateTime validFrom = baseRequest.getValidFrom();
         LocalDateTime validTo = baseRequest.getValidTo();
 
+        Specification<Voucher> specification = mock(Specification.class);
+        when(specificationBuilder.build(" Save ", Voucher.VoucherType.FIXED_AMOUNT, Boolean.TRUE, validFrom, validTo))
+                .thenReturn(specification);
+        when(voucherRepository.findAll(specification, pageable))
+                .thenReturn(new PageImpl<>(List.of(buildVoucherEntity())));
+
         voucherService.searchVouchers(" Save ", Voucher.VoucherType.FIXED_AMOUNT, Boolean.TRUE, validFrom, validTo, pageable);
 
-        verify(voucherRepository).findAll(specCaptor.capture(), eq(pageable));
-
-        Specification<Voucher> specification = specCaptor.getValue();
-        assertThat(specification).isNotNull();
-
-        @SuppressWarnings("unchecked")
-        Root<Voucher> root = (Root<Voucher>) mock(Root.class);
-        Path<?> codePath = mock(Path.class);
-        Path<?> typePath = mock(Path.class);
-        Path<?> activePath = mock(Path.class);
-        Path<?> validFromPath = mock(Path.class);
-        Path<?> validToPath = mock(Path.class);
-
-        when(root.get("code")).thenReturn((Path) codePath);
-        when(root.get("type")).thenReturn((Path) typePath);
-        when(root.get("active")).thenReturn((Path) activePath);
-        when(root.get("validFrom")).thenReturn((Path) validFromPath);
-        when(root.get("validTo")).thenReturn((Path) validToPath);
-
-        CriteriaQuery<Voucher> query = mock(CriteriaQuery.class);
-        CriteriaBuilder cb = mock(CriteriaBuilder.class);
-
-        Expression<String> loweredCode = mock(Expression.class);
-        Predicate codePredicate = mock(Predicate.class);
-        Predicate typePredicate = mock(Predicate.class);
-        Predicate activePredicate = mock(Predicate.class);
-        Predicate fromPredicate = mock(Predicate.class);
-        Predicate toPredicate = mock(Predicate.class);
-        Predicate combined = mock(Predicate.class);
-
-        when(cb.lower((Expression<String>) codePath)).thenReturn(loweredCode);
-        when(cb.like(loweredCode, "%save%"))
-                .thenReturn(codePredicate);
-        when(cb.equal((Expression<?>) typePath, Voucher.VoucherType.FIXED_AMOUNT))
-                .thenReturn(typePredicate);
-        when(cb.equal((Expression<?>) activePath, Boolean.TRUE))
-                .thenReturn(activePredicate);
-        when(cb.greaterThanOrEqualTo((Expression) validFromPath, validFrom))
-                .thenReturn(fromPredicate);
-        when(cb.lessThanOrEqualTo((Expression) validToPath, validTo))
-                .thenReturn(toPredicate);
-        lenient().when(cb.and(any(Predicate.class), any(Predicate.class))).thenReturn(combined);
-        lenient().when(cb.and(any(Predicate.class), any(Predicate.class), any(Predicate.class))).thenReturn(combined);
-        lenient().when(cb.and(any(Predicate.class), any(Predicate.class), any(Predicate.class), any(Predicate.class))).thenReturn(combined);
-        lenient().when(cb.and(any(Predicate.class), any(Predicate.class), any(Predicate.class), any(Predicate.class), any(Predicate.class)))
-                .thenReturn(combined);
-
-        Predicate actual = specification.toPredicate(root, query, cb);
-
-        assertThat(actual).isNotNull();
-
-        verify(cb).like(loweredCode, "%save%");
-        verify(cb).equal((Expression<?>) typePath, Voucher.VoucherType.FIXED_AMOUNT);
-        verify(cb).equal((Expression<?>) activePath, Boolean.TRUE);
-        verify(cb).greaterThanOrEqualTo((Expression) validFromPath, validFrom);
-        verify(cb).lessThanOrEqualTo((Expression) validToPath, validTo);
-        verify(cb, atLeastOnce()).and(any(Predicate.class), any(Predicate.class));
+        verify(specificationBuilder).build(" Save ", Voucher.VoucherType.FIXED_AMOUNT, Boolean.TRUE, validFrom, validTo);
+        verify(voucherRepository).findAll(specification, pageable);
     }
 
     @Test
@@ -263,6 +228,8 @@ class VoucherServiceTest {
 
     @Test
     void incrementUsageCount_shouldIgnoreMissingVoucher() {
+        when(voucherValidator.hasText("SAVE20")).thenReturn(true);
+        when(voucherValidator.normalizeCode("SAVE20")).thenReturn("SAVE20");
         when(voucherRepository.findByCodeIgnoreCase("SAVE20")).thenReturn(Optional.empty());
 
         voucherService.incrementUsageCount("SAVE20");
@@ -274,6 +241,8 @@ class VoucherServiceTest {
     void incrementUsageCount_shouldIncreaseTimesUsed() {
         Voucher voucher = buildVoucherEntity();
         voucher.setTimesUsed(2);
+        when(voucherValidator.hasText(" save20 ")).thenReturn(true);
+        when(voucherValidator.normalizeCode(" save20 ")).thenReturn("SAVE20");
         when(voucherRepository.findByCodeIgnoreCase("SAVE20")).thenReturn(Optional.of(voucher));
 
         voucherService.incrementUsageCount(" save20 ");
@@ -288,7 +257,7 @@ class VoucherServiceTest {
         when(voucherRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> voucherService.getVoucherById(99L))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(VoucherNotFoundException.class)
                 .hasMessageContaining("Voucher không tồn tại");
     }
 

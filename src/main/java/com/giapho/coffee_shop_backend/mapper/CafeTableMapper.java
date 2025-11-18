@@ -16,6 +16,7 @@ public interface CafeTableMapper {
     @Mapping(target = "status", ignore = true)
     CafeTable requestToEntity(CafeTableRequest request);
 
+    @Mapping(target = "status", expression = "java(entity.getStatus() != null ? entity.getStatus().name() : null)")
     CafeTableResponse entityToResponse(CafeTable entity);
 
     List<CafeTableResponse> entityListToResponseList(List<CafeTable> tables);

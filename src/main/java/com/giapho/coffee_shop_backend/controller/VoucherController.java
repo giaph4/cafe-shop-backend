@@ -6,7 +6,6 @@ import com.giapho.coffee_shop_backend.dto.VoucherRequestDTO;
 import com.giapho.coffee_shop_backend.dto.VoucherResponseDTO;
 import com.giapho.coffee_shop_backend.dto.VoucherSummaryDTO;
 import com.giapho.coffee_shop_backend.service.VoucherService;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,24 +30,8 @@ public class VoucherController {
     public ResponseEntity<VoucherCheckResponseDTO> checkVoucher(
             @RequestParam String code,
             @RequestParam BigDecimal amount) {
-        try {
-            VoucherCheckResponseDTO response = voucherService.checkAndCalculateDiscount(code, amount);
-            return ResponseEntity.ok(response);
-        } catch (EntityNotFoundException e) {
-            return ResponseEntity.ok(VoucherCheckResponseDTO.builder()
-                    .isValid(false)
-                    .message(e.getMessage())
-                    .code(code)
-                    .discountAmount(BigDecimal.ZERO)
-                    .build());
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(VoucherCheckResponseDTO.builder()
-                    .isValid(false)
-                    .message("Lỗi hệ thống khi kiểm tra voucher.")
-                    .code(code)
-                    .discountAmount(BigDecimal.ZERO)
-                    .build());
-        }
+        VoucherCheckResponseDTO response = voucherService.checkAndCalculateDiscount(code, amount);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping

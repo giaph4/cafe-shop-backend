@@ -6,15 +6,15 @@ import com.giapho.coffee_shop_backend.domain.entity.OrderDetail;
 import com.giapho.coffee_shop_backend.domain.entity.Product;
 import com.giapho.coffee_shop_backend.domain.enums.TableStatus;
 import com.giapho.coffee_shop_backend.domain.repository.CafeTableRepository;
-import com.giapho.coffee_shop_backend.domain.repository.CustomerRepository;
 import com.giapho.coffee_shop_backend.domain.repository.OrderRepository;
-import com.giapho.coffee_shop_backend.domain.repository.ProductRepository;
-import com.giapho.coffee_shop_backend.domain.repository.UserRepository;
 import com.giapho.coffee_shop_backend.dto.OrderDetailRequestDTO;
 import com.giapho.coffee_shop_backend.dto.OrderResponseDTO;
 import com.giapho.coffee_shop_backend.dto.PaymentRequestDTO;
-import com.giapho.coffee_shop_backend.dto.VoucherCheckResponseDTO;
+import com.giapho.coffee_shop_backend.mapper.OrderDetailMapper;
 import com.giapho.coffee_shop_backend.mapper.OrderMapper;
+import com.giapho.coffee_shop_backend.service.impl.OrderServiceImpl;
+import com.giapho.coffee_shop_backend.service.order.OrderPricingService;
+import com.giapho.coffee_shop_backend.service.order.OrderValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -40,22 +41,20 @@ class OrderServiceTest {
     @Mock
     private OrderRepository orderRepository;
     @Mock
-    private ProductRepository productRepository;
-    @Mock
     private CafeTableRepository cafeTableRepository;
-    @Mock
-    private UserRepository userRepository;
-    @Mock
-    private CustomerRepository customerRepository;
     @Mock
     private OrderMapper orderMapper;
     @Mock
-    private VoucherService voucherService;
+    private OrderDetailMapper orderDetailMapper;
+    @Mock
+    private OrderValidator orderValidator;
+    @Mock
+    private OrderPricingService orderPricingService;
     @Mock
     private PaymentService paymentService;
 
     @InjectMocks
-    private OrderService orderService;
+    private OrderServiceImpl orderService;
 
     @BeforeEach
     void setUpMapperStub() {
@@ -86,9 +85,16 @@ class OrderServiceTest {
                 .isAvailable(true)
                 .build();
 
-        when(orderRepository.findPendingOrderByIdWithDetails(orderId)).thenReturn(Optional.of(order));
-        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
-        when(orderRepository.save(order)).thenReturn(order);
+        when(orderValidator.requirePendingOrder(orderId)).thenReturn(order);
+        when(orderValidator.requireOrderWithDetails(orderId)).thenReturn(order);
+        when(orderValidator.requireAvailableProduct(productId)).thenReturn(product);
+        when(orderDetailMapper.requestToEntity(any(OrderDetailRequestDTO.class))).thenAnswer(invocation -> {
+            OrderDetailRequestDTO dto = invocation.getArgument(0);
+            return OrderDetail.builder()
+                    .quantity(dto.getQuantity())
+                    .notes(dto.getNotes())
+                    .build();
+        });
 
         OrderDetailRequestDTO request = new OrderDetailRequestDTO();
         request.setProductId(productId);
@@ -102,12 +108,12 @@ class OrderServiceTest {
         assertEquals(2, savedDetail.getQuantity());
         assertThat(savedDetail.getPriceAtOrder()).isEqualByComparingTo("50000");
 
-        assertThat(order.getSubTotal()).isEqualByComparingTo("100000");
-        assertThat(order.getTotalAmount()).isEqualByComparingTo("100000");
-        assertThat(response.getSubTotal()).isEqualByComparingTo("100000");
-        assertThat(response.getTotalAmount()).isEqualByComparingTo("100000");
-
+        verify(orderPricingService).recalculateTotals(order);
         verify(orderRepository).save(order);
+        verify(orderValidator).requireOrderWithDetails(orderId);
+
+        assertThat(response.getSubTotal()).isEqualByComparingTo(order.getSubTotal());
+        assertThat(response.getTotalAmount()).isEqualByComparingTo(order.getTotalAmount());
     }
 
     @Test
@@ -125,14 +131,15 @@ class OrderServiceTest {
         order.setSubTotal(new BigDecimal("150000"));
         order.setTotalAmount(new BigDecimal("150000"));
 
-        when(orderRepository.findPendingOrderByIdWithDetails(orderId)).thenReturn(Optional.of(order));
-        when(voucherService.checkAndCalculateDiscount(eq("SAVE10"), eq(new BigDecimal("150000"))))
-                .thenReturn(VoucherCheckResponseDTO.builder()
-                        .isValid(true)
-                        .discountAmount(new BigDecimal("15000"))
-                        .message("OK")
-                        .build());
-        when(orderRepository.save(order)).thenReturn(order);
+        when(orderValidator.requirePendingOrder(orderId)).thenReturn(order);
+        when(orderValidator.requireOrderWithDetails(orderId)).thenReturn(order);
+        doAnswer(invocation -> {
+            Order target = invocation.getArgument(0);
+            target.setVoucherCode("SAVE10");
+            target.setDiscountAmount(new BigDecimal("15000"));
+            target.setTotalAmount(new BigDecimal("135000"));
+            return null;
+        }).when(orderPricingService).applyVoucher(order, "SAVE10");
 
         OrderResponseDTO response = orderService.applyVoucher(orderId, "SAVE10");
 
@@ -141,6 +148,9 @@ class OrderServiceTest {
         assertThat(order.getTotalAmount()).isEqualByComparingTo("135000");
         assertThat(response.getDiscountAmount()).isEqualByComparingTo("15000");
         assertThat(response.getTotalAmount()).isEqualByComparingTo("135000");
+
+        verify(orderPricingService).applyVoucher(order, "SAVE10");
+        verify(orderRepository).save(order);
     }
 
     @Test
@@ -155,8 +165,8 @@ class OrderServiceTest {
         request.setPaymentMethod("cash");
 
         when(paymentService.processPayment(orderId, request)).thenReturn(paidOrder);
+        when(orderValidator.requireOrderWithDetails(orderId)).thenReturn(paidOrder);
         when(orderRepository.findPendingOrderByTableId(table.getId())).thenReturn(Optional.empty());
-        when(cafeTableRepository.save(table)).thenAnswer(invocation -> invocation.getArgument(0));
 
         OrderResponseDTO response = orderService.payOrder(orderId, request);
 
