@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.example.com/schemas/shift-report.schema.json",
+  "title": "ShiftReportResponse",
+  "type": "object",
+  "required": [
+    "reportId",
+    "sessionId",
+    "workShiftId",
+    "userId",
+    "username",
+    "status",
+    "startAt",
+    "totalOrders",
+    "totalPaidAmount",
+    "totalUnpaidAmount",
+    "transferredOrders",
+    "paymentBreakdown",
+    "topProducts",
+    "generatedAt"
+  ],
+  "properties": {
+    "reportId": {
+      "type": "integer",
+      "format": "int64",
+      "minimum": 1,
+      "description": "ID của báo cáo"
+    },
+    "sessionId": {
+      "type": "integer",
+      "format": "int64",
+      "minimum": 1,
+      "description": "ID phiên làm việc"
+    },
+    "workShiftId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "ID ca làm việc mẫu"
+    },
+    "userId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Nhân viên phụ trách phiên"
+    },
+    "username": {
+      "type": "string",
+      "description": "Tên đăng nhập nhân viên"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["ACTIVE", "CLOSED", "FORCED"],
+      "description": "Trạng thái phiên"
+    },
+    "startAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Thời điểm bắt đầu phiên"
+    },
+    "endAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Thời điểm kết thúc phiên"
+    },
+    "totalOrders": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Tổng số đơn xử lý trong phiên"
+    },
+    "totalPaidAmount": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Tổng doanh thu đã thanh toán"
+    },
+    "totalUnpaidAmount": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Giá trị đơn chưa thanh toán"
+    },
+    "transferredOrders": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Số đơn chuyển giao sang phiên khác"
+    },
+    "paymentBreakdown": {
+      "type": "array",
+      "description": "Tổng hợp theo phương thức thanh toán",
+      "items": {
+        "type": "object",
+        "required": ["paymentMethod", "orderCount", "totalAmount"],
+        "properties": {
+          "paymentMethod": {
+            "type": "string",
+            "description": "Tên phương thức thanh toán"
+          },
+          "orderCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "totalAmount": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "topProducts": {
+      "type": "array",
+      "description": "Top sản phẩm theo số lượng",
+      "items": {
+        "type": "object",
+        "required": ["productId", "productName", "quantity", "totalAmount"],
+        "properties": {
+          "productId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "totalAmount": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Thời điểm tổng hợp"
+    }
+  }
+}

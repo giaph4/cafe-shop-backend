@@ -17,10 +17,10 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -42,25 +42,25 @@ class ChatConversationControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private ConversationService conversationService;
 
-    @MockBean
+    @MockitoBean
     private MessageService messageService;
 
-    @MockBean
+    @MockitoBean
     private ChatMessageWebSocketPublisher publisher;
 
-    @MockBean
+    @MockitoBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    @MockBean
+    @MockitoBean
     private AuthenticationProvider authenticationProvider;
 
-    @MockBean
+    @MockitoBean
     private CustomAccessDeniedHandler accessDeniedHandler;
 
-    @MockBean
+    @MockitoBean
     private JwtService jwtService;
 
     @Test
@@ -134,4 +134,5 @@ class ChatConversationControllerTest {
         assertThat(messageCaptor.getValue()).isEqualTo(2L);
         assertThat(userCaptor.getValue()).isEqualTo(99L);
     }
+
 }

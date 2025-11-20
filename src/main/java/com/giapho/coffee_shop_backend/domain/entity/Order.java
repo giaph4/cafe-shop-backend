@@ -35,6 +35,11 @@ public class Order {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shift_session_id")
+    @ToString.Exclude
+    private ShiftSession shiftSession;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")
     @ToString.Exclude
     private Customer customer;
@@ -77,6 +82,9 @@ public class Order {
 
     @Column(name = "payment_method", length = 20)
     private String paymentMethod;
+
+    @Column(name = "transferred", nullable = false)
+    private boolean transferred;
 
     @PrePersist
     protected void onCreate() {

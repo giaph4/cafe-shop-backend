@@ -125,4 +125,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("userId") Long userId,
             @Param("startDateTime") LocalDateTime startDateTime,
             @Param("endDateTime") LocalDateTime endDateTime);
+
+    List<Order> findByShiftSessionId(Long shiftSessionId);
+
+    @Query("SELECT DISTINCT o FROM Order o " +
+            "LEFT JOIN FETCH o.orderDetails od " +
+            "LEFT JOIN FETCH od.product " +
+            "LEFT JOIN FETCH o.user " +
+            "WHERE o.shiftSession.id = :sessionId")
+    List<Order> findByShiftSessionIdWithDetails(@Param("sessionId") Long sessionId);
 }
