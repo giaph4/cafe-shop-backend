@@ -35,6 +35,13 @@ public class ChatConversationController {
     private final MessageService messageService;
     private final ChatMessageWebSocketPublisher publisher;
 
+    /**
+     * Lấy danh sách hội thoại của người dùng (phân trang)
+     *
+     * @param page trang hiện tại, mặc định 0
+     * @param size số lượng hội thoại trên mỗi trang, mặc định 20, giới hạn 1-100
+     * @return trang danh sách hội thoại của người dùng
+     */
     @GetMapping("/conversations")
     public Page<ConversationSummaryDTO> listConversations(
             @RequestParam(defaultValue = "0") @Min(0) int page,

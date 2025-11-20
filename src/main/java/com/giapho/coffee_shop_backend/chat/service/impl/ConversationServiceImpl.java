@@ -27,9 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -53,6 +51,12 @@ public class ConversationServiceImpl implements ConversationService {
         return new PageImpl<>(content, pageable, conversations.getTotalElements());
     }
 
+    /**
+     * Lấy thông tin cuộc trò chuyện
+     *
+     * @param conversationId ID của cuộc trò chuyện
+     * @return Thông tin cuộc trò chuyện
+     */
     @Override
     public ConversationSummaryDTO getConversation(Long conversationId) {
         User currentUser = chatUserResolver.requireCurrentUser();
@@ -60,20 +64,29 @@ public class ConversationServiceImpl implements ConversationService {
         return toSummary(conversation, currentUser);
     }
 
+    /**
+     * Tạo cuộc trò chuyện trực tiếp giữa người dùng hiện tại và người dùng đích
+     *
+     * @param targetUserId ID người dùng đích
+     * @return Thông tin cuộc trò chuyện mới
+     */
     @Override
     @Transactional
     public ConversationSummaryDTO createDirectConversation(Long targetUserId) {
         User currentUser = chatUserResolver.requireCurrentUser();
+        // Không thể tạo cuộc trò chuyện với chính mình
         if (currentUser.getId().equals(targetUserId)) {
             throw new IllegalArgumentException("Không thể tạo cuộc trò chuyện với chính bạn");
         }
 
+        // Kiểm tra xem cuộc trò chuyện đã tồn tại chưa
         Conversation existing = conversationRepository.findDirectBetweenUsers(
                 currentUser.getId(), targetUserId, ConversationType.DIRECT).orElse(null);
         if (existing != null) {
             return toSummary(existing, currentUser);
         }
 
+        // Tạo cuộc trò chuyện mới
         Conversation conversation = Conversation.builder()
                 .type(ConversationType.DIRECT)
                 .createdBy(currentUser.getId())
@@ -81,6 +94,7 @@ public class ConversationServiceImpl implements ConversationService {
         conversationRepository.save(conversation);
 
         addMember(conversation, currentUser, ConversationMemberRole.OWNER, false);
+        // Thêm người dùng đích vào cuộc trò chuyện
         User targetUser = chatUserResolver.requireUser(targetUserId);
         addMember(conversation, targetUser, ConversationMemberRole.MEMBER, false);
 
@@ -278,7 +292,7 @@ public class ConversationServiceImpl implements ConversationService {
                 .joinedAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
-        conversation.getMembers().add(member);
-        conversationMemberRepository.save(member);
+        ConversationMember managedMember = conversationMemberRepository.save(member);
+        conversation.getMembers().add(managedMember);
     }
 }
