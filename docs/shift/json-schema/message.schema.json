@@ -1,0 +1,86 @@
+{
+  "title": "MessageDTO",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "conversationId",
+    "senderId",
+    "senderName",
+    "content",
+    "contentType",
+    "status",
+    "createdAt",
+    "attachments"
+  ],
+  "properties": {
+    "id": {
+      "type": "integer",
+      "format": "int64"
+    },
+    "conversationId": {
+      "type": "integer",
+      "format": "int64"
+    },
+    "senderId": {
+      "type": "integer",
+      "format": "int64"
+    },
+    "senderName": {
+      "type": "string",
+      "maxLength": 255
+    },
+    "senderAvatar": {
+      "anyOf": [
+        { "type": "string", "format": "uri" },
+        { "type": "null" }
+      ]
+    },
+    "content": {
+      "type": "string",
+      "maxLength": 4000
+    },
+    "contentType": {
+      "type": "string",
+      "enum": ["TEXT", "EMOJI", "ATTACHMENT"]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["PENDING", "SENT", "DELIVERED", "SEEN", "FAILED"]
+    },
+    "metadata": {
+      "anyOf": [
+        { "type": "string", "maxLength": 1024 },
+        { "type": "null" }
+      ]
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "anyOf": [
+        { "type": "string", "format": "date-time" },
+        { "type": "null" }
+      ]
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "$ref": "message-attachment.schema.json"
+      }
+    },
+    "seenByUserIds": {
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        { "type": "null" }
+      ]
+    }
+  }
+}

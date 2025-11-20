@@ -1,8 +1,10 @@
 package com.giapho.coffee_shop_backend.service.dashboard.provider;
 
 import com.giapho.coffee_shop_backend.domain.entity.AttendanceRecord;
+import com.giapho.coffee_shop_backend.domain.entity.Order;
 import com.giapho.coffee_shop_backend.domain.entity.PayrollSummary;
 import com.giapho.coffee_shop_backend.domain.entity.ShiftAssignment;
+import com.giapho.coffee_shop_backend.domain.enums.OrderStatus;
 import com.giapho.coffee_shop_backend.domain.enums.ShiftAssignmentStatus;
 import com.giapho.coffee_shop_backend.domain.repository.AttendanceRecordRepository;
 import com.giapho.coffee_shop_backend.domain.repository.OrderRepository;
@@ -108,11 +110,11 @@ public class StaffDashboardProvider {
         LocalDateTime start = range.getStart().atStartOfDay();
         LocalDateTime end = range.getEnd().plusDays(1).atStartOfDay();
 
-        List<com.giapho.coffee_shop_backend.domain.entity.Order> orders = orderRepository
-                .findPaidOrdersForStaffBetween(userId, start, end);
+        List<Order> orders = orderRepository
+                .findOrdersForStaffBetween(userId, OrderStatus.PAID, start, end);
 
         BigDecimal totalRevenue = orders.stream()
-                .map(com.giapho.coffee_shop_backend.domain.entity.Order::getTotalAmount)
+                .map(Order::getTotalAmount)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         long totalOrders = orders.size();

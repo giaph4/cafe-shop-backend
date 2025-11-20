@@ -1,5 +1,14 @@
 package com.giapho.coffee_shop_backend.domain.entity;
 
+import com.giapho.coffee_shop_backend.domain.entity.CafeTable;
+import com.giapho.coffee_shop_backend.domain.entity.Customer;
+import com.giapho.coffee_shop_backend.domain.entity.OrderDetail;
+import com.giapho.coffee_shop_backend.domain.entity.Product;
+import com.giapho.coffee_shop_backend.domain.entity.ShiftSession;
+import com.giapho.coffee_shop_backend.domain.entity.User;
+import com.giapho.coffee_shop_backend.domain.entity.Voucher;
+import com.giapho.coffee_shop_backend.domain.enums.OrderStatus;
+import com.giapho.coffee_shop_backend.domain.enums.OrderType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.proxy.HibernateProxy;
@@ -49,12 +58,15 @@ public class Order {
     @Builder.Default
     private Set<OrderDetail> orderDetails = new HashSet<>();
 
-    @Column(nullable = false, length = 20)
-    private String type;
-
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
-    private String status = "PENDING";
+    private OrderType type = OrderType.DINE_IN;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private OrderStatus status = OrderStatus.PENDING;
 
     @Column(name = "sub_total", nullable = false)
     private BigDecimal subTotal;

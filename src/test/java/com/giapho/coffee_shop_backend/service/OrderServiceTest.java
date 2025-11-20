@@ -4,6 +4,7 @@ import com.giapho.coffee_shop_backend.domain.entity.CafeTable;
 import com.giapho.coffee_shop_backend.domain.entity.Order;
 import com.giapho.coffee_shop_backend.domain.entity.OrderDetail;
 import com.giapho.coffee_shop_backend.domain.entity.Product;
+import com.giapho.coffee_shop_backend.domain.enums.OrderStatus;
 import com.giapho.coffee_shop_backend.domain.enums.TableStatus;
 import com.giapho.coffee_shop_backend.domain.repository.CafeTableRepository;
 import com.giapho.coffee_shop_backend.domain.repository.OrderRepository;
@@ -14,6 +15,7 @@ import com.giapho.coffee_shop_backend.mapper.OrderDetailMapper;
 import com.giapho.coffee_shop_backend.mapper.OrderMapper;
 import com.giapho.coffee_shop_backend.service.impl.OrderServiceImpl;
 import com.giapho.coffee_shop_backend.service.order.OrderPricingService;
+import com.giapho.coffee_shop_backend.service.order.OrderQueryService;
 import com.giapho.coffee_shop_backend.service.order.OrderValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,6 +54,8 @@ class OrderServiceTest {
     private OrderPricingService orderPricingService;
     @Mock
     private PaymentService paymentService;
+    @Mock
+    private OrderQueryService orderQueryService;
 
     @InjectMocks
     private OrderServiceImpl orderService;
@@ -62,7 +66,7 @@ class OrderServiceTest {
             Order order = invocation.getArgument(0);
             OrderResponseDTO dto = new OrderResponseDTO();
             dto.setId(order.getId());
-            dto.setStatus(order.getStatus());
+            dto.setStatus(order.getStatus() != null ? order.getStatus().name() : null);
             dto.setSubTotal(order.getSubTotal());
             dto.setDiscountAmount(order.getDiscountAmount());
             dto.setTotalAmount(order.getTotalAmount());
@@ -117,6 +121,34 @@ class OrderServiceTest {
     }
 
     @Test
+    void getOrderById_shouldDelegateToQueryService() {
+        Long orderId = 100L;
+        OrderResponseDTO expected = new OrderResponseDTO();
+        expected.setId(orderId);
+
+        when(orderQueryService.getOrderDetail(orderId)).thenReturn(expected);
+
+        OrderResponseDTO result = orderService.getOrderById(orderId);
+
+        assertThat(result).isSameAs(expected);
+        verify(orderQueryService).getOrderDetail(orderId);
+    }
+
+    @Test
+    void getPendingOrderByTable_shouldDelegateToQueryService() {
+        Long tableId = 10L;
+        OrderResponseDTO pendingOrder = new OrderResponseDTO();
+        pendingOrder.setId(123L);
+
+        when(orderQueryService.getPendingOrderByTable(tableId)).thenReturn(pendingOrder);
+
+        OrderResponseDTO result = orderService.getPendingOrderByTable(tableId);
+
+        assertThat(result).isSameAs(pendingOrder);
+        verify(orderQueryService).getPendingOrderByTable(tableId);
+    }
+
+    @Test
     void applyVoucher_shouldUpdateDiscountAndTotalAmount() {
         Long orderId = 2L;
         Order order = buildPendingOrder(orderId);
@@ -158,7 +190,7 @@ class OrderServiceTest {
         Long orderId = 3L;
         CafeTable table = CafeTable.builder().id(5L).name("T1").status(TableStatus.SERVING).build();
         Order paidOrder = buildPendingOrder(orderId);
-        paidOrder.setStatus("PAID");
+        paidOrder.setStatus(OrderStatus.PAID);
         paidOrder.setCafeTable(table);
 
         PaymentRequestDTO request = new PaymentRequestDTO();
@@ -166,11 +198,11 @@ class OrderServiceTest {
 
         when(paymentService.processPayment(orderId, request)).thenReturn(paidOrder);
         when(orderValidator.requireOrderWithDetails(orderId)).thenReturn(paidOrder);
-        when(orderRepository.findPendingOrderByTableId(table.getId())).thenReturn(Optional.empty());
+        when(orderRepository.findByTableIdAndStatus(table.getId(), OrderStatus.PENDING)).thenReturn(Optional.empty());
 
         OrderResponseDTO response = orderService.payOrder(orderId, request);
 
-        assertThat(response.getStatus()).isEqualTo("PAID");
+        assertThat(response.getStatus()).isEqualTo(OrderStatus.PAID.name());
         verify(paymentService).processPayment(orderId, request);
         verify(cafeTableRepository).save(table);
     }
@@ -178,7 +210,7 @@ class OrderServiceTest {
     private Order buildPendingOrder(Long orderId) {
         Order order = Order.builder()
                 .id(orderId)
-                .status("PENDING")
+                .status(OrderStatus.PENDING)
                 .subTotal(BigDecimal.ZERO)
                 .discountAmount(BigDecimal.ZERO)
                 .totalAmount(BigDecimal.ZERO)

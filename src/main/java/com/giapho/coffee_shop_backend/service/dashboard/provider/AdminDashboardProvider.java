@@ -1,5 +1,6 @@
 package com.giapho.coffee_shop_backend.service.dashboard.provider;
 
+import com.giapho.coffee_shop_backend.domain.enums.OrderStatus;
 import com.giapho.coffee_shop_backend.domain.repository.IngredientRepository;
 import com.giapho.coffee_shop_backend.domain.repository.OrderRepository;
 import com.giapho.coffee_shop_backend.domain.repository.PurchaseOrderRepository;
@@ -26,6 +27,8 @@ import java.util.Map;
 public class AdminDashboardProvider {
 
     private static final String STATUS_PENDING = "PENDING";
+    private static final OrderStatus STATUS_PAID = OrderStatus.PAID;
+    private static final OrderStatus STATUS_CANCELLED = OrderStatus.CANCELLED;
 
     private final ReportService reportService;
     private final DashboardAnalyticsService dashboardAnalyticsService;
@@ -94,13 +97,17 @@ public class AdminDashboardProvider {
         LocalDate firstDayOfNextYear = firstDayOfYear.plusYears(1);
 
         BigDecimal monthRevenue = defaultZero(orderRepository.sumPaidRevenueBetween(
-                firstDayOfMonth.atStartOfDay(), firstDayOfNextMonth.atStartOfDay()));
+                STATUS_PAID,
+                firstDayOfMonth.atStartOfDay(),
+                firstDayOfNextMonth.atStartOfDay()));
         BigDecimal yearRevenue = defaultZero(orderRepository.sumPaidRevenueBetween(
-                firstDayOfYear.atStartOfDay(), firstDayOfNextYear.atStartOfDay()));
+                STATUS_PAID,
+                firstDayOfYear.atStartOfDay(),
+                firstDayOfNextYear.atStartOfDay()));
 
         LocalDateTime startOfToday = today.atStartOfDay();
         LocalDateTime startOfTomorrow = today.plusDays(1).atStartOfDay();
-        long todayOrders = defaultZero(orderRepository.countPaidOrdersBetween(startOfToday, startOfTomorrow));
+        long todayOrders = defaultZero(orderRepository.countPaidOrdersBetween(STATUS_PAID, startOfToday, startOfTomorrow));
         BigDecimal averageOrderValue = todayOrders > 0
                 ? todayRevenue.divide(BigDecimal.valueOf(todayOrders), 2, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
@@ -126,20 +133,26 @@ public class AdminDashboardProvider {
         LocalDate firstDayOfNextYear = firstDayOfYear.plusYears(1);
 
         long todayOrders = defaultZero(orderRepository.countPaidOrdersBetween(
-                today.atStartOfDay(), today.plusDays(1).atStartOfDay()));
+                STATUS_PAID,
+                today.atStartOfDay(),
+                today.plusDays(1).atStartOfDay()));
         long monthOrders = defaultZero(orderRepository.countPaidOrdersBetween(
-                firstDayOfMonth.atStartOfDay(), firstDayOfNextMonth.atStartOfDay()));
+                STATUS_PAID,
+                firstDayOfMonth.atStartOfDay(),
+                firstDayOfNextMonth.atStartOfDay()));
         long yearOrders = defaultZero(orderRepository.countPaidOrdersBetween(
-                firstDayOfYear.atStartOfDay(), firstDayOfNextYear.atStartOfDay()));
+                STATUS_PAID,
+                firstDayOfYear.atStartOfDay(),
+                firstDayOfNextYear.atStartOfDay()));
 
         long cancelledToday = orderRepository.findByStatusAndDateRange(
-                        "CANCELLED",
+                        STATUS_CANCELLED,
                         today.atStartOfDay(),
                         today.plusDays(1).atStartOfDay())
                 .size();
 
         long cancelledMonth = orderRepository.findByStatusAndDateRange(
-                        "CANCELLED",
+                        STATUS_CANCELLED,
                         firstDayOfMonth.atStartOfDay(),
                         firstDayOfNextMonth.atStartOfDay())
                 .size();

@@ -66,6 +66,10 @@ const login = async () => {
 };
 ```
 
+- Postman: folder **Auth** → `POST Login`.
+- cURL: section "Login" trong `docs/shift/postman/shift-platform.curl.sh`.
+- Mock: `auth.loginRequest` & `auth.loginResponse` trong `shift-platform-mock.json`.
+
 ### 2.3 Bảng lỗi chuẩn
 
 | HTTP | Code | Message | Gợi ý FE |
@@ -77,7 +81,71 @@ const login = async () => {
 
 ---
 
-## 3. REST API chi tiết
+## 3. Quy trình nghiệp vụ ca làm việc
+
+### 3.1 Vai trò & phân quyền
+
+| Vai trò | Quyền hạn chính | Tài nguyên liên quan |
+| --- | --- | --- |
+| **STAFF** | Nhận ca, cập nhật checklist, ghi chú trong ca, gửi báo cáo nhanh | `/api/v1/shifts/sessions/*`, `/api/chat/conversations/*` |
+| **MANAGER** | Mở ca mẫu, giám sát ca đang chạy, cưỡng bức kết ca, xem báo cáo tổng hợp | Toàn bộ Shift API, WS `SESSION_*`, `shift-report` |
+| **ADMIN** | Quản lý cấu hình ca (work shift), phân quyền nhân sự, audit | Các endpoint quản trị (ngoài phạm vi FE) |
+
+- Ràng buộc: mọi request bảo mật bởi JWT, bắt buộc role tương ứng theo bảng `Access-Control` trong spec.`
+- Tham chiếu mock: `shiftSessions`, `shiftReports`, `shiftSessionEvents` trong `shift-platform-mock.json`.
+
+### 3.2 Timeline chuẩn của ca làm việc
+
+1. **Chuẩn bị (Pre-shift)** – Manager tạo `WorkShift` và assign nhân sự.
+2. **Nhận ca (Shift start)** – Staff gọi `POST /api/v1/shifts/sessions` (được backend thực hiện qua realtime) → trạng thái `ACTIVE`.
+3. **Vận hành (In-shift)** – Staff cập nhật order, chat nội bộ, upload file biên bản; WS đẩy `SESSION_STARTED`, `CONVERSATION_UPDATED`.
+4. **Bàn giao (Handover)** – Staff mở màn hình `ShiftReportDashboard`, kiểm tra checklist, nhập ghi chú.
+5. **Kết ca (Close shift)** – Staff hoặc Manager thực hiện `POST /api/v1/shifts/reports/sessions/{id}/regenerate` nếu cần cập nhật số liệu, sau đó bấm "Kết ca" → backend trả `SESSION_ENDED`.
+6. **Sau ca (Post-shift)** – Manager duyệt báo cáo, tải về file, ghi nhận phản hồi.
+
+### 3.3 Mô tả UI & module FE
+
+| Module/UI | Mục tiêu | Dữ liệu chính | Interaction | Artefact |
+| --- | --- | --- | --- | --- |
+| `ShiftSessionList` | Liệt kê ca hiện tại / lịch sử | `GET /api/v1/shifts/sessions?status=` (mock `shiftSessions`) | Filter theo status, click mở chi tiết | Schema `shift-session.schema.json`, interface `ShiftSessionResponse` |
+| `ShiftSessionDetail` | Hiển thị thông tin ca + trạng thái realtime | WS topic `/topic/shifts/session-events` + API `GET /shifts/reports/sessions/{id}` | Badge trạng thái, countdown thời gian ca | Postman folder **Shift Report**, mock `shiftReports` |
+| `ShiftHandoverForm` | Checklist bàn giao, nhập ghi chú | JSON lưu trong FE, submit qua `PATCH /shifts/sessions/{id}/notes` (todo backend) | Validation realtime, autosave localStorage | Tham chiếu error map mục 8 |
+| `ShiftReportDashboard` | Biểu đồ doanh thu, top sản phẩm | `ShiftReportResponse` | Toggle refresh, export CSV | Schema `shift-report.schema.json`, TS `ShiftReportResponse` |
+| `ManagerConsole` | Cưỡng bức kết ca, xem chuyển giao | WS event `SESSION_FORCED`, `GET /work-shifts/{id}` | Action button "Force end", confirm modal | Postman request "Force regenerate report" |
+
+### 3.4 Trạng thái & chuyển đổi
+
+| State | Mô tả | Event chuyển đổi | Vai trò kích hoạt |
+| --- | --- | --- | --- |
+| `SCHEDULED` | Ca chưa bắt đầu, được cấu hình trước | Staff bấm "Nhận ca" → `SESSION_STARTED` | STAFF |
+| `ACTIVE` | Ca đang chạy | Staff bấm "Kết ca" → `SESSION_ENDED` | STAFF |
+| `PENDING_HANDOVER` | Đang xử lý checklist/đối chiếu | Submit checklist, regenerate report | STAFF |
+| `CLOSED` | Ca kết thúc bình thường | WS `SESSION_ENDED` + báo cáo lưu | MANAGER xác nhận |
+| `FORCED_CLOSED` | Manager cưỡng bức kết ca | `SESSION_FORCED` event, forceReason hiển thị | MANAGER |
+
+- FE phải render badge trạng thái (màu sắc): ACTIVE (xanh), PENDING (vàng), FORCED (đỏ).
+- Mapping API ↔ UI: trường `status`, `adminOverride`, `forceReason` trong `shift-session.schema.json`.
+
+### 3.5 Entry point API/WS theo từng bước
+
+| Bước | REST | WS | Artefact hỗ trợ |
+| --- | --- | --- | --- |
+| Nhận ca | `GET /api/v1/shifts/sessions/{id}` để prefetch | Lắng nghe `/topic/shifts/session-events` để nhận `SESSION_STARTED` | Postman **Shift Report** › `Get report by session` |
+| Trong ca | `GET /api/chat/conversations`, `POST /messages/*` | `/topic/conversations` | Mock `messages`, `conversations` |
+| Bàn giao | `POST /api/v1/shifts/reports/sessions/{id}/regenerate` | `SESSION_ENDED` (khi thành công) | cURL `get_shift_report`, Schema `shift-report` |
+| Cưỡng bức | `POST /api/v1/shifts/sessions/{id}/force` (giả lập bằng script) | `SESSION_FORCED` | Mock `shiftSessionEvents` entry force |
+
+### 3.6 Checklist UI & UX note
+
+- Nhắc người dùng hoàn thành mọi checklist trước khi hiển thị nút "Kết ca" (disable cho đến khi đủ).
+- Autosave ghi chú bàn giao vào localStorage mỗi 10s.
+- Hiển thị toast thành công khi backend trả báo cáo mới; refetch `ShiftReport` và diff highlight cho top product thay đổi.
+- Khi bị cưỡng bức kết ca, hiển thị dialog "Ca đã kết thúc bởi quản lý" + dẫn link xem báo cáo.
+- Tích hợp QA checklist: mục 3, 10, 11 trong `QA_SHIFT_PLATFORM_CHECKLIST.md`.
+
+---
+
+## 4. REST API chi tiết
 
 *OpenAPI chi tiết tại `docs/shift/openapi/shift-platform.openapi.yaml`. Dưới đây là tóm tắt các endpoint chính.*
 
@@ -120,6 +188,10 @@ export async function fetchShiftReport(sessionId: number, { refresh = false } = 
   return res.json() as Promise<ShiftReportResponse>;
 }
 ```
+
+- Postman: folder **Shift Report** trong `shift-platform.postman_collection.json` (request `GET Shift Report by Session`).
+- cURL: script dòng `get_shift_report` tại `docs/shift/postman/shift-platform.curl.sh`.
+- Interface TS: `ShiftReportResponse` trong `shift-platform.interfaces.ts` (section Shift Report).
 
 ### 3.2 File upload
 
@@ -182,9 +254,29 @@ const upload = async (file: File) => {
 
 Chi tiết request/response bên trong OpenAPI và TypeScript interfaces.
 
+#### Ví dụ dịch vụ FE
+
+```typescript
+import { ConversationPage } from "./types/shift-platform.interfaces";
+
+export async function fetchConversations(page = 0, size = 20) {
+  const res = await fetch(`/api/chat/conversations?page=${page}&size=${size}`, {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+    },
+  });
+  if (!res.ok) throw await res.json();
+  return res.json() as Promise<ConversationPage>;
+}
+```
+
+- Postman: folder **Chat** (ví dụ `GET Conversations`, `POST Send text message`).
+- cURL: hàm `chat_send_text` & `chat_mark_seen` trong script `shift-platform.curl.sh`.
+- Mock: khối `messages` & `conversations` trong `shift-platform-mock.json`.
+
 ---
 
-## 4. WebSocket / STOMP
+## 5. WebSocket / STOMP
 
 - **Endpoint**: `wss://<domain>/ws`
 - **Protocol**: STOMP over SockJS.
@@ -197,11 +289,14 @@ Chi tiết request/response bên trong OpenAPI và TypeScript interfaces.
 | Topic | Event | Direction | JSON Schema |
 | --- | --- | --- | --- |
 | `/topic/shifts/session-events` | `SESSION_STARTED` / `SESSION_ENDED` / `SESSION_FORCED` | server → client | `shift-session-event.schema.json` |
-| `/topic/conversations` | `CONVERSATION_UPDATED` | server → client | `conversation-summary.schema.json` |
+| `/topic/conversations` | `CONVERSATION_UPDATED` | server → client | `conversation.schema.json` |
 | `/topic/conversations/{conversationId}` | `MESSAGE_NEW` | server → client | `message.schema.json` |
 | `/topic/conversations/{conversationId}/seen` | `MESSAGE_SEEN` | server → client | `message-seen-event.schema.json` |
 
 **Acknowledgement**: client không cần gửi ack, nhưng nên log.
+
+- Interface TS: `ShiftSessionEvent`, `MessageDTO`, `MessageSeenEvent` trong `shift-platform.interfaces.ts`.
+- Mock event: `shiftSessionEvents` và `messages` trong `shift-platform-mock.json`.
 
 #### Subscribe mẫu (TypeScript)
 
@@ -242,27 +337,31 @@ client.activate();
 
 ---
 
-## 5. Message & Data Schemas
+## 6. Message & Data Schemas
 
 Tất cả schema chuẩn nằm trong `docs/shift/json-schema`. FE import TypeScript interface từ `docs/shift/types/shift-platform.interfaces.ts`.
 
-| Entity | JSON Schema | Interface |
+| Entity / Payload | JSON Schema | Interface |
 | --- | --- | --- |
 | User | `user.schema.json` | `UserDTO` |
 | Conversation | `conversation.schema.json` | `ConversationDTO` |
 | ConversationMember | `conversation-member.schema.json` | `ConversationMemberDTO` |
 | Message | `message.schema.json` | `MessageDTO` |
-| Attachment | `attachment.schema.json` | `MessageAttachmentDTO` |
+| Attachment | `message-attachment.schema.json` | `MessageAttachmentDTO` |
 | Reaction | `reaction.schema.json` | `ReactionDTO` (dự phòng, client-side) |
-| Presence | `presence.schema.json` | `PresenceEvent` |
-| ShiftReport | `shift-report.schema.json` | `ShiftReportResponse` |
-| ShiftSessionEvent | `shift-session-event.schema.json` | `ShiftSessionEvent` |
+| Presence event | `presence.schema.json` | `PresenceEvent` |
+| Message seen event | `message-seen-event.schema.json` | `MessageSeenEvent` |
+| Shift session | `shift-session.schema.json` | `ShiftSessionResponse` |
+| Shift session event | `shift-session-event.schema.json` | `ShiftSessionEvent` |
+| Shift report | `shift-report.schema.json` | `ShiftReportResponse` |
+| Page<Conversation> | `page-conversation.schema.json` | `ConversationPage` |
+| Page<Message> | `page-message.schema.json` | `MessagePage` |
 
 Mỗi schema chứa mô tả field (title, format). FE hiển thị chính xác theo `description`.
 
 ---
 
-## 6. File upload flow
+## 7. File upload flow
 
 1. FE gọi `/api/v1/files/upload` gửi multipart `file`.
 2. Backend lưu file, trả `{ fileName, fileUrl, fileSize, fileType, message }`.
@@ -273,16 +372,18 @@ Mỗi schema chứa mô tả field (title, format). FE hiển thị chính xác 
 
 ---
 
-## 7. Pagination & Sorting
+## 8. Pagination & Sorting
 
 - **Shift report list**: hiện không phân trang (trả toàn bộ). FE nên cache client.
 - **Chat conversations**: `page`, `size`. Sort mới nhất theo `updatedAt DESC`.
 - **Messages**: `beforeMessageId` để load thêm tin nhắn cũ (cursor). FE nên quản lý infinite scroll: khi user kéo lên, gọi `GET /messages?beforeMessageId=<oldest>`.
 - **Response shape**: `Page<T>` của Spring → fields `content`, `totalElements`, `totalPages`, `number`, `size`, `first`, `last`.
+- Interface TS: `ConversationPage`, `MessagePage`.
+- Mock tham chiếu: `messages` & `conversations` trong mock JSON để mô phỏng phân trang.
 
 ---
 
-## 8. Validation Rules & Error Mapping
+## 9. Validation Rules & Error Mapping
 
 | Field | Rules | Error code | UI phản hồi |
 | --- | --- | --- | --- |
@@ -293,11 +394,15 @@ Mỗi schema chứa mô tả field (title, format). FE hiển thị chính xác 
 | Add member | list ≤ 100 id, distinct | `CHAT_MEMBER_LIMIT` (409) | Hiện snackbar “Vượt quá số thành viên” |
 | Shift report regenerate | session phải ACTIVE/CLOSED | `SHIFT_SESSION_NOT_FOUND` (404) | Redirect danh sách báo cáo |
 
+- Schema tra cứu: `message.schema.json`, `shift-report.schema.json`, `page-conversation.schema.json`.
+- Mock lỗi: `errors.fileTooLarge`, `errors.chatMemberLimit`, `errors.shiftReportNotFound`.
+- Postman tests: xem folder **Error cases** (nếu đã import). 
+
 Error payload chuẩn: `{ "code": "...", "message": "...", "details": {...?} }`.
 
 ---
 
-## 9. Error handling guideline
+## 10. Error handling guideline
 
 - 401 → clear token, chuyển `/login`.
 - 403 → hiển thị “Bạn không có quyền truy cập”.
@@ -309,7 +414,7 @@ Error payload chuẩn: `{ "code": "...", "message": "...", "details": {...?} }`.
 
 ---
 
-## 10. UI mapping
+## 11. UI mapping
 
 | Component | Endpoint/Event | Fields | Loading | Success | Error | Optimistic |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -320,18 +425,25 @@ Error payload chuẩn: `{ "code": "...", "message": "...", "details": {...?} }`.
 | `AttachmentPicker` | `POST /files/upload`, `POST /messages/attachments` | fileUrl, previewUrl | Progress bar | Thêm bubble attachment | Xoá bubble, hiển thị lỗi file | Có (hiện preview ngay) |
 | `ConversationMembersModal` | `POST /members`/`DELETE /members/{id}` | username, role | Loading overlay | Update list | Hiển thị error per user | Optimistic add/remove |
 
+- Interface liên quan: `MessageAttachmentDTO`, `ConversationMemberDTO`, `MessageDTO`.
+- Mock data mapping: block `conversationMembers`, `messages`.
+
 ---
 
-## 11. Concurrency & race condition
+## 12. Concurrency & race condition
 
 - Khi gửi nhiều tin nhắn: attach `clientMessageId` (UUID) trong metadata phía FE để map reply (backend chưa lưu, FE tự giữ).
 - Optimistic update: set `status = "PENDING"`, chuyển sang `SENT` khi server trả `MessageDTO`.
 - Duplicate requests: disable nút gửi sau click 1s. Nếu backend trả 409 → hiển thị “Tin nhắn trùng”.
 - Ordering: sử dụng `createdAt` từ server để sort; nếu trùng, fallback `id`.
 
+- Interface dùng: `MessageDTO.status`, `MessageDTO.metadata`.
+- Postman realtime test: dùng folder **Chat** kết hợp WebSocket tool (ví dụ Hoppscotch) để quan sát event.
+- Mock scenario: `messages` với trạng thái `SENT`/`DELIVERED`.
+
 ---
 
-## 12. Security notes (FE)
+## 13. Security notes (FE)
 
 - Escape HTML khi render `message.content`.
 - Không hiển thị đường dẫn file chưa qua proxy (luôn dùng `fileUrl` trả về).
@@ -339,18 +451,55 @@ Error payload chuẩn: `{ "code": "...", "message": "...", "details": {...?} }`.
 - Không tin cậy timestamp từ client.
 - Đặt CSP nếu render iframe/attachment.
 
----
-
-## 13. Testing & Mocking
-
-- Mock data sample: `docs/shift/mock/shift-platform-mock.json` (shift report, conversations, messages).
-- Postman collection: `docs/shift/postman/shift-platform.postman_collection.json` (gồm folder Auth, Shift Report, Chat).
-- Scripts seed (đề xuất): dùng collection + mock JSON.
-- Đề xuất contract test: dùng `@openapitools/openapi-generator` hoặc Pact để verify schema `shift-platform.openapi.yaml`.
+- Schema tham khảo: `message.schema.json` (description cảnh báo HTML), `message-attachment.schema.json` (nguồn file).
+- TypeScript: `MessageDTO`, `MessageAttachmentDTO`.
+- Checklist QA: mục Security trong `QA_SHIFT_PLATFORM_CHECKLIST.md`.
 
 ---
 
-## 14. Acceptance criteria & QA checklist
+## 14. Testing & Mocking
+
+### 14.1 Mock data JSON
+
+- File: `docs/shift/mock/shift-platform-mock.json`.
+- Cách dùng Storybook/Unit test FE:
+  1. Import file JSON và map trực tiếp sang các interface trong `shift-platform.interfaces.ts`.
+  2. Luồng chính đã bao gồm: đăng nhập, phiên ca, báo cáo ca, danh sách hội thoại, tin nhắn, sự kiện realtime.
+  3. Luồng lỗi: `errors.shiftReportNotFound`, `errors.fileTooLarge`, `errors.chatMemberLimit`.
+  4. Có thể filter theo conversationId (ví dụ `messages["41"]`) để dựng màn hình cụ thể.
+- Gợi ý Postman Mock Server: import dữ liệu vào Postman (tab Mock Servers) để dựng environment nhanh.
+
+### 14.2 Postman collection & môi trường
+
+- File: `docs/shift/postman/shift-platform.postman_collection.json`.
+- Biến collection:
+  - `baseUrl`: mặc định `https://api.example.com`.
+  - `authToken`: được gán tự động sau request Login (xem script ở tab Tests).
+- Quy trình thao tác:
+  1. Chạy request **Auth/Login** → token lưu vào biến `authToken`.
+  2. Gọi các request trong folder Shift Report, Files, Chat để kiểm tra.
+  3. Có thể override `{{filePath}}` (global variable) để test upload.
+
+### 14.3 cURL quick check
+
+- Script: `docs/shift/postman/shift-platform.curl.sh`.
+- Yêu cầu: `jq` để format JSON (có thể bỏ nếu không cần).
+- Thiết lập biến trước khi chạy:
+  ```bash
+  export TOKEN="<JWT từ Login>"
+  export BASE_URL="https://api.example.com" # tuỳ môi trường
+  bash docs/shift/postman/shift-platform.curl.sh
+  ```
+
+- Script sẽ kiểm tra: login, lấy báo cáo ca, danh sách hội thoại, gửi tin nhắn, đánh dấu đã xem.
+
+### 14.4 Gợi ý contract test
+
+- Đề xuất dùng `@openapitools/openapi-generator` hoặc Pact để verify schema `shift-platform.openapi.yaml` với mock JSON phía trên.
+
+---
+
+## 15. Acceptance criteria & QA checklist
 
 - Chi tiết trong `docs/shift/QA_SHIFT_PLATFORM_CHECKLIST.md`.
 - Các hạng mục chính:
@@ -365,7 +514,7 @@ Error payload chuẩn: `{ "code": "...", "message": "...", "details": {...?} }`.
 
 ---
 
-## 15. Changelog & versioning
+## 16. Changelog & versioning
 
 - **Version**: `v1.0.0` (lần đầu ban hành).
 - **Breaking change policy**: mọi thay đổi schema phải bump minor/major và cập nhật OpenAPI + JSON Schema.
@@ -373,7 +522,7 @@ Error payload chuẩn: `{ "code": "...", "message": "...", "details": {...?} }`.
 
 ---
 
-## 16. Artefact liên quan
+## 17. Artefact liên quan
 
 | File | Nội dung |
 | --- | --- |

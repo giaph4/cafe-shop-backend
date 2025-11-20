@@ -1,0 +1,40 @@
+{
+  "title": "PresenceEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "userId",
+    "status",
+    "updatedAt"
+  ],
+  "properties": {
+    "userId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "ID người dùng mà trạng thái đang được cập nhật"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["ONLINE", "OFFLINE", "AWAY", "DO_NOT_DISTURB"]
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Thời điểm trạng thái được backend cập nhật"
+    },
+    "conversationId": {
+      "anyOf": [
+        { "type": "integer", "format": "int64" },
+        { "type": "null" }
+      ],
+      "description": "Nếu trạng thái áp dụng cho một conversation cụ thể"
+    },
+    "device": {
+      "anyOf": [
+        { "type": "string", "maxLength": 50 },
+        { "type": "null" }
+      ],
+      "description": "Nguồn cập nhật, ví dụ WEB/MOBILE"
+    }
+  }
+}

@@ -56,8 +56,8 @@ public class ReportExcelExportService {
                 row.createCell(0).setCellValue(order.getId() != null ? order.getId() : 0);
                 row.createCell(1).setCellValue(order.getCafeTable() != null ? order.getCafeTable().getName() : "Take Away/Delivery");
                 row.createCell(2).setCellValue(order.getUser() != null ? order.getUser().getUsername() : "N/A");
-                row.createCell(3).setCellValue(order.getType() != null ? order.getType() : "");
-                row.createCell(4).setCellValue(order.getStatus() != null ? order.getStatus() : "");
+                row.createCell(3).setCellValue(order.getType() != null ? order.getType().name() : "");
+                row.createCell(4).setCellValue(order.getStatus() != null ? order.getStatus().name() : "");
 
                 populateDateCell(row, 5, order.getCreatedAt(), dateTimeStyle);
                 populateDateCell(row, 6, order.getPaidAt(), dateTimeStyle);

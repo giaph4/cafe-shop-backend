@@ -7,6 +7,7 @@ import com.giapho.coffee_shop_backend.domain.entity.ShiftPerformanceAdjustment;
 import com.giapho.coffee_shop_backend.domain.entity.ShiftTemplate;
 import com.giapho.coffee_shop_backend.domain.entity.User;
 import com.giapho.coffee_shop_backend.domain.enums.AdjustmentType;
+import com.giapho.coffee_shop_backend.domain.enums.OrderStatus;
 import com.giapho.coffee_shop_backend.domain.enums.ShiftAssignmentStatus;
 import com.giapho.coffee_shop_backend.domain.enums.ShiftStatus;
 import com.giapho.coffee_shop_backend.domain.repository.AttendanceRecordRepository;
@@ -204,7 +205,7 @@ class ShiftAssignmentServiceTest {
                 attendance(assignment, 60),
                 attendance(assignment, 120)
         ));
-        given(orderRepository.findPaidOrdersForStaffBetween(eq(assignment.getUser().getId()), any(), any())).willReturn(List.of());
+        given(orderRepository.findOrdersForStaffBetween(eq(assignment.getUser().getId()), eq(OrderStatus.PAID), any(), any())).willReturn(List.of());
         given(adjustmentRepository.findByAssignmentId(300L)).willReturn(List.of(
                 adjustment(assignment, AdjustmentType.BONUS, BigDecimal.valueOf(20000)),
                 adjustment(assignment, AdjustmentType.PENALTY, BigDecimal.valueOf(5000))

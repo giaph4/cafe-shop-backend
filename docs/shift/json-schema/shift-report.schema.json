@@ -1,6 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://docs.example.com/schemas/shift-report.schema.json",
   "title": "ShiftReportResponse",
   "type": "object",
   "required": [
@@ -57,9 +55,14 @@
       "description": "Thời điểm bắt đầu phiên"
     },
     "endAt": {
-      "type": ["string", "null"],
-      "format": "date-time",
-      "description": "Thời điểm kết thúc phiên"
+      "description": "Thời điểm kết thúc phiên",
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        { "type": "null" }
+      ]
     },
     "totalOrders": {
       "type": "integer",

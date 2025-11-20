@@ -2,6 +2,7 @@ package com.giapho.coffee_shop_backend.controller;
 
 import com.giapho.coffee_shop_backend.dto.*;
 import com.giapho.coffee_shop_backend.service.OrderService;
+import com.giapho.coffee_shop_backend.service.order.OrderQueryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +35,7 @@ public class OrderController {
     private static final Logger log = LoggerFactory.getLogger(OrderController.class);
 
     private final OrderService orderService;
+    private final OrderQueryService orderQueryService;
 
     /**
      * API to create a new order
@@ -55,7 +57,7 @@ public class OrderController {
     public ResponseEntity<Page<OrderResponseDTO>> getAllOrders(
             @PageableDefault(size = 10, page = 0, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        Page<OrderResponseDTO> orders = orderService.getAllOrders(pageable);
+        Page<OrderResponseDTO> orders = orderQueryService.getOrders(pageable);
         return ResponseEntity.ok(orders);
     }
 
@@ -63,7 +65,7 @@ public class OrderController {
     @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<OrderResponseDTO> getOrderById(@PathVariable Long id) {
         log.info("Getting order by ID: {}", id);
-        OrderResponseDTO order = orderService.getOrderById(id);
+        OrderResponseDTO order = orderQueryService.getOrderDetail(id);
         log.info("Retrieved order {}", order);
         return ResponseEntity.ok(order);
     }
@@ -71,7 +73,7 @@ public class OrderController {
     @GetMapping("/table/{tableId}/pending")
     @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<OrderResponseDTO> getPendingOrderByTable(@PathVariable Long tableId) {
-        OrderResponseDTO order = orderService.getPendingOrderByTable(tableId);
+        OrderResponseDTO order = orderQueryService.getPendingOrderByTable(tableId);
         return ResponseEntity.ok(order);
     }
 
@@ -141,23 +143,23 @@ public class OrderController {
     }
 
     @GetMapping("/status/{status}")
-    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<Page<OrderResponseDTO>> getOrdersByStatus(
             @PathVariable String status,
             @PageableDefault(size = 10, page = 0, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        Page<OrderResponseDTO> orders = orderService.getOrdersByStatus(status, pageable);
+        Page<OrderResponseDTO> orders = orderQueryService.getOrdersByStatus(status, pageable);
         return ResponseEntity.ok(orders);
     }
 
     @GetMapping("/date-range")
-    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<Page<OrderResponseDTO>> getOrdersByDateRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @PageableDefault(size = 10, page = 0, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        Page<OrderResponseDTO> orders = orderService.getOrdersByDateRange(startDate, endDate, pageable);
+        Page<OrderResponseDTO> orders = orderQueryService.getOrdersByDateRange(startDate, endDate, pageable);
         return ResponseEntity.ok(orders);
     }
 

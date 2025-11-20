@@ -1,9 +1,13 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Shift Platform API
   version: 1.0.0
   description: |
     API specification for authentication, shift reporting, file upload, and chat messaging modules.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 servers:
   - url: https://api.example.com
     description: Production server
@@ -99,6 +103,7 @@ paths:
     post:
       summary: Login and retrieve JWT token
       tags: [Authentication]
+      operationId: login
       requestBody:
         required: true
         content:
@@ -130,6 +135,7 @@ paths:
       tags: [Authentication]
       security:
         - bearerAuth: []
+      operationId: registerUser
       requestBody:
         required: true
         content:
@@ -161,6 +167,7 @@ paths:
       tags: [ShiftReport]
       security:
         - bearerAuth: []
+      operationId: getShiftReportBySession
       parameters:
         - in: path
           name: sessionId
@@ -200,6 +207,7 @@ paths:
       tags: [ShiftReport]
       security:
         - bearerAuth: []
+      operationId: regenerateShiftReport
       parameters:
         - in: path
           name: sessionId
@@ -233,6 +241,7 @@ paths:
       tags: [ShiftReport]
       security:
         - bearerAuth: []
+      operationId: listReportsByWorkShift
       parameters:
         - in: path
           name: workShiftId
@@ -256,12 +265,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Work shift not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/files/upload:
     post:
       summary: Upload single file
       tags: [Files]
       security:
         - bearerAuth: []
+      operationId: uploadFile
       requestBody:
         required: true
         content:
@@ -290,6 +306,7 @@ paths:
     get:
       summary: Download file
       tags: [Files]
+      operationId: downloadFile
       parameters:
         - in: path
           name: fileName
@@ -315,6 +332,7 @@ paths:
       tags: [Files]
       security:
         - bearerAuth: []
+      operationId: deleteFile
       parameters:
         - in: path
           name: fileName
@@ -331,12 +349,25 @@ paths:
                 properties:
                   message:
                     type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/chat/conversations:
     get:
       summary: List current user conversations
       tags: [Chat]
       security:
         - bearerAuth: []
+      operationId: listConversations
       parameters:
         - in: query
           name: page
@@ -370,6 +401,7 @@ paths:
       tags: [Chat]
       security:
         - bearerAuth: []
+      operationId: listConversationMessages
       parameters:
         - in: path
           name: conversationId

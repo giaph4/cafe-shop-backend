@@ -1,0 +1,26 @@
+{
+  "title": "MessageSeenEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "messageId",
+    "userId"
+  ],
+  "properties": {
+    "messageId": {
+      "type": "integer",
+      "format": "int64"
+    },
+    "userId": {
+      "type": "integer",
+      "format": "int64"
+    },
+    "seenAt": {
+      "anyOf": [
+        { "type": "string", "format": "date-time" },
+        { "type": "null" }
+      ],
+      "description": "Thời điểm backend ghi nhận đã xem"
+    }
+  }
+}

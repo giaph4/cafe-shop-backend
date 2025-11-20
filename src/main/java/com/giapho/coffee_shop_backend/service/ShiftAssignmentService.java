@@ -22,4 +22,6 @@ public interface ShiftAssignmentService {
     void deleteAssignment(Long assignmentId);
 
     void recalculateAssignment(Long assignmentId);
+
+    List<ShiftAssignmentResponseDTO> getAssignmentsForCurrentUser();
 }

@@ -69,7 +69,7 @@ public class CustomerController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<CustomerDTO> updateCustomer(
             @PathVariable Long id,
             @Valid @RequestBody CustomerDTO customerDTO

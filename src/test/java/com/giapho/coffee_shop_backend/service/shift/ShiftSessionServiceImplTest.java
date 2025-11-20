@@ -2,9 +2,11 @@ package com.giapho.coffee_shop_backend.service.shift;
 
 import com.giapho.coffee_shop_backend.domain.entity.Order;
 import com.giapho.coffee_shop_backend.domain.entity.Role;
+import com.giapho.coffee_shop_backend.domain.entity.ShiftReport;
 import com.giapho.coffee_shop_backend.domain.entity.ShiftSession;
 import com.giapho.coffee_shop_backend.domain.entity.User;
 import com.giapho.coffee_shop_backend.domain.entity.WorkShift;
+import com.giapho.coffee_shop_backend.domain.enums.OrderStatus;
 import com.giapho.coffee_shop_backend.domain.enums.ShiftSessionStatus;
 import com.giapho.coffee_shop_backend.domain.repository.OrderRepository;
 import com.giapho.coffee_shop_backend.domain.repository.ShiftSessionRepository;
@@ -207,8 +209,8 @@ class ShiftSessionServiceImplTest {
                 .build();
         when(shiftSessionRepository.findFirstByUser_IdAndStatus(currentUser.getId(), ShiftSessionStatus.ACTIVE))
                 .thenReturn(Optional.of(activeSession));
-        Order unpaid = Order.builder().id(10L).status("PENDING").build();
-        Order paid = Order.builder().id(11L).status("PAID").build();
+        Order unpaid = Order.builder().id(10L).status(OrderStatus.PENDING).build();
+        Order paid = Order.builder().id(11L).status(OrderStatus.PAID).build();
         when(shiftSessionRepository.findWithUserAndWorkShiftById(activeSession.getId())).thenReturn(Optional.of(activeSession));
         when(orderRepository.findByShiftSessionIdWithDetails(activeSession.getId())).thenReturn(List.of(unpaid, paid));
         when(shiftSessionRepository.save(activeSession)).thenReturn(activeSession);
@@ -330,23 +332,21 @@ class ShiftSessionServiceImplTest {
                 () -> shiftSessionService.startSession(new ShiftSessionStartRequestDTO(1L, false)));
     }
 
-    private User userWithRoles(Long id, String username, String... roleNames) {
+    private User userWithRoles(Long userId, String username, String... roles) {
+        java.util.Set<Role> roleEntities = java.util.Arrays.stream(roles)
+                .map(role -> Role.builder().name(role).build())
+                .collect(java.util.stream.Collectors.toSet());
+
         User user = User.builder()
-                .id(id)
+                .id(userId)
                 .username(username)
-                .roles(roleSet(roleNames))
+                .roles(roleEntities)
                 .build();
         return user;
     }
 
     private void stubCurrentUser(User user) {
         when(userRepository.findWithRolesByUsername("staff01")).thenReturn(Optional.of(user));
-    }
-
-    private java.util.Set<Role> roleSet(String... roleNames) {
-        return java.util.Arrays.stream(roleNames)
-                .map(name -> Role.builder().id(null).name(name).build())
-                .collect(java.util.stream.Collectors.toSet());
     }
 
     private ShiftReportResponseDTO sampleReportDto() {

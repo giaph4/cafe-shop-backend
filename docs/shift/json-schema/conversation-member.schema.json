@@ -1,0 +1,50 @@
+{
+  "title": "ConversationMemberDTO",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "userId",
+    "fullName",
+    "role",
+    "pinned",
+    "muted"
+  ],
+  "properties": {
+    "userId": {
+      "type": "integer",
+      "format": "int64"
+    },
+    "username": {
+      "anyOf": [
+        { "type": "string", "maxLength": 100 },
+        { "type": "null" }
+      ]
+    },
+    "fullName": {
+      "type": "string",
+      "maxLength": 255
+    },
+    "avatarUrl": {
+      "anyOf": [
+        { "type": "string", "format": "uri", "maxLength": 512 },
+        { "type": "null" }
+      ]
+    },
+    "role": {
+      "type": "string",
+      "enum": ["OWNER", "ADMIN", "MEMBER"]
+    },
+    "pinned": {
+      "type": "boolean"
+    },
+    "muted": {
+      "type": "boolean"
+    },
+    "lastReadMessageId": {
+      "anyOf": [
+        { "type": "integer", "format": "int64" },
+        { "type": "null" }
+      ]
+    }
+  }
+}

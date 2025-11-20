@@ -1,6 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://docs.example.com/schemas/user.schema.json",
   "title": "UserDTO",
   "type": "object",
   "required": [
@@ -25,25 +23,22 @@
       "type": "string"
     },
     "email": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "format": "email"
+      "oneOf": [
+        { "type": "string", "format": "email" },
+        { "type": "null" }
+      ]
     },
     "phone": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "pattern": "^\\+?[0-9]{7,15}$"
+      "oneOf": [
+        { "type": "string", "pattern": "^\\\+?[0-9]{7,15}$" },
+        { "type": "null" }
+      ]
     },
     "avatarUrl": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "format": "uri"
+      "oneOf": [
+        { "type": "string", "format": "uri" },
+        { "type": "null" }
+      ]
     },
     "roles": {
       "type": "array",

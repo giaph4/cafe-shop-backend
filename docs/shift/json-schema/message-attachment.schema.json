@@ -1,0 +1,44 @@
+{
+  "title": "MessageAttachmentDTO",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "originalName",
+    "storedUrl",
+    "mimeType",
+    "size"
+  ],
+  "properties": {
+    "id": {
+      "type": "integer",
+      "format": "int64"
+    },
+    "originalName": {
+      "type": "string",
+      "maxLength": 255
+    },
+    "storedUrl": {
+      "type": "string",
+      "format": "uri",
+      "maxLength": 512
+    },
+    "previewUrl": {
+      "anyOf": [
+        { "type": "string", "format": "uri", "maxLength": 512 },
+        { "type": "null" }
+      ]
+    },
+    "mimeType": {
+      "anyOf": [
+        { "type": "string", "maxLength": 100 },
+        { "type": "null" }
+      ]
+    },
+    "size": {
+      "type": "integer",
+      "format": "int64",
+      "minimum": 0
+    }
+  }
+}

@@ -5,6 +5,7 @@ import com.giapho.coffee_shop_backend.domain.entity.Order;
 import com.giapho.coffee_shop_backend.domain.entity.OrderDetail;
 import com.giapho.coffee_shop_backend.domain.entity.Product;
 import com.giapho.coffee_shop_backend.domain.entity.User;
+import com.giapho.coffee_shop_backend.domain.enums.OrderStatus;
 import com.giapho.coffee_shop_backend.domain.enums.TableStatus;
 import com.giapho.coffee_shop_backend.domain.repository.CafeTableRepository;
 import com.giapho.coffee_shop_backend.domain.repository.OrderRepository;
@@ -13,26 +14,21 @@ import com.giapho.coffee_shop_backend.dto.OrderDetailRequestDTO;
 import com.giapho.coffee_shop_backend.dto.OrderDetailUpdateRequestDTO;
 import com.giapho.coffee_shop_backend.dto.OrderResponseDTO;
 import com.giapho.coffee_shop_backend.dto.PaymentRequestDTO;
-import com.giapho.coffee_shop_backend.exception.order.OrderNotFoundException;
-import com.giapho.coffee_shop_backend.exception.order.TableNotFoundException;
 import com.giapho.coffee_shop_backend.mapper.OrderDetailMapper;
 import com.giapho.coffee_shop_backend.mapper.OrderMapper;
 import com.giapho.coffee_shop_backend.service.OrderService;
 import com.giapho.coffee_shop_backend.service.PaymentService;
 import com.giapho.coffee_shop_backend.service.order.OrderPricingService;
+import com.giapho.coffee_shop_backend.service.order.OrderQueryService;
 import com.giapho.coffee_shop_backend.service.order.OrderValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -51,39 +47,18 @@ public class OrderServiceImpl implements OrderService {
     private final OrderValidator orderValidator;
     private final OrderPricingService orderPricingService;
     private final PaymentService paymentService;
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<OrderResponseDTO> getAllOrders(Pageable pageable) {
-        return orderRepository.findAll(pageable)
-                .map(orderMapper::entityToResponse);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<OrderResponseDTO> getOrdersByDateRange(LocalDate startDate, LocalDate endDate, Pageable pageable) {
-        LocalDateTime start = startDate.atStartOfDay();
-        LocalDateTime end = endDate.plusDays(1).atStartOfDay();
-        return orderRepository.findByCreatedAtBetween(start, end, pageable)
-                .map(orderMapper::entityToResponse);
-    }
+    private final OrderQueryService orderQueryService;
 
     @Override
     @Transactional(readOnly = true)
     public OrderResponseDTO getOrderById(Long id) {
-        Order order = orderValidator.requireOrderWithDetails(id);
-        return orderMapper.entityToResponse(order);
+        return orderQueryService.getOrderDetail(id);
     }
 
     @Override
     @Transactional(readOnly = true)
     public OrderResponseDTO getPendingOrderByTable(Long tableId) {
-        if (!cafeTableRepository.existsById(tableId)) {
-            throw new TableNotFoundException(tableId);
-        }
-        Order order = orderRepository.findPendingOrderByTableId(tableId)
-                .orElseThrow(() -> new OrderNotFoundException("No pending order found for table id: " + tableId));
-        return orderMapper.entityToResponse(order);
+        return orderQueryService.getPendingOrderByTable(tableId);
     }
 
     @Override
@@ -93,8 +68,8 @@ public class OrderServiceImpl implements OrderService {
         Order order = Order.builder()
                 .user(currentUser)
                 .customer(orderValidator.resolveCustomer(request.getCustomerId()))
-                .type(request.getType())
-                .status("PENDING")
+                .type(orderValidator.parseOrderType(request.getType()))
+                .status(OrderStatus.PENDING)
                 .voucherCode(StringUtils.hasText(request.getVoucherCode()) ? request.getVoucherCode().trim().toUpperCase() : null)
                 .discountAmount(BigDecimal.ZERO)
                 .subTotal(BigDecimal.ZERO)
@@ -192,20 +167,10 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public Page<OrderResponseDTO> getOrdersByStatus(String status, Pageable pageable) {
-        if (!StringUtils.hasText(status)) {
-            return getAllOrders(pageable);
-        }
-        return orderRepository.findByStatus(status.trim().toUpperCase(), pageable)
-                .map(orderMapper::entityToResponse);
-    }
-
-    @Override
     @Transactional
     public OrderResponseDTO cancelOrder(Long orderId) {
         Order order = orderValidator.requirePendingOrder(orderId);
-        order.setStatus("CANCELLED");
+        order.setStatus(OrderStatus.CANCELLED);
         orderPricingService.removeVoucher(order);
         orderRepository.save(order);
         updateTableStatusOnOrderCompletion(order.getCafeTable());
@@ -241,7 +206,7 @@ public class OrderServiceImpl implements OrderService {
         if (table == null) {
             return;
         }
-        boolean hasOtherPending = orderRepository.findPendingOrderByTableId(table.getId()).isPresent();
+        boolean hasOtherPending = orderRepository.findByTableIdAndStatus(table.getId(), OrderStatus.PENDING).isPresent();
         if (!hasOtherPending && table.getStatus() == TableStatus.SERVING) {
             table.setStatus(TableStatus.EMPTY);
             cafeTableRepository.save(table);

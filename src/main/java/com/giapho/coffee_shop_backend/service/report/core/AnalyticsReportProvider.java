@@ -1,5 +1,6 @@
 package com.giapho.coffee_shop_backend.service.report.core;
 
+import com.giapho.coffee_shop_backend.domain.enums.OrderStatus;
 import com.giapho.coffee_shop_backend.domain.repository.CustomerRepository;
 import com.giapho.coffee_shop_backend.domain.repository.OrderRepository;
 import com.giapho.coffee_shop_backend.domain.repository.ProductRepository;
@@ -54,17 +55,22 @@ public class AnalyticsReportProvider {
 
         BigDecimal todayRevenue = revenueReportProvider.getDailyRevenue(today);
         BigDecimal monthRevenue = ReportCalculationHelper.defaultZero(orderRepository.sumPaidRevenueBetween(
+                OrderStatus.PAID,
                 firstDayOfMonth.atStartOfDay(),
                 firstDayOfNextMonth.atStartOfDay()));
         BigDecimal yearRevenue = ReportCalculationHelper.defaultZero(orderRepository.sumPaidRevenueBetween(
+                OrderStatus.PAID,
                 firstDayOfYear.atStartOfDay(),
                 firstDayOfNextYear.atStartOfDay()));
 
         long todayOrders = defaultZero(orderRepository.countPaidOrdersBetween(
+                OrderStatus.PAID,
                 today.atStartOfDay(), today.plusDays(1).atStartOfDay()));
         long monthOrders = defaultZero(orderRepository.countPaidOrdersBetween(
+                OrderStatus.PAID,
                 firstDayOfMonth.atStartOfDay(), firstDayOfNextMonth.atStartOfDay()));
         long yearOrders = defaultZero(orderRepository.countPaidOrdersBetween(
+                OrderStatus.PAID,
                 firstDayOfYear.atStartOfDay(), firstDayOfNextYear.atStartOfDay()));
 
         long totalCustomers = customerRepository.count();

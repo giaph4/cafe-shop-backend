@@ -6,6 +6,7 @@ import com.giapho.coffee_shop_backend.domain.entity.Order;
 import com.giapho.coffee_shop_backend.domain.entity.OrderDetail;
 import com.giapho.coffee_shop_backend.domain.entity.Product;
 import com.giapho.coffee_shop_backend.domain.entity.ProductIngredient;
+import com.giapho.coffee_shop_backend.domain.enums.OrderStatus;
 import com.giapho.coffee_shop_backend.domain.repository.CustomerRepository;
 import com.giapho.coffee_shop_backend.domain.repository.IngredientRepository;
 import com.giapho.coffee_shop_backend.domain.repository.OrderRepository;
@@ -48,8 +49,8 @@ public class PaymentService {
         Order order = orderRepository.findByIdWithCustomer(orderId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));
 
-        if (!"PENDING".equals(order.getStatus())) {
-            throw new OrderInvalidStateException(orderId, order.getStatus());
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new OrderInvalidStateException(orderId, order.getStatus().name());
         }
 
         String paymentMethod = validatePaymentMethod(paymentRequest.getPaymentMethod());
@@ -100,7 +101,7 @@ public class PaymentService {
         subtractInventoryForOrder(order);
         orderPricingService.recalculateTotals(order);
 
-        order.setStatus("PAID");
+        order.setStatus(OrderStatus.PAID);
         order.setPaidAt(LocalDateTime.now());
         order.setPaymentMethod(paymentMethod);
 

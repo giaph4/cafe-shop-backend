@@ -1,0 +1,61 @@
+{
+  "title": "ConversationPage",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "content",
+    "page",
+    "size",
+    "totalPages",
+    "totalElements",
+    "first",
+    "last"
+  ],
+  "properties": {
+    "content": {
+      "type": "array",
+      "items": {
+        "$ref": "conversation.schema.json"
+      }
+    },
+    "page": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "size": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "totalPages": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "totalElements": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "first": {
+      "type": "boolean"
+    },
+    "last": {
+      "type": "boolean"
+    },
+    "sort": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "sorted": { "type": "boolean" },
+            "unsorted": { "type": "boolean" },
+            "empty": { "type": "boolean" }
+          }
+        },
+        { "type": "null" }
+      ]
+    },
+    "numberOfElements": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

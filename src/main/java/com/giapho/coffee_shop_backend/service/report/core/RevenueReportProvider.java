@@ -2,6 +2,7 @@ package com.giapho.coffee_shop_backend.service.report.core;
 
 import com.giapho.coffee_shop_backend.domain.entity.Order;
 import com.giapho.coffee_shop_backend.domain.entity.OrderDetail;
+import com.giapho.coffee_shop_backend.domain.enums.OrderStatus;
 import com.giapho.coffee_shop_backend.domain.repository.OrderDetailRepository;
 import com.giapho.coffee_shop_backend.domain.repository.OrderRepository;
 import com.giapho.coffee_shop_backend.dto.BestSellerDTO;
@@ -42,7 +43,7 @@ public class RevenueReportProvider {
         ReportDateValidator.validateMandatoryRange(date, date);
         LocalDateTime startOfDay = date.atStartOfDay();
         LocalDateTime endOfDay = date.plusDays(1).atStartOfDay();
-        return ReportCalculationHelper.defaultZero(orderRepository.findTotalRevenueByDateRange(startOfDay, endOfDay));
+        return ReportCalculationHelper.defaultZero(orderRepository.findTotalRevenueByDateRange(OrderStatus.PAID, startOfDay, endOfDay));
     }
 
     public Map<String, BigDecimal> getProfitReport(LocalDate startDate, LocalDate endDate) {
@@ -50,7 +51,7 @@ public class RevenueReportProvider {
         LocalDateTime start = startDate.atStartOfDay();
         LocalDateTime end = endDate.plusDays(1).atStartOfDay();
 
-        BigDecimal totalRevenue = ReportCalculationHelper.defaultZero(orderRepository.sumAmountBetweenDates(start, end));
+        BigDecimal totalRevenue = ReportCalculationHelper.defaultZero(orderRepository.sumAmountBetweenDates(OrderStatus.PAID, start, end));
         List<OrderDetail> details = orderDetailRepository.findPaidOrderDetailsBetweenDates(start, end);
 
         BigDecimal totalCost = details.stream()
@@ -111,7 +112,7 @@ public class RevenueReportProvider {
         LocalDateTime start = startDate.atStartOfDay();
         LocalDateTime end = endDate.plusDays(1).atStartOfDay();
 
-        Map<LocalDate, BigDecimal> revenueByDate = orderRepository.findByStatusAndPaidAtBetween("PAID", start, end).stream()
+        Map<LocalDate, BigDecimal> revenueByDate = orderRepository.findByStatusAndPaidAtBetween(OrderStatus.PAID, start, end).stream()
                 .filter(order -> order.getPaidAt() != null && order.getTotalAmount() != null)
                 .collect(Collectors.groupingBy(
                         order -> order.getPaidAt().toLocalDate(),
@@ -147,7 +148,7 @@ public class RevenueReportProvider {
         LocalDateTime start = date.atStartOfDay();
         LocalDateTime end = date.plusDays(1).atStartOfDay();
 
-        List<Order> orders = orderRepository.findByStatusAndPaidAtBetween("PAID", start, end);
+        List<Order> orders = orderRepository.findByStatusAndPaidAtBetween(OrderStatus.PAID, start, end);
         Map<Integer, List<Order>> orderByHour = orders.stream()
                 .filter(order -> order.getPaidAt() != null)
                 .collect(Collectors.groupingBy(order -> order.getPaidAt().getHour()));
@@ -175,7 +176,7 @@ public class RevenueReportProvider {
         LocalDateTime start = startDate.atStartOfDay();
         LocalDateTime end = endDate.plusDays(1).atStartOfDay();
 
-        List<Order> orders = orderRepository.findByStatusAndPaidAtBetween("PAID", start, end);
+        List<Order> orders = orderRepository.findByStatusAndPaidAtBetween(OrderStatus.PAID, start, end);
         BigDecimal totalAmount = orders.stream()
                 .map(Order::getTotalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -216,11 +217,11 @@ public class RevenueReportProvider {
         LocalDateTime previousStartDT = previousStart.atStartOfDay();
         LocalDateTime previousEndDT = previousEnd.plusDays(1).atStartOfDay();
 
-        BigDecimal currentRevenue = ReportCalculationHelper.defaultZero(orderRepository.sumAmountBetweenDates(currentStartDT, currentEndDT));
-        BigDecimal previousRevenue = ReportCalculationHelper.defaultZero(orderRepository.sumAmountBetweenDates(previousStartDT, previousEndDT));
+        BigDecimal currentRevenue = ReportCalculationHelper.defaultZero(orderRepository.sumAmountBetweenDates(OrderStatus.PAID, currentStartDT, currentEndDT));
+        BigDecimal previousRevenue = ReportCalculationHelper.defaultZero(orderRepository.sumAmountBetweenDates(OrderStatus.PAID, previousStartDT, previousEndDT));
 
-        long currentOrders = orderRepository.findByStatusAndPaidAtBetween("PAID", currentStartDT, currentEndDT).size();
-        long previousOrders = orderRepository.findByStatusAndPaidAtBetween("PAID", previousStartDT, previousEndDT).size();
+        long currentOrders = orderRepository.findByStatusAndPaidAtBetween(OrderStatus.PAID, currentStartDT, currentEndDT).size();
+        long previousOrders = orderRepository.findByStatusAndPaidAtBetween(OrderStatus.PAID, previousStartDT, previousEndDT).size();
 
         BigDecimal growthAmount = currentRevenue.subtract(previousRevenue);
         BigDecimal growthPercent = previousRevenue.compareTo(BigDecimal.ZERO) > 0

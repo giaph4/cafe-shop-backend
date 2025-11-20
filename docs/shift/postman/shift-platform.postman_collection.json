@@ -1,0 +1,200 @@
+{
+  "info": {
+    "_postman_id": "a6bf1f3e-4c38-4bbf-9bd3-ffa4cc6f80d5",
+    "name": "Shift Platform",
+    "description": "Collection kiểm thử Auth, Shift Report, Files và Chat.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.example.com"
+    },
+    {
+      "key": "authToken",
+      "value": "{{token}}",
+      "description": "JWT lấy từ request Login"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"manager01\",\n  \"password\": \"Secret@123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('authToken', json.token);",
+                  "pm.test('Status code 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "register"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"staff02\",\n  \"password\": \"Secret@123\",\n  \"fullName\": \"Nguyễn Văn B\",\n  \"email\": \"staff02@coffee.test\",\n  \"phone\": \"+84999888777\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Shift Report",
+      "item": [
+        {
+          "name": "Get report by session",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/shifts/reports/sessions/300?refresh=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "shifts", "reports", "sessions", "300"],
+              "query": [{ "key": "refresh", "value": "false" }]
+            }
+          }
+        },
+        {
+          "name": "Force regenerate report",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/shifts/reports/sessions/300/regenerate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "shifts", "reports", "sessions", "300", "regenerate"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Files",
+      "item": [
+        {
+          "name": "Upload single file",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "{{filePath}}"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/files/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "files", "upload"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "item": [
+        {
+          "name": "List conversations",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/conversations?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "conversations"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get conversation detail",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/conversations/41",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "conversations", "41"]
+            }
+          }
+        },
+        {
+          "name": "Send text message",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "content", "value": "Xin chào team" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/conversations/41/messages/text",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "conversations", "41", "messages", "text"]
+            }
+          }
+        },
+        {
+          "name": "Mark message seen",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/conversations/41/messages/8005/seen",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "conversations", "41", "messages", "8005", "seen"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

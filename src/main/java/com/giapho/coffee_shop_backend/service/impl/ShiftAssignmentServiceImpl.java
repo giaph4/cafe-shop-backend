@@ -8,6 +8,7 @@ import com.giapho.coffee_shop_backend.domain.entity.ShiftPerformanceAdjustment;
 import com.giapho.coffee_shop_backend.domain.entity.ShiftTemplate;
 import com.giapho.coffee_shop_backend.domain.entity.User;
 import com.giapho.coffee_shop_backend.domain.enums.AdjustmentType;
+import com.giapho.coffee_shop_backend.domain.enums.OrderStatus;
 import com.giapho.coffee_shop_backend.domain.enums.ShiftAssignmentStatus;
 import com.giapho.coffee_shop_backend.domain.enums.ShiftStatus;
 import com.giapho.coffee_shop_backend.domain.repository.AttendanceRecordRepository;
@@ -25,6 +26,7 @@ import com.giapho.coffee_shop_backend.exception.shift.ShiftAssignmentNotFoundExc
 import com.giapho.coffee_shop_backend.exception.shift.ShiftAssignmentOverlapException;
 import com.giapho.coffee_shop_backend.exception.shift.ShiftAssignmentStateException;
 import com.giapho.coffee_shop_backend.exception.shift.ShiftNotFoundException;
+import com.giapho.coffee_shop_backend.exception.user.UserNotAuthenticatedException;
 import com.giapho.coffee_shop_backend.exception.user.UserNotFoundException;
 import com.giapho.coffee_shop_backend.mapper.ShiftAssignmentMapper;
 import com.giapho.coffee_shop_backend.service.ShiftAssignmentService;
@@ -44,6 +46,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -178,6 +181,17 @@ public class ShiftAssignmentServiceImpl implements ShiftAssignmentService {
         shiftAssignmentRepository.save(assignment);
     }
 
+    @Override
+    public List<ShiftAssignmentResponseDTO> getAssignmentsForCurrentUser() {
+        Long currentUserId = SecurityUtil.getCurrentUsername()
+                .flatMap(username -> userRepository.findByUsername(username).map(User::getId))
+                .orElseThrow(UserNotAuthenticatedException::new);
+
+        return shiftAssignmentRepository.findByUserIdOrderByShift_ShiftDateDesc(currentUserId).stream()
+                .map(shiftAssignmentMapper::toResponseDTO)
+                .collect(Collectors.toList());
+    }
+
     private ShiftAssignment findAssignment(Long assignmentId) {
         return shiftAssignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new ShiftAssignmentNotFoundException(assignmentId));
@@ -278,8 +292,8 @@ public class ShiftAssignmentServiceImpl implements ShiftAssignmentService {
         LocalDateTime rangeStart = combine(assignment.getShift().getShiftDate(), assignment.getPlannedStart());
         LocalDateTime rangeEnd = combineEnd(assignment.getShift().getShiftDate(), assignment.getPlannedStart(), assignment.getPlannedEnd());
 
-        List<Order> orders = orderRepository.findPaidOrdersForStaffBetween(
-                assignment.getUser().getId(), rangeStart, rangeEnd);
+        List<Order> orders = orderRepository.findOrdersForStaffBetween(
+                assignment.getUser().getId(), OrderStatus.PAID, rangeStart, rangeEnd);
 
         assignment.setTotalOrders(orders.size());
         BigDecimal totalRevenue = orders.stream()

@@ -1,6 +1,7 @@
 package com.giapho.coffee_shop_backend.service;
 
 import com.giapho.coffee_shop_backend.domain.entity.Order;
+import com.giapho.coffee_shop_backend.domain.enums.OrderStatus;
 import com.giapho.coffee_shop_backend.domain.repository.CustomerRepository;
 import com.giapho.coffee_shop_backend.domain.repository.OrderDetailRepository;
 import com.giapho.coffee_shop_backend.domain.repository.OrderRepository;
@@ -29,8 +30,8 @@ import java.util.Objects;
 public class DashboardAnalyticsService {
 
     private static final int DEFAULT_TOP_LIMIT = 5;
-    private static final String STATUS_PAID = "PAID";
-    private static final String STATUS_CANCELLED = "CANCELLED";
+    private static final OrderStatus STATUS_PAID = OrderStatus.PAID;
+    private static final OrderStatus STATUS_CANCELLED = OrderStatus.CANCELLED;
 
     private final OrderRepository orderRepository;
     private final OrderDetailRepository orderDetailRepository;

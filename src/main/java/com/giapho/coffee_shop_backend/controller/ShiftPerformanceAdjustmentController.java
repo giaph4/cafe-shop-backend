@@ -22,7 +22,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/shifts/adjustments")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
+@PreAuthorize("hasAnyRole('STAFF','MANAGER','ADMIN')")
 public class ShiftPerformanceAdjustmentController {
 
     private final ShiftPerformanceAdjustmentService adjustmentService;

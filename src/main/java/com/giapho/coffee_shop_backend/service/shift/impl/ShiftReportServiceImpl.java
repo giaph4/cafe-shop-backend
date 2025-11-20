@@ -6,6 +6,7 @@ import com.giapho.coffee_shop_backend.domain.entity.Order;
 import com.giapho.coffee_shop_backend.domain.entity.OrderDetail;
 import com.giapho.coffee_shop_backend.domain.entity.ShiftReport;
 import com.giapho.coffee_shop_backend.domain.entity.ShiftSession;
+import com.giapho.coffee_shop_backend.domain.enums.OrderStatus;
 import com.giapho.coffee_shop_backend.domain.repository.OrderRepository;
 import com.giapho.coffee_shop_backend.domain.repository.ShiftReportRepository;
 import com.giapho.coffee_shop_backend.domain.repository.ShiftSessionRepository;
@@ -161,7 +162,7 @@ public class ShiftReportServiceImpl implements ShiftReportService {
 
     private BigDecimal sumPaidAmount(List<Order> orders) {
         return orders.stream()
-                .filter(order -> "PAID".equalsIgnoreCase(order.getStatus()))
+                .filter(order -> order.getStatus() == OrderStatus.PAID)
                 .map(Order::getTotalAmount)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -169,7 +170,7 @@ public class ShiftReportServiceImpl implements ShiftReportService {
 
     private BigDecimal sumUnpaidAmount(List<Order> orders) {
         return orders.stream()
-                .filter(order -> !"PAID".equalsIgnoreCase(order.getStatus()))
+                .filter(order -> order.getStatus() != OrderStatus.PAID)
                 .map(Order::getTotalAmount)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -177,7 +178,7 @@ public class ShiftReportServiceImpl implements ShiftReportService {
 
     private List<ShiftReportPaymentBreakdownDTO> buildPaymentBreakdown(List<Order> orders) {
         Map<String, List<Order>> grouped = orders.stream()
-                .filter(order -> "PAID".equalsIgnoreCase(order.getStatus()))
+                .filter(order -> order.getStatus() == OrderStatus.PAID)
                 .collect(Collectors.groupingBy(order -> order.getPaymentMethod() == null ? "UNKNOWN" : order.getPaymentMethod()));
 
         return grouped.entrySet().stream()

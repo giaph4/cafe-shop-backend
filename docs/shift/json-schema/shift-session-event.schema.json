@@ -1,0 +1,31 @@
+{
+  "title": "ShiftSessionEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventType",
+    "session"
+  ],
+  "properties": {
+    "eventType": {
+      "type": "string",
+      "enum": ["SESSION_STARTED", "SESSION_ENDED", "SESSION_FORCED"]
+    },
+    "session": {
+      "$ref": "shift-session.schema.json"
+    },
+    "report": {
+      "anyOf": [
+        { "type": "null" },
+        { "$ref": "shift-report.schema.json" }
+      ]
+    },
+    "publishedAt": {
+      "anyOf": [
+        { "type": "string", "format": "date-time" },
+        { "type": "null" }
+      ],
+      "description": "Timestamp phát sự kiện (nếu backend cung cấp)"
+    }
+  }
+}

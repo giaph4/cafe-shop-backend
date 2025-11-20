@@ -1,6 +1,7 @@
 package com.giapho.coffee_shop_backend.service.dashboard.provider;
 
 import com.giapho.coffee_shop_backend.domain.entity.AttendanceRecord;
+import com.giapho.coffee_shop_backend.domain.entity.Order;
 import com.giapho.coffee_shop_backend.domain.entity.PayrollCycle;
 import com.giapho.coffee_shop_backend.domain.entity.PayrollSummary;
 import com.giapho.coffee_shop_backend.domain.entity.PurchaseOrder;
@@ -9,6 +10,7 @@ import com.giapho.coffee_shop_backend.domain.entity.ShiftInstance;
 import com.giapho.coffee_shop_backend.domain.entity.User;
 import com.giapho.coffee_shop_backend.domain.enums.ShiftAssignmentStatus;
 import com.giapho.coffee_shop_backend.domain.enums.ShiftStatus;
+import com.giapho.coffee_shop_backend.domain.enums.OrderStatus;
 import com.giapho.coffee_shop_backend.domain.repository.AttendanceRecordRepository;
 import com.giapho.coffee_shop_backend.domain.repository.IngredientRepository;
 import com.giapho.coffee_shop_backend.domain.repository.OrderRepository;
@@ -290,9 +292,9 @@ public class ManagerDashboardProvider {
         LocalDateTime start = today.minusDays(SERVICE_ISSUE_LOOKBACK_DAYS).atStartOfDay();
         LocalDateTime end = today.plusDays(1).atStartOfDay();
 
-        return orderRepository.findByStatusAndDateRange("CANCELLED", start, end).stream()
+        return orderRepository.findByStatusAndDateRange(OrderStatus.CANCELLED, start, end).stream()
                 .sorted(Comparator.comparing(
-                        order -> order.getCreatedAt() == null ? LocalDateTime.MIN : order.getCreatedAt(),
+                        (Order order) -> order.getCreatedAt() == null ? LocalDateTime.MIN : order.getCreatedAt(),
                         Comparator.reverseOrder())
                 )
                 .limit(10)

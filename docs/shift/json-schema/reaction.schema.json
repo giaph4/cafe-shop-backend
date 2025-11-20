@@ -1,0 +1,41 @@
+{
+  "title": "ReactionDTO",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "messageId",
+    "userId",
+    "emoji",
+    "createdAt"
+  ],
+  "properties": {
+    "id": {
+      "type": "integer",
+      "format": "int64"
+    },
+    "messageId": {
+      "type": "integer",
+      "format": "int64"
+    },
+    "userId": {
+      "type": "integer",
+      "format": "int64"
+    },
+    "emoji": {
+      "type": "string",
+      "description": "Mã emoji chuẩn Unicode" 
+    },
+    "skinTone": {
+      "anyOf": [
+        { "type": "string" },
+        { "type": "null" }
+      ],
+      "description": "Tùy chọn biến thể màu da nếu dùng emoji composite"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

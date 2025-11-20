@@ -1,0 +1,273 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "generatedAt": "2025-11-20T05:20:00Z",
+    "notes": [
+      "Dữ liệu mẫu phục vụ Storybook, Postman và unit test FE.",
+      "Các ID được đặt nhỏ để dễ gõ tay."
+    ]
+  },
+  "auth": {
+    "loginRequest": {
+      "username": "manager01",
+      "password": "Secret@123"
+    },
+    "loginResponse": {
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock-token",
+      "username": "manager01"
+    },
+    "errorInvalidCredential": {
+      "code": "AUTH_BAD_CREDENTIALS",
+      "message": "Invalid username or password"
+    }
+  },
+  "users": [
+    {
+      "id": 5,
+      "username": "staff01",
+      "fullName": "Trần Minh An",
+      "email": "staff01@coffee.test",
+      "phone": "+84987654321",
+      "avatarUrl": "https://cdn.coffee/mock/avatar-staff01.png",
+      "roles": ["ROLE_STAFF"],
+      "status": "ACTIVE"
+    },
+    {
+      "id": 7,
+      "username": "manager01",
+      "fullName": "Nguyễn Thùy Dung",
+      "email": "manager01@coffee.test",
+      "phone": "+84901234567",
+      "avatarUrl": "https://cdn.coffee/mock/avatar-manager01.png",
+      "roles": ["ROLE_MANAGER"],
+      "status": "ACTIVE"
+    }
+  ],
+  "shiftSessions": [
+    {
+      "id": 301,
+      "workShiftId": 21,
+      "userId": 5,
+      "username": "staff01",
+      "fullName": "Trần Minh An",
+      "startAt": "2025-11-20T01:00:00Z",
+      "endAt": "2025-11-20T05:00:00Z",
+      "status": "CLOSED",
+      "adminOverride": false,
+      "forceReason": null,
+      "forceByUserId": null,
+      "createdAt": "2025-11-20T01:00:02Z",
+      "updatedAt": "2025-11-20T05:00:05Z"
+    },
+    {
+      "id": 302,
+      "workShiftId": 21,
+      "userId": 7,
+      "username": "manager01",
+      "fullName": "Nguyễn Thùy Dung",
+      "startAt": "2025-11-20T06:00:00Z",
+      "endAt": null,
+      "status": "ACTIVE",
+      "adminOverride": true,
+      "forceReason": null,
+      "forceByUserId": null,
+      "createdAt": "2025-11-20T06:00:01Z",
+      "updatedAt": "2025-11-20T06:00:01Z"
+    }
+  ],
+  "shiftReports": [
+    {
+      "reportId": 9001,
+      "sessionId": 301,
+      "workShiftId": 21,
+      "userId": 5,
+      "username": "staff01",
+      "status": "CLOSED",
+      "startAt": "2025-11-20T01:00:00Z",
+      "endAt": "2025-11-20T05:00:00Z",
+      "totalOrders": 24,
+      "totalPaidAmount": 5850000,
+      "totalUnpaidAmount": 150000,
+      "transferredOrders": 1,
+      "paymentBreakdown": [
+        { "paymentMethod": "CASH", "orderCount": 12, "totalAmount": 2850000 },
+        { "paymentMethod": "MOMO", "orderCount": 8, "totalAmount": 2200000 },
+        { "paymentMethod": "VNPAY", "orderCount": 4, "totalAmount": 800000 }
+      ],
+      "topProducts": [
+        { "productId": 110, "productName": "Bạc xỉu đá", "quantity": 18, "totalAmount": 540000 },
+        { "productId": 125, "productName": "Latte nóng", "quantity": 12, "totalAmount": 720000 }
+      ],
+      "generatedAt": "2025-11-20T05:00:05Z"
+    }
+  ],
+  "shiftSessionEvents": [
+    {
+      "eventType": "SESSION_ENDED",
+      "session": 301,
+      "report": 9001,
+      "publishedAt": "2025-11-20T05:00:05Z"
+    },
+    {
+      "eventType": "SESSION_STARTED",
+      "session": 302,
+      "report": null,
+      "publishedAt": "2025-11-20T06:00:02Z"
+    }
+  ],
+  "conversations": [
+    {
+      "id": 41,
+      "title": "Quản lý ca sáng",
+      "avatarUrl": "https://cdn.coffee/mock/conv-shift.png",
+      "type": "GROUP",
+      "updatedAt": "2025-11-20T05:05:00Z",
+      "lastMessageId": 8005,
+      "unreadCount": 0,
+      "pinned": true,
+      "participants": [5, 7]
+    },
+    {
+      "id": 42,
+      "title": null,
+      "avatarUrl": null,
+      "type": "DIRECT",
+      "updatedAt": "2025-11-20T05:10:00Z",
+      "lastMessageId": 8010,
+      "unreadCount": 3,
+      "pinned": false,
+      "participants": [5]
+    }
+  ],
+  "conversationMembers": {
+    "41": [
+      {
+        "userId": 5,
+        "username": "staff01",
+        "fullName": "Trần Minh An",
+        "avatarUrl": "https://cdn.coffee/mock/avatar-staff01.png",
+        "role": "OWNER",
+        "pinned": true,
+        "muted": false,
+        "lastReadMessageId": 8005
+      },
+      {
+        "userId": 7,
+        "username": "manager01",
+        "fullName": "Nguyễn Thùy Dung",
+        "avatarUrl": "https://cdn.coffee/mock/avatar-manager01.png",
+        "role": "ADMIN",
+        "pinned": false,
+        "muted": false,
+        "lastReadMessageId": 8004
+      }
+    ]
+  },
+  "messages": {
+    "41": [
+      {
+        "id": 8005,
+        "conversationId": 41,
+        "senderId": 7,
+        "senderName": "Nguyễn Thùy Dung",
+        "senderAvatar": "https://cdn.coffee/mock/avatar-manager01.png",
+        "content": "Ca sáng đã bàn giao, báo cáo đã lên hệ thống nha team.",
+        "contentType": "TEXT",
+        "status": "SENT",
+        "metadata": null,
+        "createdAt": "2025-11-20T05:05:00Z",
+        "updatedAt": null,
+        "attachments": [],
+        "seenByUserIds": [5, 7]
+      }
+    ],
+    "42": [
+      {
+        "id": 8010,
+        "conversationId": 42,
+        "senderId": 5,
+        "senderName": "Trần Minh An",
+        "senderAvatar": "https://cdn.coffee/mock/avatar-staff01.png",
+        "content": "Nhờ chị check giúp đơn #SO-208 chưa thanh toán ạ?",
+        "contentType": "TEXT",
+        "status": "DELIVERED",
+        "metadata": null,
+        "createdAt": "2025-11-20T05:10:00Z",
+        "updatedAt": null,
+        "attachments": [],
+        "seenByUserIds": [5]
+      },
+      {
+        "id": 8011,
+        "conversationId": 42,
+        "senderId": 5,
+        "senderName": "Trần Minh An",
+        "senderAvatar": "https://cdn.coffee/mock/avatar-staff01.png",
+        "content": "Đính kèm hóa đơn",
+        "contentType": "ATTACHMENT",
+        "status": "SENT",
+        "metadata": null,
+        "createdAt": "2025-11-20T05:11:00Z",
+        "updatedAt": null,
+        "attachments": [
+          {
+            "id": 6001,
+            "originalName": "hoa-don-208.pdf",
+            "storedUrl": "https://cdn.coffee/mock/files/hoa-don-208.pdf",
+            "previewUrl": null,
+            "mimeType": "application/pdf",
+            "size": 523456
+          }
+        ],
+        "seenByUserIds": null
+      }
+    ]
+  },
+  "messageSeenEvents": [
+    {
+      "conversationId": 42,
+      "payload": {
+        "messageId": 8010,
+        "userId": 7,
+        "seenAt": "2025-11-20T05:12:30Z"
+      }
+    }
+  ],
+  "presenceEvents": [
+    {
+      "conversationId": null,
+      "payload": {
+        "userId": 5,
+        "status": "ONLINE",
+        "updatedAt": "2025-11-20T05:00:00Z",
+        "device": "WEB"
+      }
+    },
+    {
+      "conversationId": 41,
+      "payload": {
+        "userId": 7,
+        "status": "AWAY",
+        "updatedAt": "2025-11-20T07:30:00Z",
+        "device": "MOBILE"
+      }
+    }
+  ],
+  "errors": {
+    "shiftReportNotFound": {
+      "code": "SHIFT_REPORT_NOT_FOUND",
+      "message": "Không tìm thấy báo cáo ca theo sessionId",
+      "details": {
+        "sessionId": 9999
+      }
+    },
+    "fileTooLarge": {
+      "code": "FILE_TOO_LARGE",
+      "message": "Dung lượng tệp vượt quá giới hạn 5MB"
+    },
+    "chatMemberLimit": {
+      "code": "CHAT_MEMBER_LIMIT",
+      "message": "Conversation đã đạt giới hạn thành viên"
+    }
+  }
+}

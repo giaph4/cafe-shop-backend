@@ -6,6 +6,7 @@ import com.giapho.coffee_shop_backend.domain.entity.Order;
 import com.giapho.coffee_shop_backend.domain.entity.OrderDetail;
 import com.giapho.coffee_shop_backend.domain.entity.Product;
 import com.giapho.coffee_shop_backend.domain.entity.ProductIngredient;
+import com.giapho.coffee_shop_backend.domain.enums.OrderStatus;
 import com.giapho.coffee_shop_backend.domain.repository.CustomerRepository;
 import com.giapho.coffee_shop_backend.domain.repository.IngredientRepository;
 import com.giapho.coffee_shop_backend.domain.repository.OrderRepository;
@@ -99,7 +100,7 @@ class PaymentServiceTest {
 
         Order result = paymentService.processPayment(orderId, request);
 
-        assertThat(order.getStatus()).isEqualTo("PAID");
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
         assertThat(order.getPaymentMethod()).isEqualTo("CASH");
         assertThat(order.getPaidAt()).isNotNull();
         assertThat(ingredient.getQuantityOnHand()).isEqualByComparingTo("970");
@@ -269,7 +270,7 @@ class PaymentServiceTest {
     private Order buildPendingOrder(Long orderId) {
         return Order.builder()
                 .id(orderId)
-                .status("PENDING")
+                .status(OrderStatus.PENDING)
                 .orderDetails(new java.util.HashSet<>())
                 .build();
     }

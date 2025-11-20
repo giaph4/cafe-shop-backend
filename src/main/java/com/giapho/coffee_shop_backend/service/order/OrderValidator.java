@@ -6,6 +6,8 @@ import com.giapho.coffee_shop_backend.domain.entity.Order;
 import com.giapho.coffee_shop_backend.domain.entity.OrderDetail;
 import com.giapho.coffee_shop_backend.domain.entity.Product;
 import com.giapho.coffee_shop_backend.domain.entity.User;
+import com.giapho.coffee_shop_backend.domain.enums.OrderStatus;
+import com.giapho.coffee_shop_backend.domain.enums.OrderType;
 import com.giapho.coffee_shop_backend.domain.enums.TableStatus;
 import com.giapho.coffee_shop_backend.domain.repository.CafeTableRepository;
 import com.giapho.coffee_shop_backend.domain.repository.CustomerRepository;
@@ -69,7 +71,7 @@ public class OrderValidator {
             return table;
         }
 
-        Optional<Order> pendingOrder = orderRepository.findPendingOrderByTableId(tableId);
+        Optional<Order> pendingOrder = orderRepository.findByTableIdAndStatus(tableId, OrderStatus.PENDING);
         if (pendingOrder.isPresent()) {
             Order order = pendingOrder.get();
             throw new OrderInvalidStateException(
@@ -81,7 +83,7 @@ public class OrderValidator {
     }
 
     public Order requirePendingOrder(Long orderId) {
-        return orderRepository.findPendingOrderByIdWithDetails(orderId)
+        return orderRepository.findByIdAndStatusWithDetails(orderId, OrderStatus.PENDING)
                 .orElseThrow(() -> new OrderNotFoundException("Pending order not found with id: " + orderId));
     }
 
@@ -111,5 +113,27 @@ public class OrderValidator {
             throw new VoucherInvalidException("", "Voucher code must not be blank");
         }
         return voucherCode.trim().toUpperCase();
+    }
+
+    public OrderType parseOrderType(String type) {
+        if (!StringUtils.hasText(type)) {
+            return OrderType.DINE_IN;
+        }
+        try {
+            return OrderType.valueOf(type.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new OrderInvalidStateException("Unsupported order type: " + type);
+        }
+    }
+
+    public OrderStatus parseOrderStatus(String status) {
+        if (!StringUtils.hasText(status)) {
+            throw new OrderInvalidStateException("Order status must not be blank");
+        }
+        try {
+            return OrderStatus.valueOf(status.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new OrderInvalidStateException("Unsupported order status: " + status);
+        }
     }
 }

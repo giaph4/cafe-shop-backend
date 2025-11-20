@@ -29,6 +29,12 @@ public class ShiftAssignmentController {
 
     private final ShiftAssignmentService shiftAssignmentService;
 
+    @GetMapping("/me")
+    @PreAuthorize("hasAnyRole('STAFF','MANAGER','ADMIN')")
+    public ResponseEntity<List<ShiftAssignmentResponseDTO>> getAssignmentsForCurrentUser() {
+        return ResponseEntity.ok(shiftAssignmentService.getAssignmentsForCurrentUser());
+    }
+
     @GetMapping("/{assignmentId}")
     @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     public ResponseEntity<ShiftAssignmentResponseDTO> getAssignment(@PathVariable Long assignmentId) {

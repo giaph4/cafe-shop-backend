@@ -4,6 +4,7 @@ import com.giapho.coffee_shop_backend.domain.entity.Order;
 import com.giapho.coffee_shop_backend.domain.entity.ShiftSession;
 import com.giapho.coffee_shop_backend.domain.entity.User;
 import com.giapho.coffee_shop_backend.domain.entity.WorkShift;
+import com.giapho.coffee_shop_backend.domain.enums.OrderStatus;
 import com.giapho.coffee_shop_backend.domain.enums.ShiftSessionStatus;
 import com.giapho.coffee_shop_backend.domain.repository.OrderRepository;
 import com.giapho.coffee_shop_backend.domain.repository.ShiftSessionRepository;
@@ -81,6 +82,7 @@ public class ShiftSessionServiceImpl implements ShiftSessionService {
         closeSession(session, ShiftSessionStatus.CLOSED, null, null);
 
         List<Order> orders = orderRepository.findByShiftSessionIdWithDetails(session.getId());
+        boolean hasOtherPending = orderRepository.findByShiftSessionIdAndStatus(session.getId(), OrderStatus.PENDING).isPresent();
         handleUnpaidOrders(orders);
 
         ShiftReportResponseDTO report = shiftReportService.generateReport(session, orders);
@@ -188,7 +190,7 @@ public class ShiftSessionServiceImpl implements ShiftSessionService {
 
     private void handleUnpaidOrders(List<Order> orders) {
         for (Order order : orders) {
-            if (!"PAID".equalsIgnoreCase(order.getStatus())) {
+            if (order.getStatus() != OrderStatus.PAID) {
                 order.setShiftSession(null);
                 order.setTransferred(true);
                 orderRepository.save(order);
