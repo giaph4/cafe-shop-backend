@@ -6,19 +6,19 @@
 - Kết hợp cache để giảm tải truy vấn danh sách danh mục.
 
 ## Luồng xử lý backend
-1. **Tạo danh mục** (`POST /api/v1/categories`): `CategoryController` nhận `CategoryDTO`, `CategoryService.createCategory` chuẩn hóa tên, kiểm tra trùng, lưu entity rồi cache-evict @src/main/java/com/giapho/coffee_shop_backend/controller/CategoryController.java#20-26 @src/main/java/com/giapho/coffee_shop_backend/service/CategoryService.java#26-43.
-2. **Lấy tất cả danh mục** (`GET /api/v1/categories`): Service sử dụng `@Cacheable` để trả về danh sách `CategoryDTO`, thích hợp cho dropdown UI @src/main/java/com/giapho/coffee_shop_backend/controller/CategoryController.java#28-33 @src/main/java/com/giapho/coffee_shop_backend/service/CategoryService.java#45-50.
-3. **Cập nhật danh mục** (`PUT /api/v1/categories/{id}`): Service kiểm tra tồn tại, ngăn đổi tên trùng, cập nhật mô tả rồi cache-evict @src/main/java/com/giapho/coffee_shop_backend/controller/CategoryController.java#35-42 @src/main/java/com/giapho/coffee_shop_backend/service/CategoryService.java#52-68.
+1. **Tạo danh mục** (`POST /api/v1/categories`): `CategoryController` nhận `CategoryCreateRequest`, `CategoryService.createCategory` chuẩn hóa tên, kiểm tra trùng (ignore-case), lưu entity rồi cache-evict @src/main/java/com/giapho/coffee_shop_backend/controller/CategoryController.java#23-27 @src/main/java/com/giapho/coffee_shop_backend/service/impl/CategoryServiceImpl.java#35-46.
+2. **Lấy tất cả danh mục** (`GET /api/v1/categories`): Service sử dụng `@Cacheable` để trả về danh sách `CategoryResponse`, thích hợp cho dropdown UI @src/main/java/com/giapho/coffee_shop_backend/controller/CategoryController.java#30-35 @src/main/java/com/giapho/coffee_shop_backend/service/impl/CategoryServiceImpl.java#48-53.
+3. **Cập nhật danh mục** (`PUT /api/v1/categories/{id}`): Service kiểm tra tồn tại, chuẩn hóa dữ liệu và ngăn đổi tên trùng (so sánh theo id) trước khi cache-evict @src/main/java/com/giapho/coffee_shop_backend/controller/CategoryController.java#37-44 @src/main/java/com/giapho/coffee_shop_backend/service/impl/CategoryServiceImpl.java#55-68.
 4. **Xóa danh mục** (`DELETE /api/v1/categories/{id}`): Service xác minh tồn tại, xóa entity và cache-evict @src/main/java/com/giapho/coffee_shop_backend/controller/CategoryController.java#45-50 @src/main/java/com/giapho/coffee_shop_backend/service/CategoryService.java#71-77.
 
 ## Thành phần liên quan
-- **Controller**: `CategoryController` @src/main/java/com/giapho/coffee_shop_backend/controller/CategoryController.java#1-51
-- **Service**: `CategoryService` @src/main/java/com/giapho/coffee_shop_backend/service/CategoryService.java#1-79
-- **Repository**: `CategoryRepository` (triển khai `existsByName`, `findAll`, `findById`) @src/main/java/com/giapho/coffee_shop_backend/domain/repository/CategoryRepository.java#1-24
-- **DTO**: `CategoryDTO` @src/main/java/com/giapho/coffee_shop_backend/dto/CategoryDTO.java#1-14
+- **Controller**: `CategoryController` @src/main/java/com/giapho/coffee_shop_backend/controller/CategoryController.java#1-52
+- **Service**: `CategoryService` & `CategoryServiceImpl` @src/main/java/com/giapho/coffee_shop_backend/service/CategoryService.java#9-18 @src/main/java/com/giapho/coffee_shop_backend/service/impl/CategoryServiceImpl.java#28-119
+- **Repository**: `CategoryRepository` (exists/find ignore-case) @src/main/java/com/giapho/coffee_shop_backend/domain/repository/CategoryRepository.java#9-17
+- **DTO**: `CategoryCreateRequest`, `CategoryUpdateRequest`, `CategoryResponse` @src/main/java/com/giapho/coffee_shop_backend/dto/category
 - **Entity**: `Category`
 - **Mapper**: `CategoryMapper`
-- **Validation**: `CategoryDTO` yêu cầu `name` không rỗng tại service (trimming), annotation `@NotBlank` hỗ trợ ở DTO nếu áp dụng.
+- **Validation**: `CategoryCreateRequest`/`CategoryUpdateRequest` áp dụng `@NotBlank`, service tiếp tục trim & kiểm tra dữ liệu.
 - **Caching**: sử dụng cache `categories` cho danh sách.
 
 ## Danh sách API
@@ -32,20 +32,20 @@
 ## Chi tiết API
 
 ### POST `/api/v1/categories`
-- **Request body (`CategoryDTO`)**:
+- **Request body (`CategoryCreateRequest`)**:
   ```json
   {
     "name": "Cà phê",
     "description": "Các sản phẩm cà phê"
   }
   ```
-- **Logic**: trim tên, kiểm tra rỗng, kiểm tra `existsByName`. Nếu hợp lệ lưu và trả DTO.
-- **Response 200**: `CategoryDTO` kèm `id` mới.
-- **Lỗi 400**: tên rỗng -> `ResponseStatusException(HttpStatus.BAD_REQUEST)`.
-- **Lỗi 409**: tên đã tồn tại -> `HttpStatus.CONFLICT`.
+- **Logic**: chuẩn hóa (trim) tên/mô tả, kiểm tra rỗng, kiểm tra `existsByNameIgnoreCase`. Nếu hợp lệ lưu và trả `CategoryResponse`.
+- **Response 200**: `CategoryResponse` kèm `id` mới.
+- **Lỗi 400**: tên rỗng -> `CategoryValidationException`.
+- **Lỗi 409**: tên đã tồn tại -> `CategoryAlreadyExistsException`.
 
 ### GET `/api/v1/categories`
-- **Response 200**: `List<CategoryDTO>`
+- **Response 200**: `List<CategoryResponse>`
   ```json
   [
     { "id": 3, "name": "Cà phê", "description": "Các sản phẩm cà phê" },
@@ -55,11 +55,12 @@
 - **Cache**: dữ liệu được cache với key `'all'`.
 
 ### PUT `/api/v1/categories/{id}`
-- **Request body**: giống POST.
-- **Logic**: kiểm tra tồn tại, nếu đổi sang tên mới đã có -> `IllegalArgumentException`. Cập nhật name/description và trả DTO.
+- **Request body (`CategoryUpdateRequest`)**: giống POST.
+- **Logic**: kiểm tra tồn tại, chuẩn hóa dữ liệu, gọi `existsByNameIgnoreCaseAndIdNot` để ngăn trùng tên. Trả `CategoryResponse` sau cập nhật.
 - **Response 200**: danh mục sau cập nhật.
-- **Lỗi 400**: tên xung đột.
-- **Lỗi 404**: danh mục không tồn tại.
+- **Lỗi 400**: tên rỗng -> `CategoryValidationException`.
+- **Lỗi 409**: tên trùng -> `CategoryAlreadyExistsException`.
+- **Lỗi 404**: danh mục không tồn tại -> `CategoryNotFoundException`.
 
 ### DELETE `/api/v1/categories/{id}`
 - **Logic**: xác minh tồn tại, xóa entity, cache-evict.
@@ -74,10 +75,9 @@
 ## Luồng lỗi & thông điệp
 | Exception | HTTP | Message |
 | --- | --- | --- |
-| `ResponseStatusException(HttpStatus.BAD_REQUEST)` | 400 | "Category name must not be empty" |
-| `ResponseStatusException(HttpStatus.CONFLICT)` | 409 | "Category with name ... already exists" |
-| `IllegalArgumentException` | 400 | "Category name already exists" |
-| `ResponseStatusException(HttpStatus.NOT_FOUND)` | 404 | "Category with id ... not found" |
+| `CategoryValidationException` | 400 | "Category name must not be blank" |
+| `CategoryAlreadyExistsException` | 409 | "Category with name '...' already exists" |
+| `CategoryNotFoundException` | 404 | "Category not found with id: ..." |
 
 ## Role/Permission
 - `POST/PUT/DELETE`: yêu cầu `hasAnyRole('MANAGER','ADMIN')`.

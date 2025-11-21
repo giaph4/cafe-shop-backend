@@ -16,6 +16,7 @@ import com.giapho.coffee_shop_backend.dto.VoucherCheckResponseDTO;
 import com.giapho.coffee_shop_backend.exception.inventory.InsufficientInventoryException;
 import com.giapho.coffee_shop_backend.exception.order.PaymentMethodInvalidException;
 import com.giapho.coffee_shop_backend.exception.voucher.VoucherInvalidException;
+import com.giapho.coffee_shop_backend.service.impl.PaymentServiceImpl;
 import com.giapho.coffee_shop_backend.service.order.OrderPricingService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,7 +55,7 @@ class PaymentServiceTest {
     private OrderPricingService orderPricingService;
 
     @InjectMocks
-    private PaymentService paymentService;
+    private PaymentServiceImpl paymentService;
 
     @Test
     void processPayment_shouldCompleteOrderAndSubtractInventory() {

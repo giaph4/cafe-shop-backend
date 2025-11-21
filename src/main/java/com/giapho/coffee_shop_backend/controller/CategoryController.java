@@ -1,6 +1,9 @@
 package com.giapho.coffee_shop_backend.controller;
 
-import com.giapho.coffee_shop_backend.dto.CategoryDTO;
+import com.giapho.coffee_shop_backend.dto.category.CategoryCreateRequest;
+import com.giapho.coffee_shop_backend.dto.category.CategoryResponse;
+import com.giapho.coffee_shop_backend.dto.category.CategoryUpdateRequest;
+
 import com.giapho.coffee_shop_backend.service.CategoryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,26 +22,25 @@ public class CategoryController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
-    public ResponseEntity<CategoryDTO> createCategory(@Valid @RequestBody CategoryDTO categoryDTO) {
-        CategoryDTO createCategory = categoryService.createCategory(categoryDTO);
-
-        return ResponseEntity.ok(createCategory);
+    public ResponseEntity<CategoryResponse> createCategory(@Valid @RequestBody CategoryCreateRequest request) {
+        CategoryResponse category = categoryService.createCategory(request);
+        return ResponseEntity.ok(category);
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
-    public ResponseEntity<List<CategoryDTO>> getAllCategories() {
-        List<CategoryDTO> categories = categoryService.getAllCategories();
+    public ResponseEntity<List<CategoryResponse>> getAllCategories() {
+        List<CategoryResponse> categories = categoryService.getAllCategories();
         return ResponseEntity.ok(categories);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
-    public ResponseEntity<CategoryDTO> updateCategory(
+    public ResponseEntity<CategoryResponse> updateCategory(
             @PathVariable Long id,
-            @Valid @RequestBody CategoryDTO categoryDTO
+            @Valid @RequestBody CategoryUpdateRequest request
     ) {
-        CategoryDTO updatedCategory = categoryService.updateCategory(id, categoryDTO);
+        CategoryResponse updatedCategory = categoryService.updateCategory(id, request);
         return ResponseEntity.ok(updatedCategory);
     }
 

@@ -5,12 +5,13 @@ import com.giapho.coffee_shop_backend.domain.repository.RoleRepository;
 import com.giapho.coffee_shop_backend.domain.repository.UserRepository;
 import com.giapho.coffee_shop_backend.dto.AuthenticationResponse;
 import com.giapho.coffee_shop_backend.dto.LoginRequest;
+import com.giapho.coffee_shop_backend.exception.authentication.AuthenticationFailedException;
+import com.giapho.coffee_shop_backend.service.impl.AuthenticationServiceImpl;
 import com.giapho.coffee_shop_backend.security.JwtService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -30,9 +31,6 @@ public class AuthenticationServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private RoleRepository roleRepository;
-
-    @Mock
     private PasswordEncoder passwordEncoder;
 
     @Mock
@@ -44,15 +42,25 @@ public class AuthenticationServiceTest {
     @Mock
     private LoginHistoryService loginHistoryService;
 
-    @InjectMocks
-    private AuthenticationService authenticationService;
+    @Mock
+    private RoleRepository roleRepository;
 
     @Mock
     private HttpServletRequest httpServletRequest;
 
+    private AuthenticationService authenticationService;
+
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        authenticationService = new AuthenticationServiceImpl(
+                userRepository,
+                roleRepository,
+                passwordEncoder,
+                jwtService,
+                authenticationManager,
+                loginHistoryService
+        );
     }
 
     @Test
@@ -97,7 +105,7 @@ public class AuthenticationServiceTest {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenThrow(new BadCredentialsException("Bad credentials"));
 
-        assertThrows(BadCredentialsException.class, () -> authenticationService.login(request, httpServletRequest));
+        assertThrows(AuthenticationFailedException.class, () -> authenticationService.login(request, httpServletRequest));
 
         verify(loginHistoryService).recordFailedLogin(eq("admin"), eq("192.168.1.2"), eq("JUnit"), eq("Invalid username or password"));
         verify(loginHistoryService, never()).recordSuccessfulLogin(any(), any(), any());
@@ -117,7 +125,7 @@ public class AuthenticationServiceTest {
         when(httpServletRequest.getHeader("X-Forwarded-For")).thenReturn(null);
         when(httpServletRequest.getRemoteAddr()).thenReturn("10.0.0.1");
 
-        assertThrows(BadCredentialsException.class, () -> authenticationService.login(request, httpServletRequest));
+        assertThrows(AuthenticationFailedException.class, () -> authenticationService.login(request, httpServletRequest));
 
         verify(loginHistoryService).recordFailedLogin(eq("missing"), eq("10.0.0.1"), eq("JUnit"), eq("Invalid username or password"));
         verify(loginHistoryService, never()).recordSuccessfulLogin(any(), any(), any());

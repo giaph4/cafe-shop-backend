@@ -17,7 +17,7 @@ import com.giapho.coffee_shop_backend.exception.shift.ShiftAssignmentNotFoundExc
 import com.giapho.coffee_shop_backend.exception.shift.ShiftNotFoundException;
 import com.giapho.coffee_shop_backend.exception.user.UserNotFoundException;
 import com.giapho.coffee_shop_backend.mapper.AttendanceRecordMapper;
-import com.giapho.coffee_shop_backend.service.AdminAiService;
+import com.giapho.coffee_shop_backend.service.AttendanceService;
 import com.giapho.coffee_shop_backend.service.ShiftAssignmentService;
 import com.giapho.coffee_shop_backend.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +37,7 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class AttendanceServiceImpl implements AdminAiService.AttendanceService {
+public class AttendanceServiceImpl implements AttendanceService {
 
     private static final String SYSTEM_USER = "SYSTEM";
 

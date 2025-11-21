@@ -1,0 +1,307 @@
+package com.giapho.coffee_shop_backend.service.impl;
+
+import com.giapho.coffee_shop_backend.domain.entity.Role;
+import com.giapho.coffee_shop_backend.domain.entity.User;
+import com.giapho.coffee_shop_backend.domain.repository.RoleRepository;
+import com.giapho.coffee_shop_backend.domain.repository.UserRepository;
+import com.giapho.coffee_shop_backend.dto.AuthenticationResponse;
+import com.giapho.coffee_shop_backend.dto.LoginRequest;
+import com.giapho.coffee_shop_backend.dto.RegisterRequest;
+import com.giapho.coffee_shop_backend.exception.authentication.AuthenticationExceptionFactory;
+import com.giapho.coffee_shop_backend.exception.role.RoleNotFoundException;
+import com.giapho.coffee_shop_backend.service.AuthenticationService;
+import com.giapho.coffee_shop_backend.service.LoginHistoryService;
+import com.giapho.coffee_shop_backend.security.JwtService;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class AuthenticationServiceImpl implements AuthenticationService {
+
+    private static final Pattern PASSWORD_PATTERN = Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^\\w\\s]).{8,64}$");
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
+    private static final Pattern PHONE_PATTERN = Pattern.compile("^\\+?[0-9]{7,15}$");
+    private static final List<String> IP_HEADERS = List.of(
+            "X-Forwarded-For",
+            "X-Real-IP",
+            "CF-Connecting-IP",
+            "X-Forwarded",
+            "Forwarded-For",
+            "Forwarded",
+            "X-Cluster-Client-IP",
+            "Client-IP",
+            "Fastly-Client-IP",
+            "True-Client-IP"
+    );
+    private static final List<String> USER_AGENT_HEADERS = List.of(
+            "User-Agent",
+            "X-Original-User-Agent",
+            "X-Device-User-Agent"
+    );
+    private static final String DEFAULT_ROLE_NAME = "ROLE_STAFF";
+
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
+    private final LoginHistoryService loginHistoryService;
+
+    @Override
+    public AuthenticationResponse register(RegisterRequest request) {
+        String username = normalize(request.getUsername());
+        String email = normalize(request.getEmail());
+        String phone = normalize(request.getPhone());
+        String fullName = normalize(request.getFullName());
+        String password = request.getPassword();
+
+        validateRegisterInputs(username, email, password, phone);
+        ensureCredentialsAreUnique(username, email);
+
+        Set<Role> roles = resolveRoles(request.getRoleIds());
+        User user = User.builder()
+                .username(username)
+                .password(passwordEncoder.encode(password))
+                .fullName(fullName)
+                .email(email)
+                .phone(phone)
+                .status("ACTIVE")
+                .roles(roles)
+                .build();
+
+        userRepository.save(user);
+        log.info("Registered new user: {}", username);
+
+        return buildAuthenticationResponse(user);
+    }
+
+    @Override
+    public AuthenticationResponse login(LoginRequest request, HttpServletRequest httpServletRequest) {
+        String username = normalize(request.getUsername());
+        String password = request.getPassword();
+
+        if (!StringUtils.hasText(username) || !StringUtils.hasText(password)) {
+            recordFailedLogin(request.getUsername(), httpServletRequest, "Username or password must not be blank");
+            throw AuthenticationExceptionFactory.missingCredentials();
+        }
+
+        String ipAddress = extractClientIp(httpServletRequest);
+        String userAgent = extractUserAgent(httpServletRequest);
+
+        try {
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
+        } catch (BadCredentialsException ex) {
+            recordFailedLogin(username, ipAddress, userAgent, "Invalid username or password");
+            throw AuthenticationExceptionFactory.authenticationFailed("Invalid username or password");
+        } catch (AuthenticationException ex) {
+            recordFailedLogin(username, ipAddress, userAgent, "Authentication error: " + ex.getMessage());
+            throw AuthenticationExceptionFactory.authenticationFailed("Authentication failed");
+        } catch (Exception ex) {
+            recordFailedLogin(username, ipAddress, userAgent, "Authentication error: " + ex.getMessage());
+            throw AuthenticationExceptionFactory.authenticationFailed("Authentication failed");
+        }
+
+        User user = userRepository.findWithRolesByUsername(username)
+                .orElseThrow(() -> {
+                    recordFailedLogin(username, ipAddress, userAgent, "Invalid username or password");
+                    return AuthenticationExceptionFactory.authenticationFailed("Invalid username or password");
+                });
+
+        ensureAccountIsActive(user, ipAddress, userAgent);
+
+        loginHistoryService.recordSuccessfulLogin(user, ipAddress, userAgent);
+        log.info("User '{}' authenticated successfully", username);
+
+        return buildAuthenticationResponse(user);
+    }
+
+    //region Register helpers
+    private void validateRegisterInputs(String username, String email, String password, String phone) {
+        if (!StringUtils.hasText(username)) {
+            throw AuthenticationExceptionFactory.missingField("Username");
+        }
+        if (!StringUtils.hasText(password) || !PASSWORD_PATTERN.matcher(password).matches()) {
+            throw AuthenticationExceptionFactory.invalidPasswordFormat();
+        }
+        if (!StringUtils.hasText(email) || !EMAIL_PATTERN.matcher(email).matches()) {
+            throw AuthenticationExceptionFactory.invalidEmailFormat();
+        }
+        if (StringUtils.hasText(phone) && !PHONE_PATTERN.matcher(phone).matches()) {
+            throw AuthenticationExceptionFactory.invalidPhoneFormat();
+        }
+    }
+
+    private void ensureCredentialsAreUnique(String username, String email) {
+        if (StringUtils.hasText(username) && userRepository.existsByUsername(username)) {
+            throw AuthenticationExceptionFactory.usernameConflict(username);
+        }
+        if (StringUtils.hasText(email) && userRepository.existsByEmail(email)) {
+            throw AuthenticationExceptionFactory.emailConflict(email);
+        }
+    }
+
+    private Set<Role> resolveRoles(Set<Long> roleIds) {
+        if (roleIds == null || roleIds.isEmpty()) {
+            Role defaultRole = roleRepository.findByName(DEFAULT_ROLE_NAME)
+                    .orElseThrow(() -> new RoleNotFoundException("name", DEFAULT_ROLE_NAME));
+            return Set.of(defaultRole);
+        }
+
+        Set<Role> roles = new HashSet<>();
+        for (Long roleId : roleIds) {
+            Role role = roleRepository.findById(roleId)
+                    .orElseThrow(() -> new RoleNotFoundException("id", String.valueOf(roleId)));
+            roles.add(role);
+        }
+        return roles;
+    }
+    //endregion
+
+    //region Login helpers
+    private void ensureAccountIsActive(User user, String ipAddress, String userAgent) {
+        boolean activeAccount = user.isAccountNonLocked() && user.isAccountNonExpired()
+                && user.isCredentialsNonExpired() && user.isEnabled();
+        if (activeAccount) {
+            return;
+        }
+        recordFailedLogin(user.getUsername(), ipAddress, userAgent, "Account is disabled or locked");
+        throw AuthenticationExceptionFactory.accountDisabled("Account is disabled or locked");
+    }
+
+    private void recordFailedLogin(String username, HttpServletRequest request, String message) {
+        String normalizedUsername = normalize(username);
+        String ipAddress = extractClientIp(request);
+        String userAgent = extractUserAgent(request);
+        loginHistoryService.recordFailedLogin(normalizedUsername, ipAddress, userAgent, message);
+    }
+
+    private void recordFailedLogin(String username, String ipAddress, String userAgent, String message) {
+        loginHistoryService.recordFailedLogin(username, ipAddress, userAgent, message);
+    }
+
+    private AuthenticationResponse buildAuthenticationResponse(User user) {
+        String token = jwtService.generateToken(user);
+        return AuthenticationResponse.builder()
+                .token(token)
+                .username(user.getUsername())
+                .build();
+    }
+    //endregion
+
+    //region Request helpers
+    private String normalize(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String extractClientIp(HttpServletRequest request) {
+        if (request == null) {
+            return null;
+        }
+        Optional<String> headerIp = IP_HEADERS.stream()
+                .map(request::getHeader)
+                .filter(StringUtils::hasText)
+                .map(value -> value.split(",")[0].trim())
+                .filter(StringUtils::hasText)
+                .findFirst();
+        if (headerIp.isPresent()) {
+            return headerIp.get();
+        }
+        String remoteAddr = request.getRemoteAddr();
+        if (!StringUtils.hasText(remoteAddr)) {
+            return null;
+        }
+        if ("0:0:0:0:0:0:0:1".equals(remoteAddr) || "::1".equals(remoteAddr)) {
+            return "127.0.0.1";
+        }
+        return remoteAddr;
+    }
+
+    private String extractUserAgent(HttpServletRequest request) {
+        if (request == null) {
+            return null;
+        }
+        for (String header : USER_AGENT_HEADERS) {
+            String headerValue = request.getHeader(header);
+            if (StringUtils.hasText(headerValue)) {
+                return headerValue;
+            }
+        }
+        String platform = sanitizeSecChValue(request.getHeader("sec-ch-ua-platform"));
+        String brand = parseSecChUaBrand(request.getHeader("sec-ch-ua"));
+        String mobileHeader = request.getHeader("sec-ch-ua-mobile");
+        boolean isMobile = "?1".equals(mobileHeader) || "1".equals(mobileHeader);
+
+        StringBuilder builder = new StringBuilder();
+        if (StringUtils.hasText(brand)) {
+            builder.append(brand);
+        }
+        if (StringUtils.hasText(platform)) {
+            if (builder.length() > 0) {
+                builder.append(" on ");
+            }
+            builder.append(platform);
+        }
+        if (isMobile) {
+            builder.append(" (Mobile)");
+        }
+
+        return builder.length() == 0 ? null : builder.toString();
+    }
+
+    private String sanitizeSecChValue(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        String trimmed = value.trim();
+        if (trimmed.startsWith("\"") && trimmed.endsWith("\"") && trimmed.length() >= 2) {
+            return trimmed.substring(1, trimmed.length() - 1);
+        }
+        return trimmed;
+    }
+
+    private String parseSecChUaBrand(String headerValue) {
+        if (!StringUtils.hasText(headerValue)) {
+            return null;
+        }
+        Pattern pattern = Pattern.compile("\"([^\"]+)\";v=\"([^\"]+)\"");
+        Matcher matcher = pattern.matcher(headerValue);
+        while (matcher.find()) {
+            String brand = matcher.group(1);
+            if ("Not_A Brand".equalsIgnoreCase(brand)) {
+                continue;
+            }
+            String version = matcher.group(2);
+            String sanitizedBrand = sanitizeSecChValue(brand);
+            String sanitizedVersion = sanitizeSecChValue(version);
+            if (StringUtils.hasText(sanitizedVersion)) {
+                return sanitizedBrand + " " + sanitizedVersion;
+            }
+            return sanitizedBrand;
+        }
+        return null;
+    }
+    //endregion
+}

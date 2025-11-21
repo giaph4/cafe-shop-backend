@@ -3,19 +3,23 @@ package com.giapho.coffee_shop_backend.exception.role;
 import com.giapho.coffee_shop_backend.exception.BusinessException;
 import org.springframework.http.HttpStatus;
 
-/**
- * Thrown khi không tìm thấy vai trò theo ID cung cấp.
- */
 public class RoleNotFoundException extends BusinessException {
 
     public RoleNotFoundException(Long roleId) {
-        super(HttpStatus.NOT_FOUND, buildMessage(roleId));
+        this("id", roleId != null ? String.valueOf(roleId) : null);
     }
 
-    private static String buildMessage(Long roleId) {
-        if (roleId == null) {
+    public RoleNotFoundException(String fieldName, String fieldValue) {
+        super(HttpStatus.NOT_FOUND, buildMessage(fieldName, fieldValue));
+    }
+
+    private static String buildMessage(String fieldName, String fieldValue) {
+        if (fieldName == null && fieldValue == null) {
             return "Role not found";
         }
-        return String.format("Role not found with id: %d", roleId);
+        if (fieldValue == null || fieldValue.isBlank()) {
+            return String.format("Role not found with %s", fieldName);
+        }
+        return String.format("Role not found with %s: %s", fieldName, fieldValue);
     }
 }

@@ -5,12 +5,15 @@ import com.giapho.coffee_shop_backend.domain.repository.IngredientRepository;
 import com.giapho.coffee_shop_backend.dto.IngredientRequestDTO;
 import com.giapho.coffee_shop_backend.dto.IngredientResponseDTO;
 import com.giapho.coffee_shop_backend.dto.InventoryAdjustmentRequestDTO;
+import com.giapho.coffee_shop_backend.exception.ingredient.IngredientNameAlreadyExistsException;
+import com.giapho.coffee_shop_backend.exception.ingredient.IngredientNotFoundException;
+import com.giapho.coffee_shop_backend.service.impl.IngredientServiceImpl;
 import com.giapho.coffee_shop_backend.mapper.IngredientMapper;
-import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -37,7 +40,7 @@ class IngredientServiceTest {
     private AuditLogService auditLogService;
 
     @InjectMocks
-    private IngredientService ingredientService;
+    private IngredientServiceImpl ingredientService;
 
     @BeforeEach
     void setupSecurityContext() {
@@ -57,6 +60,7 @@ class IngredientServiceTest {
     void createIngredient_shouldPersistAndReturnResponse() {
         IngredientRequestDTO request = new IngredientRequestDTO();
         request.setName("Arabica Beans");
+        request.setUnit("kg");
 
         Ingredient entity = Ingredient.builder()
                 .id(1L)
@@ -69,7 +73,7 @@ class IngredientServiceTest {
         response.setId(1L);
         response.setName("Arabica Beans");
 
-        when(ingredientRepository.existsByName("Arabica Beans")).thenReturn(false);
+        when(ingredientRepository.existsByNameIgnoreCase("Arabica Beans")).thenReturn(false);
         when(ingredientMapper.toEntity(request)).thenReturn(entity);
         when(ingredientRepository.save(entity)).thenReturn(entity);
         when(ingredientMapper.entityToResponse(entity)).thenReturn(response);
@@ -93,7 +97,7 @@ class IngredientServiceTest {
                 .build();
 
         when(ingredientRepository.findById(2L)).thenReturn(Optional.of(existing));
-        when(ingredientRepository.existsByName("Robusta Beans")).thenReturn(false);
+        when(ingredientRepository.existsByNameIgnoreCase("Robusta Beans")).thenReturn(false);
 
         Ingredient updated = Ingredient.builder()
                 .id(2L)
@@ -114,6 +118,26 @@ class IngredientServiceTest {
     }
 
     @Test
+    void updateIngredient_shouldRejectDuplicateName() {
+        IngredientRequestDTO request = new IngredientRequestDTO();
+        request.setName("Duplicate");
+        request.setUnit("kg");
+
+        Ingredient existing = Ingredient.builder()
+                .id(5L)
+                .name("Old")
+                .unit("kg")
+                .build();
+
+        when(ingredientRepository.findById(5L)).thenReturn(Optional.of(existing));
+        when(ingredientRepository.existsByNameIgnoreCase("Duplicate")).thenReturn(true);
+        when(ingredientRepository.findByName("Duplicate")).thenReturn(Optional.of(Ingredient.builder().id(6L).name("Duplicate").build()));
+
+        assertThrows(IngredientNameAlreadyExistsException.class, () -> ingredientService.updateIngredientInfo(5L, request));
+        verify(ingredientMapper, never()).updateEntityFromDto(any(), any());
+    }
+
+    @Test
     void adjustInventory_shouldUpdateQuantityAndLog() {
         InventoryAdjustmentRequestDTO request = new InventoryAdjustmentRequestDTO();
         request.setIngredientId(3L);
@@ -127,7 +151,7 @@ class IngredientServiceTest {
                 .quantityOnHand(new BigDecimal("50"))
                 .build();
 
-        when(ingredientRepository.findById(3L)).thenReturn(Optional.of(ingredient));
+        when(ingredientRepository.findByIdForUpdate(3L)).thenReturn(Optional.of(ingredient));
         when(ingredientRepository.save(any(Ingredient.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         IngredientResponseDTO response = new IngredientResponseDTO();
@@ -140,7 +164,11 @@ class IngredientServiceTest {
         assertThat(ingredient.getQuantityOnHand()).isEqualByComparingTo("75");
         assertThat(result.getQuantityOnHand()).isEqualByComparingTo("75");
         verify(ingredientRepository).save(ingredient);
-        verify(auditLogService).recordAction(eq("INGREDIENT_INVENTORY_ADJUSTED"), eq("INGREDIENT"), eq("3"), eq(true), anyString(), anyString(), isNull());
+        ArgumentCaptor<com.giapho.coffee_shop_backend.dto.audit.AuditLogRequest> successCaptor = ArgumentCaptor.forClass(com.giapho.coffee_shop_backend.dto.audit.AuditLogRequest.class);
+        verify(auditLogService).recordSuccess(successCaptor.capture());
+        assertThat(successCaptor.getValue().getAction()).isEqualTo("INGREDIENT_INVENTORY_ADJUSTED");
+        assertThat(successCaptor.getValue().getResourceId()).isEqualTo("3");
+        assertThat(successCaptor.getValue().isSuccess()).isTrue();
     }
 
     @Test
@@ -149,9 +177,13 @@ class IngredientServiceTest {
         request.setIngredientId(999L);
         request.setNewQuantityOnHand(BigDecimal.ONE);
 
-        when(ingredientRepository.findById(999L)).thenReturn(Optional.empty());
+        when(ingredientRepository.findByIdForUpdate(999L)).thenReturn(Optional.empty());
 
-        assertThrows(EntityNotFoundException.class, () -> ingredientService.adjustInventory(request));
-        verify(auditLogService).recordAction(eq("INGREDIENT_INVENTORY_ADJUSTMENT_FAILED"), eq("INGREDIENT"), eq("999"), eq(false), anyString(), isNull(), anyString());
+        assertThrows(IngredientNotFoundException.class, () -> ingredientService.adjustInventory(request));
+        ArgumentCaptor<com.giapho.coffee_shop_backend.dto.audit.AuditLogRequest> failureCaptor = ArgumentCaptor.forClass(com.giapho.coffee_shop_backend.dto.audit.AuditLogRequest.class);
+        verify(auditLogService).recordFailure(failureCaptor.capture());
+        assertThat(failureCaptor.getValue().getAction()).isEqualTo("INGREDIENT_INVENTORY_ADJUSTMENT_FAILED");
+        assertThat(failureCaptor.getValue().getResourceId()).isEqualTo("999");
+        assertThat(failureCaptor.getValue().isSuccess()).isFalse();
     }
 }

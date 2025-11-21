@@ -19,6 +19,10 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 
     Page<Expense> findByExpenseDateBetween(LocalDate startDate, LocalDate endDate, Pageable pageable);
 
+    Page<Expense> findByExpenseDateGreaterThanEqual(LocalDate startDate, Pageable pageable);
+
+    Page<Expense> findByExpenseDateLessThanEqual(LocalDate endDate, Pageable pageable);
+
     Page<Expense> findByUserId(Long userId, Pageable pageable);
 
     @Query("SELECT COALESCE(SUM(e.amount), 0) FROM Expense e WHERE e.category = :category AND e.expenseDate BETWEEN :startDate AND :endDate")

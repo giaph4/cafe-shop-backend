@@ -170,6 +170,15 @@ Content-Type: application/json
 
 > 📌 **Lưu ý**: Nếu thông tin đăng nhập không chính xác, API sẽ trả về mã lỗi **401 Unauthorized** cùng thông báo "Invalid username or password". Điều này giúp client phân biệt rõ giữa tài khoản không tồn tại và các lỗi tài nguyên (404) khác.
 
+#### Quy tắc xác thực & thông điệp lỗi chuẩn hóa
+
+- ✅ Username, password, email và số điện thoại được chuẩn hóa (trim) trước khi lưu.
+- ✅ Mật khẩu phải dài 8-64 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt.
+- ✅ Email phải đúng định dạng; số điện thoại hỗ trợ cả số quốc tế (7-15 chữ số, có thể kèm dấu `+`).
+- ✅ Username/Email trùng sẽ trả về lỗi **409 Conflict** với thông báo rõ ràng.
+- ✅ Tài khoản bị khóa/vô hiệu hóa sẽ trả về **403 Forbidden** và thông báo "Account is disabled or locked".
+- ✅ Mọi lần đăng nhập (thành công/thất bại) đều được ghi lại kèm IP & User-Agent để truy vết.
+
 ### 3. Sử dụng Token
 
 Thêm header vào mọi request cần authentication:
