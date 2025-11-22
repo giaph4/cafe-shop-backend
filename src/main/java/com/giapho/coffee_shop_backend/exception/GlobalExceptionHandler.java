@@ -1,6 +1,7 @@
 package com.giapho.coffee_shop_backend.exception;
 
 import com.giapho.coffee_shop_backend.exception.FileStorageException;
+import com.giapho.coffee_shop_backend.exception.shift.*;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -220,6 +221,90 @@ public class GlobalExceptionHandler {
         return buildResponseEntity(
                 HttpStatus.BAD_REQUEST,
                 "File Storage Error",
+                ex.getMessage(),
+                request
+        );
+    }
+    
+    @ExceptionHandler(ShiftSessionAlreadyActiveException.class)
+    public ResponseEntity<ErrorResponse> handleShiftSessionAlreadyActiveException(
+            ShiftSessionAlreadyActiveException ex,
+            HttpServletRequest request
+    ) {
+        log.warn("Shift session already active - Path: {}", request.getRequestURI());
+        return buildResponseEntity(
+                HttpStatus.CONFLICT,
+                "Session Already Active",
+                ex.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler(ShiftSessionNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleShiftSessionNotFoundException(
+            ShiftSessionNotFoundException ex,
+            HttpServletRequest request
+    ) {
+        log.warn("Shift session not found - Path: {}", request.getRequestURI());
+        return buildResponseEntity(
+                HttpStatus.NOT_FOUND,
+                "Session Not Found",
+                ex.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler(ShiftSessionInvalidStateException.class)
+    public ResponseEntity<ErrorResponse> handleShiftSessionInvalidStateException(
+            ShiftSessionInvalidStateException ex,
+            HttpServletRequest request
+    ) {
+        log.warn("Invalid shift session state - Path: {}", request.getRequestURI());
+        return buildResponseEntity(
+                HttpStatus.BAD_REQUEST,
+                "Invalid Session State",
+                ex.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler(ShiftSessionLimitReachedException.class)
+    public ResponseEntity<ErrorResponse> handleShiftSessionLimitReachedException(
+            ShiftSessionLimitReachedException ex,
+            HttpServletRequest request
+    ) {
+        log.warn("Shift session limit reached - Path: {}", request.getRequestURI());
+        return buildResponseEntity(
+                HttpStatus.FORBIDDEN,
+                "Session Limit Reached",
+                ex.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler(WorkShiftNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleWorkShiftNotFoundException(
+            WorkShiftNotFoundException ex,
+            HttpServletRequest request
+    ) {
+        log.warn("Work shift not found - Path: {}", request.getRequestURI());
+        return buildResponseEntity(
+                HttpStatus.NOT_FOUND,
+                "Work Shift Not Found",
+                ex.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler(ShiftAccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleShiftAccessDeniedException(
+            ShiftAccessDeniedException ex,
+            HttpServletRequest request
+    ) {
+        log.warn("Access denied to shift operation - Path: {}", request.getRequestURI());
+        return buildResponseEntity(
+                HttpStatus.FORBIDDEN,
+                "Access Denied",
                 ex.getMessage(),
                 request
         );
