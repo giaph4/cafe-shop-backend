@@ -28,7 +28,6 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -101,14 +100,14 @@ public class ManagerDashboardProvider {
                 .sorted(Comparator.comparing(ShiftInstance::getShiftDate).thenComparing(ShiftInstance::getStartTime))
                 .limit(6)
                 .map(instance -> ManagerDashboardDTO.ShiftCard.builder()
-                        .shiftId(instance.getId())
-                        .shiftDate(instance.getShiftDate())
-                        .timeRange(formatTimeRange(instance.getStartTime(), instance.getEndTime()))
-                        .status(instance.getStatus().name())
-                        .assignedStaff(instance.getAssignments() == null ? 0 : instance.getAssignments().size())
-                        .capacity(instance.getTemplate() != null && instance.getTemplate().getRequiredRoles() != null
-                                ? instance.getTemplate().getRequiredRoles().size() : 0)
-                        .build())
+                .shiftId(instance.getId())
+                .shiftDate(instance.getShiftDate())
+                .timeRange(formatTimeRange(instance.getStartTime(), instance.getEndTime()))
+                .status(instance.getStatus().name())
+                .assignedStaff(instance.getAssignments() == null ? 0 : instance.getAssignments().size())
+                .capacity(instance.getTemplate() != null && instance.getTemplate().getRequiredRoles() != null
+                        ? instance.getTemplate().getRequiredRoles().size() : 0)
+                .build())
                 .toList();
 
         return ManagerDashboardDTO.ShiftOverview.builder()
@@ -131,12 +130,12 @@ public class ManagerDashboardProvider {
 
         List<ManagerDashboardDTO.StaffLeaderboardItem> topStaff = metrics.topStaff().stream()
                 .map(item -> ManagerDashboardDTO.StaffLeaderboardItem.builder()
-                        .staffId(item.staffId())
-                        .staffName(item.staffName())
-                        .orders(item.orderCount())
-                        .revenue(item.totalRevenue())
-                        .averageOrderValue(metrics.averageOrderValue())
-                        .build())
+                .staffId(item.staffId())
+                .staffName(item.staffName())
+                .orders(item.orderCount())
+                .revenue(item.totalRevenue())
+                .averageOrderValue(metrics.averageOrderValue())
+                .build())
                 .toList();
 
         return ManagerDashboardDTO.TeamPerformance.builder()
@@ -151,19 +150,19 @@ public class ManagerDashboardProvider {
         var lowStock = ingredientRepository.findIngredientsBelowReorderLevel();
         int critical = (int) lowStock.stream()
                 .filter(ingredient -> ingredient.getQuantityOnHand() != null
-                        && ingredient.getReorderLevel() != null
-                        && ingredient.getReorderLevel().compareTo(BigDecimal.ZERO) > 0
-                        && ingredient.getQuantityOnHand()
-                                .compareTo(ingredient.getReorderLevel().divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP)) <= 0)
+                && ingredient.getReorderLevel() != null
+                && ingredient.getReorderLevel().compareTo(BigDecimal.ZERO) > 0
+                && ingredient.getQuantityOnHand()
+                        .compareTo(ingredient.getReorderLevel().divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP)) <= 0)
                 .count();
 
         List<ManagerDashboardDTO.InventoryAlert> alerts = lowStock.stream()
                 .map(ingredient -> ManagerDashboardDTO.InventoryAlert.builder()
-                        .ingredientId(ingredient.getId())
-                        .ingredientName(ingredient.getName())
-                        .quantityOnHand(ingredient.getQuantityOnHand())
-                        .reorderLevel(ingredient.getReorderLevel())
-                        .build())
+                .ingredientId(ingredient.getId())
+                .ingredientName(ingredient.getName())
+                .quantityOnHand(ingredient.getQuantityOnHand())
+                .reorderLevel(ingredient.getReorderLevel())
+                .build())
                 .toList();
 
         return ManagerDashboardDTO.InventoryFocus.builder()
@@ -192,9 +191,9 @@ public class ManagerDashboardProvider {
 
         List<PayrollSummary> currentSummaries = latestCycleOpt
                 .map(cycle -> summaries.stream()
-                        .filter(summary -> summary.getCycle() != null
-                                && Objects.equals(summary.getCycle().getId(), cycle.getId()))
-                        .toList())
+                .filter(summary -> summary.getCycle() != null
+                && Objects.equals(summary.getCycle().getId(), cycle.getId()))
+                .toList())
                 .orElse(summaries);
 
         BigDecimal estimatedPayroll = sumNullable(currentSummaries, PayrollSummary::getTotalNetPayroll);
@@ -225,13 +224,13 @@ public class ManagerDashboardProvider {
 
         return pendingPurchaseOrders.stream()
                 .map(order -> ManagerDashboardDTO.PendingApproval.builder()
-                        .module("PURCHASE_ORDER")
-                        .description("Phiếu nhập " + order.getId() + " - "
-                                + (order.getSupplier() != null ? order.getSupplier().getName() : "Nhà cung cấp không xác định"))
-                        .requestedBy(order.getUser() != null ? order.getUser().getUsername() : "SYSTEM")
-                        .requestedAt(order.getOrderDate() != null ? order.getOrderDate().toLocalDate() : LocalDate.now())
-                        .status(order.getStatus())
-                        .build())
+                .module("PURCHASE_ORDER")
+                .description("Phiếu nhập " + order.getId() + " - "
+                        + (order.getSupplier() != null ? order.getSupplier().getName() : "Nhà cung cấp không xác định"))
+                .requestedBy(order.getUser() != null ? order.getUser().getUsername() : "SYSTEM")
+                .requestedAt(order.getOrderDate() != null ? order.getOrderDate().toLocalDate() : LocalDate.now())
+                .status(order.getStatus())
+                .build())
                 .toList();
     }
 
@@ -299,17 +298,13 @@ public class ManagerDashboardProvider {
                 )
                 .limit(10)
                 .map(order -> ManagerDashboardDTO.ServiceIssue.builder()
-                        .orderId(order.getId())
-                        .tableName(order.getCafeTable() != null ? order.getCafeTable().getName() : "Take Away/Delivery")
-                        .issue("Đơn bị hủy")
-                        .severity("MEDIUM")
-                        .createdDate(order.getCreatedAt() != null ? order.getCreatedAt().toLocalDate() : today)
-                        .build())
+                .orderId(order.getId())
+                .tableName(order.getCafeTable() != null ? order.getCafeTable().getName() : "Take Away/Delivery")
+                .issue("Đơn bị hủy")
+                .severity("MEDIUM")
+                .createdDate(order.getCreatedAt() != null ? order.getCreatedAt().toLocalDate() : today)
+                .build())
                 .toList();
-    }
-
-    private List<AttendanceRecord> flattenAttendance(Map<Long, List<AttendanceRecord>> attendanceByAssignment) {
-        return attendanceByAssignment.values().stream().flatMap(List::stream).toList();
     }
 
     private Map<Long, List<AttendanceRecord>> loadAttendanceRecords(List<ShiftAssignment> assignments) {

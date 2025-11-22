@@ -8,14 +8,14 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 
 import java.util.Collection;
-import java.util.List;
 
 /**
  * Helper để chuẩn hoá tạo sheet, header và style khi xuất Excel.
  */
 final class ExcelSheetBuilder {
 
-    private ExcelSheetBuilder() {}
+    private ExcelSheetBuilder() {
+    }
 
     static Sheet createSheetWithHeader(Workbook workbook, String sheetName, Collection<String> headers) {
         Sheet sheet = workbook.createSheet(sheetName);

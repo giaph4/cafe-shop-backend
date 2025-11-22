@@ -8,7 +8,6 @@ import com.giapho.coffee_shop_backend.domain.repository.IngredientRepository;
 import com.giapho.coffee_shop_backend.domain.repository.SupplierRepository;
 import com.giapho.coffee_shop_backend.domain.repository.UserRepository;
 import com.giapho.coffee_shop_backend.exception.ingredient.IngredientNotFoundException;
-import com.giapho.coffee_shop_backend.exception.purchaseorder.PurchaseOrderNotFoundException;
 import com.giapho.coffee_shop_backend.exception.purchaseorder.PurchaseOrderValidationException;
 import com.giapho.coffee_shop_backend.exception.supplier.SupplierNotFoundException;
 import com.giapho.coffee_shop_backend.exception.user.UserNotFoundException;

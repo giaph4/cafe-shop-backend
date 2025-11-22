@@ -1,6 +1,5 @@
 package com.giapho.coffee_shop_backend.dto.shift;
 
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;

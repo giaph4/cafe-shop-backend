@@ -2,7 +2,6 @@ package com.giapho.coffee_shop_backend.service.shift;
 
 import com.giapho.coffee_shop_backend.domain.entity.Order;
 import com.giapho.coffee_shop_backend.domain.entity.Role;
-import com.giapho.coffee_shop_backend.domain.entity.ShiftReport;
 import com.giapho.coffee_shop_backend.domain.entity.ShiftSession;
 import com.giapho.coffee_shop_backend.domain.entity.User;
 import com.giapho.coffee_shop_backend.domain.entity.WorkShift;
@@ -21,12 +20,8 @@ import com.giapho.coffee_shop_backend.exception.shift.ShiftAccessDeniedException
 import com.giapho.coffee_shop_backend.exception.shift.ShiftSessionAlreadyActiveException;
 import com.giapho.coffee_shop_backend.exception.shift.ShiftSessionInvalidStateException;
 import com.giapho.coffee_shop_backend.exception.shift.ShiftSessionLimitReachedException;
-import com.giapho.coffee_shop_backend.exception.shift.ShiftSessionNotFoundException;
-import com.giapho.coffee_shop_backend.exception.shift.WorkShiftNotFoundException;
 import com.giapho.coffee_shop_backend.exception.user.UserNotAuthenticatedException;
-import com.giapho.coffee_shop_backend.exception.user.UserNotFoundException;
 import com.giapho.coffee_shop_backend.mapper.ShiftSessionMapper;
-import com.giapho.coffee_shop_backend.service.shift.ShiftReportService;
 import com.giapho.coffee_shop_backend.service.shift.impl.ShiftSessionServiceImpl;
 import com.giapho.coffee_shop_backend.shift.messaging.ShiftRealtimePublisher;
 import com.giapho.coffee_shop_backend.util.SecurityUtil;
@@ -39,7 +34,6 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -48,8 +42,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -265,10 +257,6 @@ class ShiftSessionServiceImplTest {
     @Test
     void forceEndSession_ShouldThrow_WhenActorNotManagerOrAdmin() {
         stubCurrentUser(currentUser);
-        ShiftSession session = ShiftSession.builder()
-                .id(500L)
-                .status(ShiftSessionStatus.ACTIVE)
-                .build();
 
         assertThrows(ShiftAccessDeniedException.class,
                 () -> shiftSessionService.forceEndSession(500L, "reason"));

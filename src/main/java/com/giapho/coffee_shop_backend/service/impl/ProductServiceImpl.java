@@ -13,12 +13,15 @@ import com.giapho.coffee_shop_backend.exception.product.InvalidProductDataExcept
 import com.giapho.coffee_shop_backend.exception.product.ProductCodeAlreadyExistsException;
 import com.giapho.coffee_shop_backend.exception.product.ProductDeletionNotAllowedException;
 import com.giapho.coffee_shop_backend.exception.product.ProductNotFoundException;
+import com.giapho.coffee_shop_backend.config.CacheConfig;
 import com.giapho.coffee_shop_backend.mapper.ProductMapper;
 import com.giapho.coffee_shop_backend.service.FileStorageService;
 import com.giapho.coffee_shop_backend.service.ProductService;
-import jakarta.persistence.criteria.Predicate;
+import com.giapho.coffee_shop_backend.util.SpecificationBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -27,8 +30,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -60,6 +61,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value = CacheConfig.PRODUCTS_CACHE, key = "#productId")
     public ProductResponse getProductById(Long productId) {
         Product product = findProduct(productId);
         return productMapper.toProductResponse(product);
@@ -67,6 +69,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheConfig.PRODUCTS_CACHE, allEntries = true)
     public ProductResponse createProduct(ProductRequest productRequest) {
         String normalizedCode = normalizeProductCode(productRequest.getCode());
         ensureProductCodeUnique(normalizedCode, null);
@@ -84,6 +87,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheConfig.PRODUCTS_CACHE, allEntries = true)
     public ProductResponse updateProduct(Long productId, ProductRequest productRequest) {
         Product product = findProduct(productId);
 
@@ -102,6 +106,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheConfig.PRODUCTS_CACHE, allEntries = true)
     public void deleteProduct(Long productId) {
         Product product = findProduct(productId);
 
@@ -194,21 +199,14 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private Specification<Product> buildProductSpecification(String name, Long categoryId) {
-        return (root, query, criteriaBuilder) -> {
-            List<Predicate> predicates = new ArrayList<>();
+        if (categoryId != null) {
+            ensureCategoryExists(categoryId);
+        }
 
-            if (StringUtils.hasText(name)) {
-                String keyword = "%" + name.trim().toLowerCase(NORMALIZE_LOCALE) + "%";
-                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), keyword));
-            }
-
-            if (categoryId != null) {
-                ensureCategoryExists(categoryId);
-                predicates.add(criteriaBuilder.equal(root.get("category").get("id"), categoryId));
-            }
-
-            return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
-        };
+        return SpecificationBuilder.<Product>builder()
+                .likeIgnoreCase("name", name)
+                .equalNested("category", "id", categoryId)
+                .build();
     }
 
     private Product findProduct(Long productId) {

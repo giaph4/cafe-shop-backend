@@ -17,6 +17,7 @@ import com.giapho.coffee_shop_backend.exception.shift.PayrollCycleNotFoundExcept
 import com.giapho.coffee_shop_backend.exception.shift.PayrollCycleValidationException;
 import com.giapho.coffee_shop_backend.exception.shift.ShiftAssignmentNotFoundException;
 import com.giapho.coffee_shop_backend.service.PayrollService;
+import com.giapho.coffee_shop_backend.service.LockManager;
 import com.giapho.coffee_shop_backend.service.ShiftAssignmentService;
 import com.giapho.coffee_shop_backend.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
@@ -27,13 +28,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
+import java.util.ConcurrentModificationException;
 import java.util.stream.Collectors;
+import java.util.concurrent.TimeUnit;
+
+import org.springframework.dao.DataIntegrityViolationException;
 
 @Slf4j
 @Service
@@ -48,6 +48,8 @@ public class PayrollServiceImpl implements PayrollService {
     private final ShiftAssignmentRepository shiftAssignmentRepository;
     private final AttendanceRecordRepository attendanceRecordRepository;
     private final ShiftAssignmentService shiftAssignmentService;
+    private final LockManager lockManager;
+
     @Override
     public PayrollCycleResponseDTO createCycle(PayrollCycleRequestDTO request) {
         validateCycleDates(request.startDate(), request.endDate());
@@ -110,49 +112,77 @@ public class PayrollServiceImpl implements PayrollService {
     }
 
     @Override
+    @Transactional
     public List<PayrollSummaryDTO> regenerateSummaries(Long cycleId) {
-        PayrollCycle cycle = findCycle(cycleId);
-        LocalDate start = cycle.getStartDate();
-        LocalDate end = cycle.getEndDate();
+        // Add a lock to prevent concurrent regeneration for the same cycle
+        String lockKey = "payroll-regenerate-lock-" + cycleId;
+        try {
+            // Try to acquire a lock with 5 seconds timeout
+            if (!lockManager.acquireLock(lockKey, 5, TimeUnit.SECONDS)) {
+                throw new ConcurrentModificationException("Another payroll regeneration is in progress for cycle: " + cycleId);
+            }
 
-        log.info("Regenerating payroll summaries for cycle {} ({} - {})", cycleId, start, end);
+            PayrollCycle cycle = findCycle(cycleId);
+            LocalDate start = cycle.getStartDate();
+            LocalDate end = cycle.getEndDate();
 
-        List<ShiftAssignment> assignmentsInRange = shiftAssignmentRepository.findByShift_ShiftDateBetween(start, end);
-        if (assignmentsInRange.isEmpty()) {
+            log.info("Regenerating payroll summaries for cycle {} ({} - {})", cycleId, start, end);
+
+            // First, get all assignments for the cycle
+            List<ShiftAssignment> assignmentsInRange = shiftAssignmentRepository.findByShift_ShiftDateBetween(start, end);
+            if (assignmentsInRange.isEmpty()) {
+                summaryRepository.deleteByCycleId(cycleId);
+                return List.of();
+            }
+
+            // Recalculate all assignments to ensure they're up to date
+            assignmentsInRange.stream()
+                    .map(ShiftAssignment::getId)
+                    .distinct()
+                    .forEach(id -> {
+                        try {
+                            shiftAssignmentService.recalculateAssignment(id);
+                        } catch (ShiftAssignmentNotFoundException ex) {
+                            log.warn("Skip recalculation due to missing assignment {}", id);
+                        }
+                    });
+
+            // Get fresh data after recalculation
+            List<ShiftAssignment> refreshedAssignments = shiftAssignmentRepository.findByShift_ShiftDateBetween(start, end);
+            Map<User, List<ShiftAssignment>> assignmentsByUser = refreshedAssignments.stream()
+                    .filter(assignment -> assignment.getUser() != null)
+                    .filter(assignment -> assignment.getStatus() != ShiftAssignmentStatus.CANCELLED)
+                    .collect(Collectors.groupingBy(ShiftAssignment::getUser));
+
+            // Delete existing summaries in a batch
             summaryRepository.deleteByCycleId(cycleId);
-            return List.of();
+            
+            // Flush to ensure deletes are applied before inserts
+            summaryRepository.flush();
+
+            // Build and save new summaries
+            List<PayrollSummaryDTO> summaries = new ArrayList<>();
+            for (Map.Entry<User, List<ShiftAssignment>> entry : assignmentsByUser.entrySet()) {
+                try {
+                    PayrollSummary summary = buildSummaryForUser(cycle, entry.getKey(), entry.getValue(), start, end);
+                    PayrollSummary saved = summaryRepository.save(summary);
+                    summaries.add(toSummaryDto(saved));
+                } catch (DataIntegrityViolationException e) {
+                    // If we hit a duplicate key, log it and continue with the next user
+                    log.warn("Skipping duplicate payroll summary for user {} in cycle {}", 
+                            entry.getKey().getId(), cycleId, e);
+                }
+            }
+
+            summaries.sort(Comparator
+                    .comparing(PayrollSummaryDTO::getFullName, Comparator.nullsLast(String::compareTo))
+                    .thenComparing(PayrollSummaryDTO::getUsername, Comparator.nullsLast(String::compareTo)));
+
+            return summaries;
+        } finally {
+            // Always release the lock
+            lockManager.releaseLock(lockKey);
         }
-
-        assignmentsInRange.stream()
-                .map(ShiftAssignment::getId)
-                .forEach(id -> {
-                    try {
-                        shiftAssignmentService.recalculateAssignment(id);
-                    } catch (ShiftAssignmentNotFoundException ex) {
-                        log.warn("Skip recalculation due to missing assignment {}", id);
-                    }
-                });
-
-        List<ShiftAssignment> refreshedAssignments = shiftAssignmentRepository.findByShift_ShiftDateBetween(start, end);
-        Map<User, List<ShiftAssignment>> assignmentsByUser = refreshedAssignments.stream()
-                .filter(assignment -> assignment.getUser() != null)
-                .filter(assignment -> assignment.getStatus() != ShiftAssignmentStatus.CANCELLED)
-                .collect(Collectors.groupingBy(ShiftAssignment::getUser));
-
-        summaryRepository.deleteByCycleId(cycleId);
-
-        List<PayrollSummaryDTO> summaries = new ArrayList<>();
-        for (Map.Entry<User, List<ShiftAssignment>> entry : assignmentsByUser.entrySet()) {
-            PayrollSummary summary = buildSummaryForUser(cycle, entry.getKey(), entry.getValue(), start, end);
-            PayrollSummary saved = summaryRepository.save(summary);
-            summaries.add(toSummaryDto(saved));
-        }
-
-        summaries.sort(Comparator
-                .comparing(PayrollSummaryDTO::getFullName, Comparator.nullsLast(String::compareTo))
-                .thenComparing(PayrollSummaryDTO::getUsername, Comparator.nullsLast(String::compareTo)));
-
-        return summaries;
     }
 
     @Override

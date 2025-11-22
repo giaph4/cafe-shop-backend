@@ -1,5 +1,6 @@
 package com.giapho.coffee_shop_backend.domain.entity;
 
+import com.giapho.coffee_shop_backend.util.constants.UserStatusConstants;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.proxy.HibernateProxy;
@@ -30,7 +31,7 @@ public class User implements UserDetails {
 
     @Column(unique = true, nullable = false, length = 100)
     private String username;
-    
+
     @Column(nullable = false)
     private String password;
 
@@ -73,7 +74,6 @@ public class User implements UserDetails {
     @Builder.Default
     private Set<Role> roles = new HashSet<>();
 
-
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return this.roles.stream()
@@ -88,7 +88,7 @@ public class User implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return "ACTIVE".equals(this.status);
+        return UserStatusConstants.ACTIVE.equals(this.status);
     }
 
     @Override
@@ -98,7 +98,7 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return "ACTIVE".equals(this.status);
+        return UserStatusConstants.ACTIVE.equals(this.status);
     }
 
     @PrePersist
@@ -115,11 +115,17 @@ public class User implements UserDetails {
 
     @Override
     public final boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null) {
+            return false;
+        }
         Class<?> oEffectiveClass = o instanceof HibernateProxy ? ((HibernateProxy) o).getHibernateLazyInitializer().getPersistentClass() : o.getClass();
         Class<?> thisEffectiveClass = this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass() : this.getClass();
-        if (thisEffectiveClass != oEffectiveClass) return false;
+        if (thisEffectiveClass != oEffectiveClass) {
+            return false;
+        }
         User user = (User) o;
         return getId() != null && Objects.equals(getId(), user.getId());
     }

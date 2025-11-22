@@ -13,7 +13,6 @@ import com.giapho.coffee_shop_backend.dto.StaffPerformanceDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -81,7 +80,7 @@ public class ReportAggregationService {
     }
 
     public SalesComparisonDTO compareSalesPeriods(LocalDate currentStart, LocalDate currentEnd,
-                                                  LocalDate previousStart, LocalDate previousEnd) {
+            LocalDate previousStart, LocalDate previousEnd) {
         return revenueReportProvider.compareSalesPeriods(currentStart, currentEnd, previousStart, previousEnd);
     }
 

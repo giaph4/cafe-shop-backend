@@ -24,10 +24,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import com.giapho.coffee_shop_backend.service.LockManager;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.concurrent.TimeUnit;
+
+import static org.mockito.ArgumentMatchers.any;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
@@ -43,9 +48,11 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -63,6 +70,9 @@ class PayrollServiceTest {
     private AttendanceRecordRepository attendanceRecordRepository;
     @Mock
     private ShiftAssignmentService shiftAssignmentService;
+    
+    @Mock
+    private LockManager lockManager;
 
     @InjectMocks
     private PayrollServiceImpl payrollService;
@@ -74,6 +84,10 @@ class PayrollServiceTest {
         securityUtilMock = Mockito.mockStatic(com.giapho.coffee_shop_backend.util.SecurityUtil.class);
         securityUtilMock.when(com.giapho.coffee_shop_backend.util.SecurityUtil::getCurrentUsername)
                 .thenReturn(Optional.of("manager01"));
+                
+        // Set up lock manager to always acquire lock successfully
+        when(lockManager.acquireLock(anyString(), anyLong(), any(TimeUnit.class))).thenReturn(true);
+        doNothing().when(lockManager).releaseLock(anyString());
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(new UsernamePasswordAuthenticationToken(
                 "manager01",

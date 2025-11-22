@@ -10,7 +10,6 @@ import com.giapho.coffee_shop_backend.exception.voucher.VoucherInvalidException;
 import com.giapho.coffee_shop_backend.exception.voucher.VoucherNotFoundException;
 import com.giapho.coffee_shop_backend.exception.voucher.VoucherValidationException;
 import com.giapho.coffee_shop_backend.service.impl.VoucherServiceImpl;
-import com.giapho.coffee_shop_backend.service.voucher.helper.VoucherDiscountCalculator;
 import com.giapho.coffee_shop_backend.service.voucher.helper.VoucherMapper;
 import com.giapho.coffee_shop_backend.service.voucher.helper.VoucherSearchSpecificationBuilder;
 import com.giapho.coffee_shop_backend.service.voucher.helper.VoucherValidator;
@@ -38,7 +37,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@SuppressWarnings({"unchecked", "rawtypes"})
 class VoucherServiceTest {
 
     @Mock
@@ -47,8 +45,6 @@ class VoucherServiceTest {
     private VoucherValidator voucherValidator;
     @Mock
     private VoucherMapper voucherMapper;
-    @Mock
-    private VoucherDiscountCalculator discountCalculator;
     @Mock
     private VoucherSearchSpecificationBuilder specificationBuilder;
 
@@ -195,7 +191,6 @@ class VoucherServiceTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void searchVouchers_shouldBuildSpecificationWithAllFilters() {
         PageRequest pageable = PageRequest.of(0, 5);
         LocalDateTime validFrom = baseRequest.getValidFrom();

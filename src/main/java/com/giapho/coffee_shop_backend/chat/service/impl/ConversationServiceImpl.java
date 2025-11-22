@@ -150,7 +150,7 @@ public class ConversationServiceImpl implements ConversationService {
     @Transactional
     public void removeMember(Long conversationId, Long memberId) {
         User currentUser = chatUserResolver.requireCurrentUser();
-        Conversation conversation = requireOwnerConversation(conversationId, currentUser.getId());
+        requireOwnerConversation(conversationId, currentUser.getId());
         if (memberId.equals(currentUser.getId())) {
             throw new IllegalArgumentException("Chủ nhóm không thể tự xoá");
         }
@@ -162,7 +162,7 @@ public class ConversationServiceImpl implements ConversationService {
     @Transactional
     public void updateMemberRole(Long conversationId, Long memberId, String role) {
         User currentUser = chatUserResolver.requireCurrentUser();
-        Conversation conversation = requireOwnerConversation(conversationId, currentUser.getId());
+        requireOwnerConversation(conversationId, currentUser.getId());
         ConversationMemberRole targetRole = ConversationMemberRole.valueOf(role);
         conversationMemberRepository.updateRole(conversationId, memberId, targetRole);
     }

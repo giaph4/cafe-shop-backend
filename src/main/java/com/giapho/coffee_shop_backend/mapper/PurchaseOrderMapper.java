@@ -1,7 +1,6 @@
 package com.giapho.coffee_shop_backend.mapper;
 
 import com.giapho.coffee_shop_backend.domain.entity.PurchaseOrder;
-import com.giapho.coffee_shop_backend.domain.entity.Supplier;
 import com.giapho.coffee_shop_backend.domain.entity.User;
 import com.giapho.coffee_shop_backend.dto.PurchaseOrderResponseDTO;
 import org.mapstruct.Mapper;

@@ -6,8 +6,6 @@ import com.giapho.coffee_shop_backend.service.order.OrderQueryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -21,8 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 
 /**
- * API to create a new order
- * Only ADMIN or STAFF roles can create a new order
+ * API to create a new order Only ADMIN or STAFF roles can create a new order
  *
  * @param request the order create request DTO
  * @return the created order response DTO with HTTP status CREATED
@@ -30,16 +27,15 @@ import java.time.LocalDate;
 @RestController
 @RequestMapping("/api/v1/orders")
 @RequiredArgsConstructor
+@Slf4j
 public class OrderController {
-
-    private static final Logger log = LoggerFactory.getLogger(OrderController.class);
 
     private final OrderService orderService;
     private final OrderQueryService orderQueryService;
 
     /**
-     * API to create a new order
-     * Only ADMIN or STAFF roles can create a new order
+     * API to create a new order Only ADMIN or STAFF roles can create a new
+     * order
      *
      * @param request the order create request DTO
      * @return the created order response DTO with HTTP status CREATED

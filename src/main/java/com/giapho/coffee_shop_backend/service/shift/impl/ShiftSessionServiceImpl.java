@@ -82,7 +82,6 @@ public class ShiftSessionServiceImpl implements ShiftSessionService {
         closeSession(session, ShiftSessionStatus.CLOSED, null, null);
 
         List<Order> orders = orderRepository.findByShiftSessionIdWithDetails(session.getId());
-        boolean hasOtherPending = orderRepository.findByShiftSessionIdAndStatus(session.getId(), OrderStatus.PENDING).isPresent();
         handleUnpaidOrders(orders);
 
         ShiftReportResponseDTO report = shiftReportService.generateReport(session, orders);
