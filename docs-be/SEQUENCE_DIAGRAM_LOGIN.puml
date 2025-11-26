@@ -1,0 +1,110 @@
+@startuml Login Sequence Diagram
+
+title Use Case: Đăng nhập (Login)
+
+skinparam sequenceMessageAlign center
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam maxmessagesize 60
+
+actor User as user
+participant ":AuthenticationController" as controller
+participant ":AuthenticationService" as service
+participant ":AuthenticationManager" as authManager
+participant ":UserRepository" as userRepo
+participant ":LoginHistoryService" as loginHistoryService
+participant ":JwtService" as jwtService
+database "Database" as db
+
+user -> controller: POST /api/v1/auth/login\n(LoginRequest)
+activate controller
+
+controller -> controller: @Valid validation
+controller -> service: login(request, httpRequest)
+activate service
+
+service -> service: normalize(username)
+service -> service: extractClientIp(httpRequest)
+service -> service: extractUserAgent(httpRequest)
+
+alt [username hoặc password rỗng]
+    service -> loginHistoryService: recordFailedLogin(username, ip, userAgent, "Username or password must not be blank")
+    activate loginHistoryService
+    loginHistoryService -> db: INSERT LoginHistory
+    loginHistoryService --> service: void
+    deactivate loginHistoryService
+    service --> controller: throw BadCredentialsException
+    controller --> user: HTTP 401 Unauthorized
+    deactivate service
+    deactivate controller
+else [username và password không rỗng]
+    service -> authManager: authenticate(UsernamePasswordAuthenticationToken)
+    activate authManager
+    
+    authManager -> userRepo: findWithRolesByUsername(username)
+    activate userRepo
+    userRepo -> db: SELECT User với Roles
+    db --> userRepo: User entity
+    userRepo --> authManager: Optional<User>
+    deactivate userRepo
+    
+    alt [Sai username/password]
+        authManager --> service: throw BadCredentialsException
+        deactivate authManager
+        service -> loginHistoryService: recordFailedLogin(username, ip, userAgent, "Invalid username or password")
+        activate loginHistoryService
+        loginHistoryService -> db: INSERT LoginHistory
+        loginHistoryService --> service: void
+        deactivate loginHistoryService
+        service --> controller: throw AuthenticationException
+        controller --> user: HTTP 401 Unauthorized
+        deactivate service
+        deactivate controller
+    else [Đúng username/password]
+        authManager --> service: Authentication success
+        deactivate authManager
+        
+        service -> userRepo: findWithRolesByUsername(username)
+        activate userRepo
+        userRepo -> db: SELECT User với Roles
+        db --> userRepo: User entity
+        userRepo --> service: User
+        deactivate userRepo
+        
+        service -> service: ensureAccountIsActive(user)
+        
+        alt [Tài khoản bị khóa/vô hiệu hóa]
+            service -> loginHistoryService: recordFailedLogin(username, ip, userAgent, "Account is disabled or locked")
+            activate loginHistoryService
+            loginHistoryService -> db: INSERT LoginHistory
+            loginHistoryService --> service: void
+            deactivate loginHistoryService
+            service --> controller: throw DisabledException
+            controller --> user: HTTP 403 Forbidden
+            deactivate service
+            deactivate controller
+        else [Tài khoản hoạt động]
+            service -> loginHistoryService: recordSuccessfulLogin(user, ip, userAgent)
+            activate loginHistoryService
+            loginHistoryService -> db: INSERT LoginHistory (success=true)
+            loginHistoryService --> service: void
+            deactivate loginHistoryService
+            
+            service -> jwtService: generateToken(user)
+            activate jwtService
+            jwtService -> jwtService: buildClaims(user, roles)
+            jwtService --> service: JWT token string
+            deactivate jwtService
+            
+            service -> service: buildAuthenticationResponse(user, token)
+            service --> controller: AuthenticationResponse(token, username)
+            deactivate service
+            
+            controller --> user: HTTP 200 OK\n(AuthenticationResponse)
+            deactivate controller
+        end
+    end
+end
+
+@enduml
+

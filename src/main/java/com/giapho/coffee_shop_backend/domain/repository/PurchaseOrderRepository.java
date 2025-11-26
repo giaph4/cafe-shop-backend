@@ -3,6 +3,7 @@ package com.giapho.coffee_shop_backend.domain.repository;
 import com.giapho.coffee_shop_backend.domain.entity.PurchaseOrder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -15,6 +16,10 @@ import java.time.LocalDateTime;
 @Repository
 public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Long>, JpaSpecificationExecutor<PurchaseOrder> {
 
+    @EntityGraph(attributePaths = {"supplier", "user"})
+    @Query("SELECT po FROM PurchaseOrder po WHERE po.status = :status")
+    Page<PurchaseOrder> findByStatusWithSupplier(@Param("status") String status, Pageable pageable);
+    
     Page<PurchaseOrder> findByStatus(String status, Pageable pageable);
 
     Page<PurchaseOrder> findBySupplierId(Long supplierId, Pageable pageable);

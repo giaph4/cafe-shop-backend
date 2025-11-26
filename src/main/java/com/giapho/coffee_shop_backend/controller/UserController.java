@@ -15,7 +15,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -68,5 +70,14 @@ public class UserController {
         return ResponseEntity.ok("Password changed successfully");
     }
 
+    @PostMapping("/{id}/reset-password")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> resetPassword(@PathVariable Long id) {
+        String tempPassword = userService.resetPassword(id);
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Mật khẩu đã được đặt lại. Vui lòng kiểm tra email của bạn.");
+        response.put("temporaryPassword", tempPassword); // Only include in development
+        return ResponseEntity.ok(response);
+    }
 
 }

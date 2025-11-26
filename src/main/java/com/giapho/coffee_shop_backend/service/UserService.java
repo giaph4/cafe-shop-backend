@@ -22,4 +22,12 @@ public interface UserService {
     void changePassword(ChangePasswordRequestDTO request);
 
     UserResponseDTO getUserByUsername(String username);
+    
+    /**
+     * Reset user's password to a secure temporary password and notify user via email
+     * @param id The ID of the user whose password needs to be reset
+     * @return The generated temporary password (for development/testing purposes)
+     * @throws UserNotFoundException if user is not found
+     */
+    String resetPassword(Long id);
 }

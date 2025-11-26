@@ -45,10 +45,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Set SecurityContextHolder to anonymous SecurityContext
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/v1/auth/login")
-                        .permitAll()
-                        .requestMatchers("/api/v1/auth/register")
-                        .hasAnyRole("ADMIN", "MANAGER")
+                        .requestMatchers("/api/v1/auth/login").permitAll()
+                        .requestMatchers("/api/v1/auth/register").permitAll()
+                        // Cho phép truy cập API test Gemini mà không cần xác thực
+                        .requestMatchers("/api/test/gemini/**").hasAnyRole("ADMIN", "MANAGER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/files/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/files/**").hasAnyRole("MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/files/**").hasAnyRole("MANAGER", "ADMIN")

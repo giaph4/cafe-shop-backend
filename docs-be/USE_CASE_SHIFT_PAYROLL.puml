@@ -1,0 +1,108 @@
+@startuml Shift & Payroll Subsystem - Use Case Diagram
+
+skinparam usecase {
+    BackgroundColor #E8F4F8
+    BorderColor #0066CC
+    FontSize 10
+    FontStyle bold
+}
+
+skinparam actor {
+    BackgroundColor #FFFACD
+    BorderColor #FF8C00
+    FontSize 10
+    FontStyle bold
+}
+
+skinparam rectangle {
+    BackgroundColor #F5F5F5
+    BorderColor #333333
+    BorderThickness 2
+    FontSize 12
+    FontStyle bold
+}
+
+skinparam arrow {
+    Color #0066CC
+    Thickness 1.5
+}
+
+skinparam linetype ortho
+
+title Hệ Thống Quản Lý Ca Làm Việc và Lương - Use Case Diagram (Subsystem)
+
+' ============================================
+' ACTORS (Tác nhân) - Bên trái
+' ============================================
+actor "Admin" as Admin
+actor "Manager" as Manager
+actor "Staff" as Staff
+
+' ============================================
+' SYSTEM BOUNDARY (Biên hệ thống) - Ở giữa
+' ============================================
+rectangle "<<subsystem>>\nHệ Thống Quản Lý\nCa Làm Việc và Lương" {
+    
+    ' Nhóm 1: Quản lý mẫu ca và ca làm việc
+    usecase "Quản lý mẫu ca" as UC_ShiftTemplate
+    usecase "Quản lý ca làm việc" as UC_ShiftInstance
+    
+    ' Nhóm 2: Phân công và chấm công
+    usecase "Phân công ca" as UC_ShiftAssignment
+    usecase "Chấm công" as UC_Attendance
+    
+    ' Nhóm 3: Điều chỉnh hiệu suất
+    usecase "Điều chỉnh hiệu suất" as UC_PerformanceAdjustment
+    
+    ' Nhóm 4: Quản lý lương
+    usecase "Quản lý chu kỳ lương" as UC_PayrollCycle
+    usecase "Xem bảng lương" as UC_PayrollSummary
+    
+    ' Use Case chung - Logic tái sử dụng
+    usecase "Tính toán lại phân công" as UC_RecalculateAssignment
+}
+
+' ============================================
+' RELATIONSHIPS - Include (Bắt buộc)
+' Logic chung được dùng lại bởi nhiều Use Case
+' ============================================
+UC_Attendance ..> UC_RecalculateAssignment : <<include>>
+UC_PerformanceAdjustment ..> UC_RecalculateAssignment : <<include>>
+UC_PayrollCycle ..> UC_RecalculateAssignment : <<include>>
+
+' ============================================
+' ACTOR TO USE CASE ASSOCIATIONS
+' Phân quyền theo vai trò
+' ============================================
+
+' Quản lý mẫu ca - Chỉ Manager và Admin
+Admin --> UC_ShiftTemplate
+Manager --> UC_ShiftTemplate
+
+' Quản lý ca làm việc - Chỉ Manager và Admin
+Admin --> UC_ShiftInstance
+Manager --> UC_ShiftInstance
+
+' Phân công ca - Chỉ Manager và Admin
+Admin --> UC_ShiftAssignment
+Manager --> UC_ShiftAssignment
+
+' Chấm công - Tất cả actors (Staff, Manager, Admin)
+Admin --> UC_Attendance
+Manager --> UC_Attendance
+Staff --> UC_Attendance
+
+' Điều chỉnh hiệu suất - Chỉ Manager và Admin
+Admin --> UC_PerformanceAdjustment
+Manager --> UC_PerformanceAdjustment
+
+' Quản lý chu kỳ lương - Chỉ Manager và Admin
+Admin --> UC_PayrollCycle
+Manager --> UC_PayrollCycle
+
+' Xem bảng lương - Chỉ Manager và Admin
+Admin --> UC_PayrollSummary
+Manager --> UC_PayrollSummary
+
+@enduml
+

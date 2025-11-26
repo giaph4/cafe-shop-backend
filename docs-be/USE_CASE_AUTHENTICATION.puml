@@ -1,0 +1,88 @@
+@startuml Authentication Subsystem - Use Case Diagram
+
+skinparam usecase {
+    BackgroundColor #E8F4F8
+    BorderColor #0066CC
+    FontSize 10
+    FontStyle bold
+}
+
+skinparam actor {
+    BackgroundColor #FFFACD
+    BorderColor #FF8C00
+    FontSize 10
+    FontStyle bold
+}
+
+skinparam rectangle {
+    BackgroundColor #F5F5F5
+    BorderColor #333333
+    BorderThickness 2
+    FontSize 12
+    FontStyle bold
+}
+
+skinparam arrow {
+    Color #0066CC
+    Thickness 1.5
+}
+
+skinparam linetype ortho
+
+title Hệ Thống Xác Thực - Use Case Diagram (Subsystem)
+
+' ============================================
+' ACTORS (Tác nhân) - Bên trái
+' ============================================
+actor "Admin" as Admin
+actor "Manager" as Manager
+actor "Staff" as Staff
+
+' ============================================
+' SYSTEM BOUNDARY (Biên hệ thống) - Ở giữa
+' ============================================
+rectangle "<<subsystem>>\nHệ Thống Xác Thực" {
+    
+    ' Use Cases chính - Mỗi Use Case có một mục tiêu riêng biệt
+    usecase "Đăng nhập" as UC_Login
+    usecase "Đăng ký" as UC_Register
+    usecase "Đổi mật khẩu" as UC_ChangePassword
+    usecase "Xem lịch sử đăng nhập" as UC_ViewLoginHistory
+    
+    ' Use Case chung - Logic tái sử dụng
+    usecase "Xác thực JWT" as UC_ValidateJWT
+    
+    ' ============================================
+    ' RELATIONSHIPS - Include (Bắt buộc)
+    ' Logic chung được dùng lại bởi nhiều Use Case
+    ' Lưu ý: Đăng nhập KHÔNG include Xác thực JWT vì đăng nhập là để TẠO JWT
+    ' Đăng ký KHÔNG include Xác thực JWT vì dùng @PreAuthorize, không cần JWT token
+    ' ============================================
+    UC_ChangePassword ..> UC_ValidateJWT : <<include>>
+    UC_ViewLoginHistory ..> UC_ValidateJWT : <<include>>
+}
+
+' ============================================
+' ACTOR TO USE CASE ASSOCIATIONS
+' Phân quyền theo vai trò
+' ============================================
+
+' Đăng nhập - Tất cả actors (Public)
+Admin --> UC_Login
+Manager --> UC_Login
+Staff --> UC_Login
+
+' Đăng ký - Chỉ Admin và Manager
+Admin --> UC_Register
+Manager --> UC_Register
+
+' Đổi mật khẩu - Tất cả actors (sau khi đăng nhập)
+Admin --> UC_ChangePassword
+Manager --> UC_ChangePassword
+Staff --> UC_ChangePassword
+
+' Xem lịch sử đăng nhập - Chỉ Admin
+Admin --> UC_ViewLoginHistory
+
+@enduml
+

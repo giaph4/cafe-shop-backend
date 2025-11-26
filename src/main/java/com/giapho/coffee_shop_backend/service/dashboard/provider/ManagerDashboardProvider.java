@@ -219,7 +219,7 @@ public class ManagerDashboardProvider {
 
     private List<ManagerDashboardDTO.PendingApproval> buildPendingApprovals() {
         List<PurchaseOrder> pendingPurchaseOrders = purchaseOrderRepository
-                .findByStatus(STATUS_PENDING, PageRequest.of(0, 10))
+                .findByStatusWithSupplier(STATUS_PENDING, PageRequest.of(0, 10))
                 .getContent();
 
         return pendingPurchaseOrders.stream()

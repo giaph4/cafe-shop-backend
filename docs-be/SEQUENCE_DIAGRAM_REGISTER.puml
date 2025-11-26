@@ -1,0 +1,119 @@
+@startuml Register Sequence Diagram
+
+title Use Case: Đăng ký (Register)
+
+skinparam sequenceMessageAlign center
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam maxmessagesize 60
+
+actor Admin as admin
+participant ":AuthenticationController" as controller
+participant ":SecurityConfig" as security
+participant ":AuthenticationService" as service
+participant ":UserRepository" as userRepo
+participant ":RoleRepository" as roleRepo
+participant ":PasswordEncoder" as passwordEncoder
+participant ":JwtService" as jwtService
+database "Database" as db
+
+admin -> controller: POST /api/v1/auth/register\n(RegisterRequest)
+activate controller
+
+controller -> security: @PreAuthorize check\n(hasAnyRole('ADMIN', 'MANAGER'))
+activate security
+
+alt [Không có quyền ADMIN/MANAGER]
+    security --> controller: AccessDeniedException
+    controller --> admin: HTTP 403 Forbidden
+    deactivate security
+    deactivate controller
+else [Có quyền]
+    security --> controller: OK
+    deactivate security
+    
+    controller -> controller: @Valid validation
+    controller -> service: register(request)
+    activate service
+    
+    service -> service: normalize(username, email, phone, fullName)
+    service -> service: validateRegisterInputs(username, email, password, phone)
+    
+    alt [Validation thất bại]
+        service --> controller: throw IllegalArgumentException\n("Password must...", "Invalid email...")
+        controller --> admin: HTTP 400 Bad Request
+        deactivate service
+        deactivate controller
+    else [Validation thành công]
+        service -> userRepo: existsByUsername(username)
+        activate userRepo
+        userRepo -> db: SELECT COUNT(*) WHERE username=?
+        db --> userRepo: boolean
+        userRepo --> service: exists
+        deactivate userRepo
+        
+        service -> userRepo: existsByEmail(email)
+        activate userRepo
+        userRepo -> db: SELECT COUNT(*) WHERE email=?
+        db --> userRepo: boolean
+        userRepo --> service: exists
+        deactivate userRepo
+        
+        alt [Username hoặc Email đã tồn tại]
+            service --> controller: throw IllegalArgumentException\n("Username is already taken" hoặc "Email is already in use")
+            controller --> admin: HTTP 400 Bad Request
+            deactivate service
+            deactivate controller
+        else [Username và Email chưa tồn tại]
+            service -> service: resolveRoles(roleIds)
+            
+            opt [roleIds trống hoặc null]
+                service -> roleRepo: findByName("ROLE_STAFF")
+                activate roleRepo
+                roleRepo -> db: SELECT Role WHERE name=?
+                db --> roleRepo: Role
+                roleRepo --> service: Role
+                deactivate roleRepo
+            else [roleIds có giá trị]
+                loop [for each roleId in roleIds]
+                    service -> roleRepo: findById(roleId)
+                    activate roleRepo
+                    roleRepo -> db: SELECT Role WHERE id=?
+                    db --> roleRepo: Optional<Role>
+                    roleRepo --> service: Role
+                    deactivate roleRepo
+                end
+            end
+            
+            service -> passwordEncoder: encode(password)
+            activate passwordEncoder
+            passwordEncoder --> service: encodedPassword
+            deactivate passwordEncoder
+            
+            service -> service: build User entity\n(username, email, phone, fullName, encodedPassword, roles, status="ACTIVE")
+            
+            service -> userRepo: save(user)
+            activate userRepo
+            userRepo -> db: INSERT User
+            db --> userRepo: User entity (with ID)
+            userRepo --> service: User
+            deactivate userRepo
+            
+            service -> jwtService: generateToken(user)
+            activate jwtService
+            jwtService -> jwtService: buildClaims(user, roles)
+            jwtService --> service: JWT token string
+            deactivate jwtService
+            
+            service -> service: buildAuthenticationResponse(user, token)
+            service --> controller: AuthenticationResponse(token, username)
+            deactivate service
+            
+            controller --> admin: HTTP 200 OK\n(AuthenticationResponse)
+            deactivate controller
+        end
+    end
+end
+
+@enduml
+

@@ -1,0 +1,67 @@
+@startuml Validate JWT Sequence Diagram
+
+title Use Case: Xác thực JWT (Validate JWT) - Include Use Case
+
+skinparam sequenceMessageAlign center
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam maxmessagesize 60
+
+participant ":JwtAuthenticationFilter" as jwtFilter
+participant ":JwtService" as jwtService
+participant ":UserRepository" as userRepo
+database "Database" as db
+
+note over jwtFilter: Được gọi tự động cho mọi request\n(trừ login, register, public endpoints)
+
+jwtFilter -> jwtFilter: extractTokenFromRequest(request)
+jwtFilter -> jwtService: validateToken(token)
+activate jwtService
+
+jwtService -> jwtService: parseToken(token)
+jwtService -> jwtService: verifySignature(token, secretKey)
+
+alt [Token không hợp lệ hoặc signature sai]
+    jwtService --> jwtFilter: throw JwtException
+    deactivate jwtService
+    jwtFilter -> jwtFilter: throw AuthenticationException
+    note right of jwtFilter: HTTP 401 Unauthorized
+else [Token hợp lệ]
+    jwtService -> jwtService: extractClaims(token)
+    jwtService -> jwtService: checkExpiration(claims)
+    
+    alt [Token hết hạn]
+        jwtService --> jwtFilter: throw JwtException("Token expired")
+        deactivate jwtService
+        jwtFilter -> jwtFilter: throw AuthenticationException
+        note right of jwtFilter: HTTP 401 Unauthorized
+    else [Token chưa hết hạn]
+        jwtService -> jwtService: extractUserId(claims)
+        jwtService -> jwtService: extractUsername(claims)
+        jwtService -> jwtService: extractRoles(claims)
+        
+        jwtService -> userRepo: findById(userId)
+        activate userRepo
+        userRepo -> db: SELECT User WHERE id=?
+        db --> userRepo: Optional<User>
+        userRepo --> jwtService: User
+        deactivate userRepo
+        
+        alt [User không tồn tại hoặc bị khóa]
+            jwtService --> jwtFilter: throw AuthenticationException("User not found or disabled")
+            deactivate jwtService
+            jwtFilter -> jwtFilter: throw AuthenticationException
+            note right of jwtFilter: HTTP 401 Unauthorized
+        else [User tồn tại và hoạt động]
+            jwtService -> jwtService: buildAuthentication(user, roles)
+            jwtService --> jwtFilter: Authentication object
+            deactivate jwtService
+            
+            jwtFilter -> jwtFilter: setSecurityContext(authentication)
+            note right of jwtFilter: Request được tiếp tục xử lý\nvới thông tin user trong SecurityContext
+        end
+    end
+end
+
+@enduml
+

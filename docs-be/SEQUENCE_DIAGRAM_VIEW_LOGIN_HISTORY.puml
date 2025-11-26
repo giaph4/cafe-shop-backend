@@ -1,0 +1,66 @@
+@startuml View Login History Sequence Diagram
+
+title Use Case: Xem lịch sử đăng nhập (View Login History)
+
+skinparam sequenceMessageAlign center
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam maxmessagesize 60
+
+actor Admin as admin
+participant ":JwtAuthenticationFilter" as jwtFilter
+participant ":JwtService" as jwtService
+participant ":LoginHistoryController" as controller
+participant ":LoginHistoryService" as service
+participant ":LoginHistoryRepository" as repo
+database "Database" as db
+
+admin -> controller: GET /api/v1/login-history\n?username=...&success=...&startDate=...&endDate=...&page=...&size=...\nAuthorization: Bearer <token>
+activate controller
+
+controller -> jwtFilter: Validate JWT token
+activate jwtFilter
+
+jwtFilter -> jwtService: validateToken(token)
+activate jwtService
+jwtService -> jwtService: parseToken(token)
+jwtService -> jwtService: checkExpiration(claims)
+jwtService -> jwtService: checkRole(claims, "ROLE_ADMIN")
+jwtService --> jwtFilter: Claims (userId, username, roles)
+deactivate jwtService
+
+alt [Token không hợp lệ hoặc không có quyền ADMIN]
+    jwtFilter --> controller: throw AuthenticationException hoặc AccessDeniedException
+    controller --> admin: HTTP 401/403
+    deactivate jwtFilter
+    deactivate controller
+else [Token hợp lệ và có quyền ADMIN]
+    jwtFilter --> controller: OK (set SecurityContext)
+    deactivate jwtFilter
+    
+    controller -> service: searchLoginHistory(username, success, startDate, endDate, pageable)
+    activate service
+    
+    service -> service: buildSpecification(username, success, startDate, endDate)
+    service -> repo: findAll(specification, pageable)
+    activate repo
+    
+    repo -> db: SELECT LoginHistory\nWHERE username LIKE ?\nAND success = ?\nAND loginAt BETWEEN ? AND ?\nORDER BY loginAt DESC\nLIMIT ? OFFSET ?
+    db --> repo: Page<LoginHistory>
+    repo --> service: Page<LoginHistory>
+    deactivate repo
+    
+    service -> service: mapToDTO(loginHistoryList)
+    loop [for each LoginHistory]
+        service -> service: map LoginHistory -> LoginHistoryResponseDTO
+    end
+    
+    service --> controller: Page<LoginHistoryResponseDTO>
+    deactivate service
+    
+    controller --> admin: HTTP 200 OK\n(Page<LoginHistoryResponseDTO>)
+    deactivate controller
+end
+
+@enduml
+

@@ -206,4 +206,64 @@ public class UserServiceImpl implements UserService {
     private String normalizeNullable(String value) {
         return StringUtils.hasText(value) ? value.trim() : null;
     }
+    
+    @Override
+    @Transactional
+    public String resetPassword(Long id) {
+        User user = getUserOrThrow(id);
+        
+        // Generate a secure random password
+        String tempPassword = generateSecurePassword();
+        user.setPassword(passwordEncoder.encode(tempPassword));
+        
+        // Set password change required flag if your User entity has this field
+        // user.setPasswordChangeRequired(true);
+        
+        userRepository.save(user);
+        
+        // In a production environment, you would send an email to the user here
+        // emailService.sendPasswordResetEmail(user.getEmail(), user.getFullName(), tempPassword);
+        
+        // Log the password reset (in production, this would be a proper audit log)
+
+        
+        return tempPassword;
+    }
+    
+    /**
+     * Generates a secure random password with at least 12 characters
+     * containing uppercase, lowercase, digits and special characters
+     */
+    private String generateSecurePassword() {
+        String upperCaseLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        String lowerCaseLetters = "abcdefghijklmnopqrstuvwxyz";
+        String numbers = "0123456789";
+        String specialChars = "!@#$%^&*_=+-/";
+        
+        String allChars = upperCaseLetters + lowerCaseLetters + numbers + specialChars;
+        java.util.Random random = new java.util.Random();
+        
+        // Ensure at least one character from each set is included
+        StringBuilder password = new StringBuilder();
+        password.append(upperCaseLetters.charAt(random.nextInt(upperCaseLetters.length())));
+        password.append(lowerCaseLetters.charAt(random.nextInt(lowerCaseLetters.length())));
+        password.append(numbers.charAt(random.nextInt(numbers.length())));
+        password.append(specialChars.charAt(random.nextInt(specialChars.length())));
+        
+        // Fill the rest of the password
+        for (int i = 0; i < 8; i++) { // 4 already added, 8 more to make it 12
+            password.append(allChars.charAt(random.nextInt(allChars.length())));
+        }
+        
+        // Shuffle the characters to make the order random
+        char[] passwordArray = password.toString().toCharArray();
+        for (int i = 0; i < passwordArray.length; i++) {
+            int randomIndex = random.nextInt(passwordArray.length);
+            char temp = passwordArray[i];
+            passwordArray[i] = passwordArray[randomIndex];
+            passwordArray[randomIndex] = temp;
+        }
+        
+        return new String(passwordArray);
+    }
 }

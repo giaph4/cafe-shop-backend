@@ -1,0 +1,174 @@
+@startuml Coffee Shop Backend - Use Case Diagram
+
+skinparam usecase {
+    BackgroundColor #E8F4F8
+    BorderColor #0066CC
+    FontSize 10
+    FontStyle bold
+}
+
+skinparam actor {
+    BackgroundColor #FFFACD
+    BorderColor #FF8C00
+    FontSize 10
+    FontStyle bold
+}
+
+skinparam rectangle {
+    BackgroundColor #F5F5F5
+    BorderColor #333333
+    BorderThickness 2
+    FontSize 12
+    FontStyle bold
+}
+
+skinparam arrow {
+    Color #0066CC
+    Thickness 1.5
+}
+
+skinparam linetype ortho
+
+title Hệ Thống Quản Lý Quán Cà Phê - Use Case Diagram
+
+' ============================================
+' ACTORS (Tác nhân) - Bên trái
+' ============================================
+actor "Admin" as Admin
+actor "Manager" as Manager
+actor "Staff" as Staff
+
+' ============================================
+' SYSTEM BOUNDARY (Biên hệ thống) - Ở giữa
+' ============================================
+rectangle "<<subsystem>>\nHệ Thống Quản Lý\nQuán Cà Phê" {
+    
+    ' Nhóm 1: Authentication & User Management
+    rectangle "<<subsystem>>\nHệ Thống Xác Thực" as AuthSubsystem {
+        usecase "Đăng nhập" as UC_Login
+        usecase "Đăng ký" as UC_Register
+        usecase "Đổi mật khẩu" as UC_ChangePassword
+        usecase "Xem lịch sử đăng nhập" as UC_ViewLoginHistory
+    }
+    usecase "Quản lý người dùng" as UC_Users
+    
+    ' Nhóm 2: Product Management
+    usecase "Quản lý sản phẩm" as UC_Products
+    
+    ' Nhóm 3: Order & Payment
+    usecase "Quản lý đơn hàng" as UC_Orders
+    usecase "Thanh toán đơn hàng" as UC_Payment
+    usecase "Xác thực thanh toán" as UC_AuthPayment
+    
+    ' Nhóm 4: Customer & Table
+    usecase "Quản lý khách hàng và bàn" as UC_CustomerTable
+    usecase "Quản lý voucher" as UC_Voucher
+    
+    ' Nhóm 5: Inventory & Supplier
+    usecase "Quản lý kho và nhà cung cấp" as UC_Inventory
+    
+    ' Nhóm 6: Reporting
+    usecase "Quản lý báo cáo" as UC_Reports
+    usecase "Xem dashboard" as UC_Dashboard
+    
+    ' Nhóm 7: Shift & Payroll
+    rectangle "<<subsystem>>\nHệ Thống Quản Lý\nCa Làm Việc và Lương" as ShiftSubsystem {
+        usecase "Quản lý mẫu ca" as UC_ShiftTemplate
+        usecase "Quản lý ca làm việc" as UC_ShiftInstance
+        usecase "Phân công ca" as UC_ShiftAssignment
+        usecase "Chấm công" as UC_Attendance
+        usecase "Điều chỉnh hiệu suất" as UC_PerformanceAdjustment
+        usecase "Quản lý chu kỳ lương" as UC_PayrollCycle
+        usecase "Xem bảng lương" as UC_PayrollSummary
+    }
+    
+    ' Nhóm 8: File & Chat
+    usecase "Quản lý file" as UC_Files
+    usecase "Chat" as UC_Chat
+    
+    ' ============================================
+    ' RELATIONSHIPS - Include (Bắt buộc)
+    ' ============================================
+    UC_Payment ..> UC_AuthPayment : <<include>>
+    UC_Orders ..> UC_CustomerTable : <<include>>
+    UC_Payment ..> UC_Inventory : <<include>>
+    
+    ' ============================================
+    ' RELATIONSHIPS - Extend (Tùy chọn)
+    ' ============================================
+    UC_Voucher ..> UC_Orders : <<extend>>
+    UC_CustomerTable ..> UC_Payment : <<extend>>
+}
+
+' ============================================
+' EXTERNAL SYSTEMS - Bên phải
+' ============================================
+actor "Payment Gateway" as PaymentGateway <<external system>>
+actor "Google Gemini AI" as GeminiAI <<external system>>
+
+' ============================================
+' ACTOR TO USE CASE ASSOCIATIONS
+' Tất cả đều dùng đường thẳng (ortho)
+' ============================================
+
+' Admin - Tất cả quyền
+Admin --> UC_Login
+Admin --> UC_Register
+Admin --> UC_ChangePassword
+Admin --> UC_ViewLoginHistory
+Admin --> UC_Users
+Admin --> UC_Products
+Admin --> UC_Orders
+Admin --> UC_Payment
+Admin --> UC_CustomerTable
+Admin --> UC_Voucher
+Admin --> UC_Inventory
+Admin --> UC_Reports
+Admin --> UC_Dashboard
+Admin --> UC_ShiftTemplate
+Admin --> UC_ShiftInstance
+Admin --> UC_ShiftAssignment
+Admin --> UC_Attendance
+Admin --> UC_PerformanceAdjustment
+Admin --> UC_PayrollCycle
+Admin --> UC_PayrollSummary
+Admin --> UC_Files
+Admin --> UC_Chat
+
+' Manager - Quyền quản lý
+Manager --> UC_Login
+Manager --> UC_Register
+Manager --> UC_ChangePassword
+Manager --> UC_Products
+Manager --> UC_Orders
+Manager --> UC_Payment
+Manager --> UC_CustomerTable
+Manager --> UC_Voucher
+Manager --> UC_Inventory
+Manager --> UC_Reports
+Manager --> UC_Dashboard
+Manager --> UC_ShiftTemplate
+Manager --> UC_ShiftInstance
+Manager --> UC_ShiftAssignment
+Manager --> UC_Attendance
+Manager --> UC_PerformanceAdjustment
+Manager --> UC_PayrollCycle
+Manager --> UC_PayrollSummary
+Manager --> UC_Files
+Manager --> UC_Chat
+
+' Staff - Quyền cơ bản
+Staff --> UC_Login
+Staff --> UC_ChangePassword
+Staff --> UC_Orders
+Staff --> UC_Payment
+Staff --> UC_CustomerTable
+Staff --> UC_Dashboard
+Staff --> UC_Attendance
+Staff --> UC_Chat
+
+' External Systems - Tất cả Use Cases liên quan đều kết nối với External Systems
+PaymentGateway --> UC_AuthPayment
+GeminiAI --> UC_Chat
+
+@enduml
