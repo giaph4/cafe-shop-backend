@@ -69,25 +69,21 @@ public class DataInitializer implements CommandLineRunner {
         // === TẠO TÀI KHOẢN ADMIN MẪU ===
         log.info("Checking for seeded admin user '{}'", seedAdminUsername);
         if (userRepository.findByUsername(seedAdminUsername).isEmpty()) {
-            // Lấy ROLE_ADMIN vừa tạo
             Role adminRole = roleRepository.findByName("ROLE_ADMIN")
                     .orElseThrow(() -> new RuntimeException("Error: Cannot find ROLE_ADMIN"));
 
-            // Mã hóa mật khẩu
             String encodedPassword = passwordEncoder.encode(seedAdminPassword);
 
-            // Tạo user mới
             User adminUser = User.builder()
                     .username(seedAdminUsername)
                     .password(encodedPassword)
                     .fullName(seedAdminFullName)
                     .email(seedAdminEmail)
                     .phone(seedAdminPhone)
-                    .status("ACTIVE") // Rất quan trọng, phải là "ACTIVE" để đăng nhập
-                    .roles(Set.of(adminRole)) // Gán quyền admin
+                    .status("ACTIVE")
+                    .roles(Set.of(adminRole))
                     .build();
 
-            // Lưu vào CSDL
             userRepository.save(adminUser);
             log.info("Created default admin user '{}'", seedAdminUsername);
         } else {
