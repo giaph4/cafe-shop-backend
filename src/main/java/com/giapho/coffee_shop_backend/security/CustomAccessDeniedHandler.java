@@ -1,6 +1,8 @@
 package com.giapho.coffee_shop_backend.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.giapho.coffee_shop_backend.exception.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -30,8 +32,11 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 
-        
         ObjectMapper objectMapper = new ObjectMapper();
+        // Register JavaTimeModule and configure date/time handling
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        
         response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
     }
 }
