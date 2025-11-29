@@ -47,6 +47,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/v1/auth/login").permitAll()
                         .requestMatchers("/api/v1/auth/register").permitAll()
+                        // Allow public access to register endpoint with default role
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
                         // Cho phép truy cập API test Gemini mà không cần xác thực
                         .requestMatchers("/api/test/gemini/**").hasAnyRole("ADMIN", "MANAGER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/files/**").permitAll()

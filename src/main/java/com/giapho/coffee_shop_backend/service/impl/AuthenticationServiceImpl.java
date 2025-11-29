@@ -77,7 +77,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         validateRegisterInputs(username, email, password, phone);
         ensureCredentialsAreUnique(username, email);
 
-        Set<Role> roles = resolveRoles(request.getRoleIds());
+        // If no roles are provided, assign default STAFF role
+        Set<Role> roles = request.getRoleIds() != null && !request.getRoleIds().isEmpty() 
+                ? resolveRoles(request.getRoleIds())
+                : Set.of(roleRepository.findByName("ROLE_STAFF")
+                    .orElseThrow(() -> new IllegalStateException("Default STAFF role not found")));
+                    
         User user = User.builder()
                 .username(username)
                 .password(passwordEncoder.encode(password))
