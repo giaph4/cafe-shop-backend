@@ -1,9 +1,6 @@
 package com.giapho.coffee_shop_backend.controller;
 
-import com.giapho.coffee_shop_backend.dto.ChangePasswordRequestDTO;
-import com.giapho.coffee_shop_backend.dto.RoleDTO;
-import com.giapho.coffee_shop_backend.dto.UserResponseDTO;
-import com.giapho.coffee_shop_backend.dto.UserUpdateRequestDTO;
+import com.giapho.coffee_shop_backend.dto.*;
 import com.giapho.coffee_shop_backend.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +22,15 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+
+    @PostMapping
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<UserResponseDTO> registerUser(
+            @Valid @RequestBody RegisterRequest registerRequest
+    ) {
+        UserResponseDTO createdUser = userService.registerUser(registerRequest);
+        return ResponseEntity.ok(createdUser);
+    }
 
 
     // lay tat ca roles

@@ -7,10 +7,12 @@ import com.giapho.coffee_shop_backend.domain.repository.UserRepository;
 import com.giapho.coffee_shop_backend.dto.ChangePasswordRequestDTO;
 import com.giapho.coffee_shop_backend.dto.RoleDTO;
 import com.giapho.coffee_shop_backend.dto.UserResponseDTO;
+import com.giapho.coffee_shop_backend.dto.RegisterRequest;
 import com.giapho.coffee_shop_backend.dto.UserUpdateRequestDTO;
 import com.giapho.coffee_shop_backend.exception.role.RoleNotFoundException;
 import com.giapho.coffee_shop_backend.exception.user.UserEmailAlreadyExistsException;
 import com.giapho.coffee_shop_backend.exception.user.UserInvalidPasswordException;
+import com.giapho.coffee_shop_backend.exception.user.UserAlreadyExistsException;
 import com.giapho.coffee_shop_backend.exception.user.UserNotAuthenticatedException;
 import com.giapho.coffee_shop_backend.exception.user.UserNotFoundException;
 import com.giapho.coffee_shop_backend.exception.user.UserPasswordConfirmationMismatchException;
@@ -50,6 +52,58 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final RoleMapper roleMapper;
     private final PasswordEncoder passwordEncoder;
+
+    @Override
+    @Transactional
+    public UserResponseDTO registerUser(RegisterRequest registerRequest) {
+        // Check if username already exists
+        if (userRepository.existsByUsername(registerRequest.getUsername())) {
+            throw new UserAlreadyExistsException("Username is already taken");
+        }
+
+        // Check if email already exists
+        if (registerRequest.getEmail() != null && !registerRequest.getEmail().isEmpty() && 
+            userRepository.existsByEmail(registerRequest.getEmail())) {
+            throw new UserEmailAlreadyExistsException("Email is already in use");
+        }
+
+        // Check if phone already exists
+        if (userRepository.existsByPhone(registerRequest.getPhone())) {
+            throw new UserPhoneAlreadyExistsException("Phone number is already in use");
+        }
+
+        // Set default role if not provided (e.g., ROLE_CUSTOMER)
+        Set<Role> roles = new HashSet<>();
+        if (registerRequest.getRoleIds() == null || registerRequest.getRoleIds().isEmpty()) {
+            // Add default role (e.g., ROLE_CUSTOMER)
+            Role defaultRole = roleRepository.findByName("ROLE_CUSTOMER")
+                .orElseThrow(() -> new RoleNotFoundException("name", "ROLE_CUSTOMER"));
+            roles.add(defaultRole);
+        } else {
+            // Add the specified roles
+            roles = registerRequest.getRoleIds().stream()
+                .map(roleId -> roleRepository.findById(roleId)
+                    .orElseThrow(() -> new RoleNotFoundException(roleId)))
+                .collect(Collectors.toSet());
+        }
+
+        // Create new user with proper phone number handling
+        User user = User.builder()
+            .username(registerRequest.getUsername().trim())
+            .password(passwordEncoder.encode(registerRequest.getPassword()))
+            .fullName(registerRequest.getFullName().trim())
+            .email(registerRequest.getEmail() != null ? registerRequest.getEmail().trim() : null)
+            .phone(registerRequest.getPhone().trim()) // Ensure phone is properly trimmed
+            .roles(roles)
+            .status("ACTIVE") // Set default status
+            .build();
+
+        // Save user
+        User savedUser = userRepository.save(user);
+        
+        // Return user response
+        return userMapper.toUserResponseDto(savedUser);
+    }
 
     @Override
     @Transactional(readOnly = true)

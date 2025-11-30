@@ -60,20 +60,33 @@ public class PaymentServiceImpl implements PaymentService {
         attachCustomerIfNecessary(order, paymentRequest.getCustomerId());
         String paymentMethod = normalizePaymentMethod(paymentRequest.getPaymentMethod());
 
+        // Apply voucher if any
         applyVoucherDetails(order, paymentRequest.getVoucherCode());
+        
+        // Set tip amount from request
+        if (paymentRequest.getTipAmount() != null && paymentRequest.getTipAmount().compareTo(BigDecimal.ZERO) > 0) {
+            order.setTipAmount(paymentRequest.getTipAmount());
+            log.info("Added tip amount {} to order {}", paymentRequest.getTipAmount(), orderId);
+        }
 
+        // Update inventory and calculate totals
         subtractInventoryForOrder(order);
         orderPricingService.recalculateTotals(order);
 
+        // Update order status and payment info
         order.setStatus(OrderStatus.PAID);
         order.setPaidAt(LocalDateTime.now());
         order.setPaymentMethod(paymentMethod);
 
+        // Update customer loyalty points
         updateCustomerLoyaltyPoints(order);
 
+        // Save and log the transaction
         Order savedOrder = orderRepository.save(order);
-        log.info("Order {} paid successfully with payment method: {}", orderId, paymentMethod);
+        log.info("Order {} paid successfully with payment method: {} and tip amount: {}", 
+                orderId, paymentMethod, paymentRequest.getTipAmount());
 
+        // Handle voucher usage if applicable
         incrementVoucherUsageIfNecessary(order);
         return savedOrder;
     }
@@ -148,13 +161,19 @@ public class PaymentServiceImpl implements PaymentService {
         if (order.getDiscountAmount() == null) {
             order.setDiscountAmount(BigDecimal.ZERO);
         }
+        if (order.getTipAmount() == null) {
+            order.setTipAmount(BigDecimal.ZERO);
+        }
 
         if (order.getTotalAmount() != null) {
             return;
         }
 
         BigDecimal discountAmount = defaultZero(order.getDiscountAmount());
-        BigDecimal recalculatedTotal = subTotal.subtract(discountAmount);
+        BigDecimal tipAmount = defaultZero(order.getTipAmount());
+        
+        // Calculate total: subTotal - discount + tip
+        BigDecimal recalculatedTotal = subTotal.subtract(discountAmount).add(tipAmount);
         if (recalculatedTotal.compareTo(BigDecimal.ZERO) < 0) {
             recalculatedTotal = BigDecimal.ZERO;
         }

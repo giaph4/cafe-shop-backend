@@ -20,30 +20,50 @@ public class OrderPricingService {
 
     private final VoucherService voucherService;
 
+    /**
+     * Tính toán lại tổng tiền đơn hàng, bao gồm cả tiền tip
+     * @param order Đơn hàng cần tính toán lại
+     */
     public void recalculateTotals(Order order) {
+        // Tính tổng tiền trước giảm giá
         BigDecimal subTotal = calculateSubTotal(order);
         order.setSubTotal(subTotal);
 
+        // Nếu không có voucher, đặt lại giảm giá về 0 và tính tổng tiền cuối cùng
         if (!hasVoucher(order)) {
             resetDiscount(order);
+            // Cộng thêm tiền tip vào tổng tiền cuối cùng
+            order.setTotalAmount(calculateFinalTotal(order, subTotal, order.getDiscountAmount()));
             return;
         }
 
+        // Kiểm tra và tính toán giảm giá từ voucher
         VoucherCheckResponseDTO voucherCheck = voucherService.checkAndCalculateDiscount(order.getVoucherCode(), subTotal);
         if (!voucherCheck.isValid()) {
             log.warn("Voucher {} invalid for order {}: {}", order.getVoucherCode(), order.getId(), voucherCheck.getMessage());
             resetVoucher(order);
+            // Cộng thêm tiền tip vào tổng tiền cuối cùng
+            order.setTotalAmount(calculateFinalTotal(order, subTotal, order.getDiscountAmount()));
             return;
         }
 
+        // Áp dụng giảm giá
         BigDecimal discount = defaultZero(voucherCheck.getDiscountAmount()).min(subTotal);
         order.setDiscountAmount(discount);
-        order.setTotalAmount(subTotal.subtract(discount));
+        
+        // Tính tổng tiền cuối cùng sau khi đã trừ giảm giá và cộng tiền tip
+        order.setTotalAmount(calculateFinalTotal(order, subTotal, discount));
     }
 
+    /**
+     * Áp dụng voucher cho đơn hàng
+     * @param order Đơn hàng cần áp dụng voucher
+     * @param voucherCode Mã voucher
+     * @throws VoucherInvalidException Nếu voucher không hợp lệ
+     */
     public void applyVoucher(Order order, String voucherCode) {
         if (!hasItems(order)) {
-            throw new VoucherInvalidException("Order has no items to apply voucher");
+            throw new VoucherInvalidException("Không thể áp dụng voucher cho đơn hàng trống");
         }
 
         String normalizedCode = voucherCode.trim().toUpperCase();
@@ -55,7 +75,12 @@ public class OrderPricingService {
         BigDecimal discount = defaultZero(voucherCheck.getDiscountAmount()).min(order.getSubTotal());
         order.setVoucherCode(normalizedCode);
         order.setDiscountAmount(discount);
-        order.setTotalAmount(order.getSubTotal().subtract(discount));
+        
+        // Cập nhật tổng tiền cuối cùng sau khi áp dụng giảm giá và cộng tiền tip
+        order.setTotalAmount(calculateFinalTotal(order, order.getSubTotal(), discount));
+        
+        log.info("Áp dụng voucher {} cho đơn hàng {}. Giảm giá: {}, Tiền tip: {}", 
+                normalizedCode, order.getId(), discount, order.getTipAmount());
     }
 
     public void removeVoucher(Order order) {
@@ -83,9 +108,25 @@ public class OrderPricingService {
         resetDiscount(order);
     }
 
+    /**
+     * Tính tổng tiền cuối cùng sau khi đã trừ giảm giá và cộng tiền tip
+     * @param order Đơn hàng
+     * @param subTotal Tổng tiền trước giảm giá
+     * @param discount Số tiền được giảm
+     * @return Tổng tiền cuối cùng
+     */
+    private BigDecimal calculateFinalTotal(Order order, BigDecimal subTotal, BigDecimal discount) {
+        BigDecimal tipAmount = defaultZero(order.getTipAmount());
+        return subTotal.subtract(discount).add(tipAmount);
+    }
+
+    /**
+     * Đặt lại giảm giá về 0
+     * @param order Đơn hàng cần đặt lại
+     */
     private void resetDiscount(Order order) {
         order.setDiscountAmount(BigDecimal.ZERO);
-        order.setTotalAmount(order.getSubTotal());
+        order.setTotalAmount(calculateFinalTotal(order, order.getSubTotal(), BigDecimal.ZERO));
     }
 
     private boolean hasVoucher(Order order) {

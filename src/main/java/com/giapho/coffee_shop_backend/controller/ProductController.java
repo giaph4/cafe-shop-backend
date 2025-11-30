@@ -89,8 +89,8 @@ public class ProductController {
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<ProductResponse> updateProduct(
             @PathVariable Long id,
-            @RequestBody(required = false) @Valid ProductRequest productRequest,
             @RequestPart(value = "product", required = false) String productJson,
+            @RequestPart(value = "request", required = false) @Valid ProductRequest productRequest,
             @RequestPart(value = "image", required = false) MultipartFile imageFile
     ) {
         try {

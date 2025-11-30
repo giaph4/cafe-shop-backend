@@ -68,6 +68,10 @@ public class Order {
     @Builder.Default
     private BigDecimal discountAmount = BigDecimal.ZERO;
 
+    @Column(name = "tip_amount")
+    @Builder.Default
+    private BigDecimal tipAmount = BigDecimal.ZERO;
+
     @Column(name = "total_amount", nullable = false)
     private BigDecimal totalAmount;
 
@@ -94,6 +98,9 @@ public class Order {
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
+        if (this.tipAmount == null) {
+            this.tipAmount = BigDecimal.ZERO;
+        }
     }
 
     @Override
