@@ -15942,3 +15942,133 @@ Caused by: org.hibernate.HibernateException: A collection with orphan deletion w
 2025-12-03 14:09:50 [SpringApplicationShutdownHook] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
 2025-12-03 14:09:50 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
 2025-12-03 14:09:50 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2025-12-03 14:09:55 [main] INFO  c.g.c.CoffeeShopBackendApplication - Starting CoffeeShopBackendApplication using Java 22.0.2 with PID 33608 (C:\CODING\SpringNghiemTuc\coffee-shop-backend\coffee-shop-backend\target\classes started by Huynh Giaa Pho in C:\CODING\SpringNghiemTuc\coffee-shop-backend\coffee-shop-backend)
+2025-12-03 14:09:55 [main] INFO  c.g.c.CoffeeShopBackendApplication - The following 1 profile is active: "dev"
+2025-12-03 14:09:57 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-12-03 14:09:57 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 310 ms. Found 34 JPA repository interfaces.
+2025-12-03 14:09:58 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8088 (http)
+2025-12-03 14:09:58 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-12-03 14:09:58 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.46]
+2025-12-03 14:09:58 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-12-03 14:09:58 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 2932 ms
+2025-12-03 14:09:59 [main] INFO  o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-12-03 14:09:59 [main] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 6.6.29.Final
+2025-12-03 14:09:59 [main] INFO  o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
+2025-12-03 14:09:59 [main] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-12-03 14:09:59 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2025-12-03 14:10:00 [main] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@59b1edab
+2025-12-03 14:10:00 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2025-12-03 14:10:00 [main] WARN  org.hibernate.orm.deprecation - HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-12-03 14:10:00 [main] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 9.5
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-12-03 14:10:02 [main] INFO  o.h.e.t.j.p.i.JtaPlatformInitiator - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-12-03 14:10:02 [main] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-12-03 14:10:02 [main] INFO  o.s.d.j.r.query.QueryEnhancerFactory - Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-12-03 14:10:03 [main] INFO  c.g.c.s.impl.FileStorageServiceImpl - File storage directory prepared at C:\CODING\SpringNghiemTuc\coffee-shop-backend\coffee-shop-backend\uploads\products
+2025-12-03 14:10:05 [main] INFO  o.s.s.c.a.a.c.InitializeAuthenticationProviderBeanManagerConfigurer$InitializeAuthenticationProviderManagerConfigurer - Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2025-12-03 14:10:05 [main] WARN  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+2025-12-03 14:10:06 [main] INFO  o.s.m.s.b.SimpleBrokerMessageHandler - Starting...
+2025-12-03 14:10:06 [main] INFO  o.s.m.s.b.SimpleBrokerMessageHandler - BrokerAvailabilityEvent[available=true, SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@7646dfd9]]
+2025-12-03 14:10:06 [main] INFO  o.s.m.s.b.SimpleBrokerMessageHandler - Started.
+2025-12-03 14:10:06 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8088 (http) with context path '/'
+2025-12-03 14:10:06 [main] INFO  c.g.c.CoffeeShopBackendApplication - Started CoffeeShopBackendApplication in 11.5 seconds (process running for 12.065)
+2025-12-03 14:10:06 [main] INFO  c.g.c.config.DataInitializer - Bắt đầu khởi tạo dữ liệu mẫu...
+2025-12-03 14:10:06 [main] INFO  c.g.c.config.DataInitializer - Tài khoản huynhpho đã tồn tại
+2025-12-03 14:10:06 [main] INFO  c.g.c.config.DataInitializer - Hoàn tất khởi tạo dữ liệu mẫu
+2025-12-03 14:10:10 [http-nio-8088-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-12-03 14:10:10 [http-nio-8088-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-12-03 14:10:10 [http-nio-8088-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 0 ms
+2025-12-03 14:10:34 [http-nio-8088-exec-4] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 14:10:34 [http-nio-8088-exec-6] WARN  o.s.d.w.c.SpringDataJacksonConfiguration$PageModule$WarningLoggingModifier - Serializing PageImpl instances as-is is not supported, meaning that there is no guarantee about the stability of the resulting JSON structure!
+	For a stable JSON structure, please use Spring Data's PagedModel (globally via @EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO))
+	or Spring HATEOAS and Spring Data's PagedResourcesAssembler as documented in https://docs.spring.io/spring-data/commons/reference/repositories/core-extensions.html#core.web.pageables.
+
+2025-12-03 14:10:35 [http-nio-8088-exec-9] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 14:10:41 [http-nio-8088-exec-2] INFO  c.g.c.controller.OrderController - Getting order by ID: 230
+2025-12-03 14:10:41 [http-nio-8088-exec-2] INFO  c.g.c.controller.OrderController - Retrieved order OrderResponseDTO(id=230, tableName=null, staffUsername=giapho, type=TAKE_AWAY, status=PENDING, subTotal=90000.00, discountAmount=0.00, totalAmount=90000.00, customerId=null, customerName=null, customerPhone=null, voucherCode=null, createdAt=2025-12-03T13:53:41.204916, paidAt=null, paymentMethod=null, orderDetails=[OrderDetailResponseDTO(id=453, productId=2, productName=Cà Phê Sữa Đá, quantity=3, priceAtOrder=30000.00, notes=null)])
+2025-12-03 14:10:42 [http-nio-8088-exec-4] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 14:10:49 [http-nio-8088-exec-8] INFO  c.g.c.controller.OrderController - Getting order by ID: 230
+2025-12-03 14:10:49 [http-nio-8088-exec-8] INFO  c.g.c.controller.OrderController - Retrieved order OrderResponseDTO(id=230, tableName=null, staffUsername=giapho, type=TAKE_AWAY, status=PENDING, subTotal=155000.00, discountAmount=0.00, totalAmount=155000.00, customerId=null, customerName=null, customerPhone=null, voucherCode=null, createdAt=2025-12-03T13:53:41.204916, paidAt=null, paymentMethod=null, orderDetails=[OrderDetailResponseDTO(id=453, productId=2, productName=Cà Phê Sữa Đá, quantity=4, priceAtOrder=30000.00, notes=null), OrderDetailResponseDTO(id=476, productId=3, productName=Bạc Xỉu, quantity=1, priceAtOrder=35000.00, notes=null)])
+2025-12-03 14:10:49 [http-nio-8088-exec-1] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 14:11:05 [http-nio-8088-exec-3] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 14:11:06 [MessageBroker-1] INFO  o.s.w.s.c.WebSocketMessageBrokerStats - WebSocketSession[0 current WS(0)-HttpStream(0)-HttpPoll(0), 0 total, 0 closed abnormally (0 connect failure, 0 send limit, 0 transport error)], stompSubProtocol[processed CONNECT(0)-CONNECTED(0)-DISCONNECT(0)], stompBrokerRelay[null], inboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0], outboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0], sockJsScheduler[pool size = 1, active threads = 1, queued tasks = 0, completed tasks = 0]
+2025-12-03 14:13:17 [http-nio-8088-exec-6] INFO  c.g.c.s.impl.VoucherServiceImpl - Deleted voucher FREESHIP
+2025-12-03 14:15:20 [http-nio-8088-exec-1] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 14:17:34 [http-nio-8088-exec-3] INFO  c.g.c.s.impl.VoucherServiceImpl - Toggled voucher GIAPHODZ active state to false
+2025-12-03 14:17:35 [http-nio-8088-exec-5] INFO  c.g.c.s.impl.VoucherServiceImpl - Toggled voucher GIAPHODZ active state to true
+2025-12-03 14:17:40 [http-nio-8088-exec-4] INFO  c.g.c.s.impl.VoucherServiceImpl - Toggled voucher GIAPHODZ active state to false
+2025-12-03 14:17:41 [http-nio-8088-exec-8] INFO  c.g.c.s.impl.VoucherServiceImpl - Toggled voucher GIAPHODZ active state to true
+2025-12-03 14:17:54 [http-nio-8088-exec-1] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 14:18:05 [http-nio-8088-exec-7] INFO  c.g.c.controller.OrderController - Getting order by ID: 230
+2025-12-03 14:18:05 [http-nio-8088-exec-7] INFO  c.g.c.controller.OrderController - Retrieved order OrderResponseDTO(id=230, tableName=null, staffUsername=giapho, type=TAKE_AWAY, status=PENDING, subTotal=195000.00, discountAmount=0.00, totalAmount=195000.00, customerId=null, customerName=null, customerPhone=null, voucherCode=null, createdAt=2025-12-03T13:53:41.204916, paidAt=null, paymentMethod=null, orderDetails=[OrderDetailResponseDTO(id=453, productId=2, productName=Cà Phê Sữa Đá, quantity=4, priceAtOrder=30000.00, notes=null), OrderDetailResponseDTO(id=476, productId=3, productName=Bạc Xỉu, quantity=1, priceAtOrder=35000.00, notes=null), OrderDetailResponseDTO(id=477, productId=9, productName=Espresso, quantity=1, priceAtOrder=40000.00, notes=null)])
+2025-12-03 14:18:49 [http-nio-8088-exec-5] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 14:18:51 [http-nio-8088-exec-8] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 14:18:58 [http-nio-8088-exec-3] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 14:19:05 [http-nio-8088-exec-8] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 14:19:20 [http-nio-8088-exec-2] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 14:19:35 [http-nio-8088-exec-1] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 14:20:28 [http-nio-8088-exec-7] INFO  c.g.c.s.impl.VoucherServiceImpl - Toggled voucher GIAPHODZ active state to false
+2025-12-03 14:20:29 [http-nio-8088-exec-1] INFO  c.g.c.s.impl.VoucherServiceImpl - Toggled voucher GIAPHODZ active state to true
+2025-12-03 14:21:48 [http-nio-8088-exec-8] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 14:36:10 [http-nio-8088-exec-6] INFO  c.g.c.s.impl.VoucherServiceImpl - Toggled voucher GIAM10PT active state to false
+2025-12-03 14:36:10 [http-nio-8088-exec-10] INFO  c.g.c.s.impl.VoucherServiceImpl - Toggled voucher GIAM10PT active state to true
+2025-12-03 14:41:06 [MessageBroker-1] INFO  o.s.w.s.c.WebSocketMessageBrokerStats - WebSocketSession[0 current WS(0)-HttpStream(0)-HttpPoll(0), 0 total, 0 closed abnormally (0 connect failure, 0 send limit, 0 transport error)], stompSubProtocol[processed CONNECT(0)-CONNECTED(0)-DISCONNECT(0)], stompBrokerRelay[null], inboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0], outboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0], sockJsScheduler[pool size = 2, active threads = 1, queued tasks = 0, completed tasks = 1]
+2025-12-03 14:49:26 [http-nio-8088-exec-3] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 14:49:26 [http-nio-8088-exec-5] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 14:49:49 [http-nio-8088-exec-8] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 14:49:49 [http-nio-8088-exec-6] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:03:46 [HikariPool-1:housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=7m44s877ms141µs600ns).
+2025-12-03 15:13:21 [HikariPool-1:housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=9m34s591ms603µs900ns).
+2025-12-03 15:24:39 [HikariPool-1:housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=11m20s398ms328µs700ns).
+2025-12-03 15:30:43 [http-nio-8088-exec-8] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:37:03 [http-nio-8088-exec-7] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:37:03 [http-nio-8088-exec-9] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:38:20 [http-nio-8088-exec-1] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:38:20 [http-nio-8088-exec-2] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:38:39 [MessageBroker-2] INFO  o.s.w.s.c.WebSocketMessageBrokerStats - WebSocketSession[0 current WS(0)-HttpStream(0)-HttpPoll(0), 0 total, 0 closed abnormally (0 connect failure, 0 send limit, 0 transport error)], stompSubProtocol[processed CONNECT(0)-CONNECTED(0)-DISCONNECT(0)], stompBrokerRelay[null], inboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0], outboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0], sockJsScheduler[pool size = 3, active threads = 1, queued tasks = 0, completed tasks = 2]
+2025-12-03 15:39:16 [http-nio-8088-exec-3] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:39:16 [http-nio-8088-exec-10] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:41:42 [http-nio-8088-exec-1] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:41:42 [http-nio-8088-exec-9] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:42:38 [http-nio-8088-exec-9] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:42:38 [http-nio-8088-exec-5] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:42:53 [http-nio-8088-exec-1] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:47:40 [http-nio-8088-exec-1] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:48:17 [http-nio-8088-exec-5] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:48:17 [http-nio-8088-exec-3] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:48:22 [http-nio-8088-exec-1] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:48:25 [http-nio-8088-exec-10] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:50:26 [http-nio-8088-exec-9] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:50:26 [http-nio-8088-exec-8] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:57:05 [http-nio-8088-exec-7] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:57:08 [http-nio-8088-exec-4] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:57:12 [http-nio-8088-exec-8] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:57:54 [http-nio-8088-exec-2] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:57:58 [http-nio-8088-exec-9] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:58:04 [http-nio-8088-exec-5] INFO  c.g.c.controller.OrderController - Getting order by ID: 231
+2025-12-03 15:58:04 [http-nio-8088-exec-5] INFO  c.g.c.controller.OrderController - Retrieved order OrderResponseDTO(id=231, tableName=null, staffUsername=giapho, type=TAKE_AWAY, status=PENDING, subTotal=65000.00, discountAmount=0.00, totalAmount=65000.00, customerId=null, customerName=null, customerPhone=null, voucherCode=null, createdAt=2025-12-03T15:57:58.297819, paidAt=null, paymentMethod=null, orderDetails=[OrderDetailResponseDTO(id=478, productId=2, productName=Cà Phê Sữa Đá, quantity=1, priceAtOrder=30000.00, notes=), OrderDetailResponseDTO(id=479, productId=3, productName=Bạc Xỉu, quantity=1, priceAtOrder=35000.00, notes=)])
+2025-12-03 15:58:04 [http-nio-8088-exec-7] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:58:29 [http-nio-8088-exec-2] WARN  c.g.c.s.impl.PaymentServiceImpl - No customer associated with order 231. Cannot add loyalty points.
+2025-12-03 15:58:29 [http-nio-8088-exec-2] INFO  c.g.c.s.impl.PaymentServiceImpl - Order 231 paid successfully with payment method: CASH and tip amount: 0
+2025-12-03 15:58:29 [http-nio-8088-exec-6] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 15:59:39 [http-nio-8088-exec-5] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 16:05:49 [http-nio-8088-exec-2] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 16:06:04 [http-nio-8088-exec-6] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 16:06:36 [http-nio-8088-exec-1] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 16:08:39 [MessageBroker-1] INFO  o.s.w.s.c.WebSocketMessageBrokerStats - WebSocketSession[0 current WS(0)-HttpStream(0)-HttpPoll(0), 0 total, 0 closed abnormally (0 connect failure, 0 send limit, 0 transport error)], stompSubProtocol[processed CONNECT(0)-CONNECTED(0)-DISCONNECT(0)], stompBrokerRelay[null], inboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0], outboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0], sockJsScheduler[pool size = 4, active threads = 1, queued tasks = 0, completed tasks = 3]
+2025-12-03 16:12:46 [http-nio-8088-exec-3] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 16:14:02 [http-nio-8088-exec-5] WARN  org.hibernate.orm.query - HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+2025-12-03 16:26:45 [SpringApplicationShutdownHook] INFO  o.s.b.w.e.tomcat.GracefulShutdown - Commencing graceful shutdown. Waiting for active requests to complete
+2025-12-03 16:26:45 [tomcat-shutdown] INFO  o.s.b.w.e.tomcat.GracefulShutdown - Graceful shutdown complete
+2025-12-03 16:26:45 [SpringApplicationShutdownHook] INFO  o.s.m.s.b.SimpleBrokerMessageHandler - Stopping...
+2025-12-03 16:26:45 [SpringApplicationShutdownHook] INFO  o.s.m.s.b.SimpleBrokerMessageHandler - BrokerAvailabilityEvent[available=false, SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@7646dfd9]]
+2025-12-03 16:26:45 [SpringApplicationShutdownHook] INFO  o.s.m.s.b.SimpleBrokerMessageHandler - Stopped.
+2025-12-03 16:26:46 [SpringApplicationShutdownHook] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-12-03 16:26:46 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2025-12-03 16:26:46 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.

@@ -49,7 +49,7 @@ public class MoneyFormatter {
      * Định dạng số tiền VND (mặc định không có số thập phân)
      */
     public String formatVND(BigDecimal amount) {
-        Locale vnLocale = new Locale("vi", "VN");
+        Locale vnLocale = Locale.of("vi", "VN");
         NumberFormat formatter = NumberFormat.getCurrencyInstance(vnLocale);
         formatter.setMaximumFractionDigits(0);
         formatter.setCurrency(Currency.getInstance("VND"));
