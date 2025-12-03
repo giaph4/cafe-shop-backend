@@ -46,10 +46,33 @@ public class Order {
     @ToString.Exclude
     private Customer customer;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @ToString.Exclude
     @Builder.Default
     private Set<OrderDetail> orderDetails = new HashSet<>();
+    
+    /**
+     * Helper method to add order detail to this order
+     * Maintains bidirectional relationship
+     */
+    public void addOrderDetail(OrderDetail detail) {
+        if (this.orderDetails == null) {
+            this.orderDetails = new HashSet<>();
+        }
+        this.orderDetails.add(detail);
+        detail.setOrder(this);
+    }
+    
+    /**
+     * Helper method to remove order detail from this order
+     * Maintains bidirectional relationship
+     */
+    public void removeOrderDetail(OrderDetail detail) {
+        if (this.orderDetails != null) {
+            this.orderDetails.remove(detail);
+            detail.setOrder(null);
+        }
+    }
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

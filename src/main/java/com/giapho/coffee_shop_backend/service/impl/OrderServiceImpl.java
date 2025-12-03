@@ -21,6 +21,7 @@ import com.giapho.coffee_shop_backend.service.PaymentService;
 import com.giapho.coffee_shop_backend.service.order.OrderPricingService;
 import com.giapho.coffee_shop_backend.service.order.OrderQueryService;
 import com.giapho.coffee_shop_backend.service.order.OrderValidator;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -93,48 +95,102 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public OrderResponseDTO addItemToOrder(Long orderId, OrderDetailRequestDTO itemDTO) {
-        Order order = orderValidator.requirePendingOrder(orderId);
-        Map<Long, OrderDetail> detailMap = order.getOrderDetails().stream()
-                .collect(Collectors.toMap(detail -> detail.getProduct().getId(), detail -> detail));
+        // Get order with its details
+        Order order = orderValidator.requireOrderWithDetails(orderId);
+        
+        // Find existing order detail for this product
+        OrderDetail existingDetail = order.getOrderDetails().stream()
+                .filter(detail -> detail.getProduct().getId().equals(itemDTO.getProductId()))
+                .findFirst()
+                .orElse(null);
 
-        mergeOrderDetail(order, detailMap, itemDTO);
-        order.setOrderDetails(new HashSet<>(detailMap.values()));
+        if (existingDetail != null) {
+            // Update existing order detail
+            existingDetail.setQuantity(existingDetail.getQuantity() + itemDTO.getQuantity());
+            existingDetail.setNotes(itemDTO.getNotes());
+        } else {
+            // Create new order detail
+            OrderDetail newDetail = new OrderDetail();
+            newDetail.setProduct(orderValidator.requireAvailableProduct(itemDTO.getProductId()));
+            newDetail.setQuantity(itemDTO.getQuantity());
+            newDetail.setPriceAtOrder(newDetail.getProduct().getPrice());
+            newDetail.setNotes(itemDTO.getNotes());
+            
+            // Use the helper method to maintain bidirectional relationship
+            order.addOrderDetail(newDetail);
+        }
 
+        // Recalculate order totals
         orderPricingService.recalculateTotals(order);
-        orderRepository.save(order);
+        
+        // Save the order (cascade will handle the order details)
+        Order savedOrder = orderRepository.save(order);
 
-        return orderMapper.entityToResponse(orderValidator.requireOrderWithDetails(orderId));
+        // Return the updated order with all details
+        return orderMapper.entityToResponse(
+            orderValidator.requireOrderWithDetails(savedOrder.getId())
+        );
     }
 
     @Override
     @Transactional
     public OrderResponseDTO updateItemInOrder(Long orderId, Long orderDetailId, OrderDetailUpdateRequestDTO updateDTO) {
-        Order order = orderValidator.requirePendingOrder(orderId);
-        OrderDetail detail = orderValidator.requireOrderDetail(order, orderDetailId);
+        // Get order with its details
+        Order order = orderValidator.requireOrderWithDetails(orderId);
+        
+        // Find the order detail to update
+        OrderDetail detail = order.getOrderDetails().stream()
+                .filter(d -> d.getId().equals(orderDetailId))
+                .findFirst()
+                .orElseThrow(() -> new EntityNotFoundException("Order detail not found with id: " + orderDetailId));
 
+        // Update the order detail
         detail.setQuantity(updateDTO.getQuantity());
         detail.setNotes(updateDTO.getNotes());
 
+        // Recalculate order totals
         orderPricingService.recalculateTotals(order);
-        orderRepository.save(order);
+        
+        // Save the order (cascade will handle the order details)
+        Order savedOrder = orderRepository.save(order);
 
-        return orderMapper.entityToResponse(orderValidator.requireOrderWithDetails(orderId));
+        // Return the updated order with all details
+        return orderMapper.entityToResponse(
+            orderValidator.requireOrderWithDetails(savedOrder.getId())
+        );
     }
 
     @Override
     @Transactional
     public OrderResponseDTO removeItemFromOrder(Long orderId, Long orderDetailId) {
-        Order order = orderValidator.requirePendingOrder(orderId);
-        OrderDetail detail = orderValidator.requireOrderDetail(order, orderDetailId);
+        // Get order with its details
+        Order order = orderValidator.requireOrderWithDetails(orderId);
+        
+        // Find the order detail to remove
+        OrderDetail detailToRemove = order.getOrderDetails().stream()
+                .filter(d -> d.getId().equals(orderDetailId))
+                .findFirst()
+                .orElseThrow(() -> new EntityNotFoundException("Order detail not found with id: " + orderDetailId));
 
-        order.getOrderDetails().remove(detail);
+        // Use the helper method to maintain bidirectional relationship
+        order.removeOrderDetail(detailToRemove);
+
+        // If no more items in the order, delete the order
         if (order.getOrderDetails().isEmpty()) {
-            orderPricingService.removeVoucher(order);
+            orderRepository.delete(order);
+            return null;
         }
-        orderPricingService.recalculateTotals(order);
-        orderRepository.save(order);
 
-        return orderMapper.entityToResponse(orderValidator.requireOrderWithDetails(orderId));
+        // Recalculate order totals
+        orderPricingService.recalculateTotals(order);
+        
+        // Save the order (cascade will handle the order details removal)
+        Order savedOrder = orderRepository.save(order);
+
+        // Return the updated order with all details
+        return orderMapper.entityToResponse(
+            orderValidator.requireOrderWithDetails(savedOrder.getId())
+        );
     }
 
     @Override
