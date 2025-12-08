@@ -36,7 +36,7 @@ public class IngredientController {
         return ResponseEntity.ok(ingredients);
     }
 
-    @GetMapping("/id")
+    @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<IngredientResponseDTO> getIngredientById(@PathVariable Long id) {
         IngredientResponseDTO ingredient = ingredientService.getIngredientById(id);

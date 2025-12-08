@@ -7,6 +7,10 @@ import com.giapho.coffee_shop_backend.dto.shift.ShiftAssignmentUpdateRequestDTO;
 import com.giapho.coffee_shop_backend.service.ShiftAssignmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,6 +33,15 @@ public class ShiftAssignmentController {
 
     private final ShiftAssignmentService shiftAssignmentService;
 
+    @GetMapping
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
+    public ResponseEntity<Page<ShiftAssignmentResponseDTO>> getAllAssignments(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(shiftAssignmentService.getAllAssignments(pageable));
+    }
+    
     @GetMapping("/me")
     @PreAuthorize("hasAnyRole('STAFF','MANAGER','ADMIN')")
     public ResponseEntity<List<ShiftAssignmentResponseDTO>> getAssignmentsForCurrentUser() {

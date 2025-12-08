@@ -6,9 +6,13 @@ import com.giapho.coffee_shop_backend.dto.shift.ShiftAssignmentStatusUpdateReque
 import com.giapho.coffee_shop_backend.dto.shift.ShiftAssignmentUpdateRequestDTO;
 
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface ShiftAssignmentService {
 
+    Page<ShiftAssignmentResponseDTO> getAllAssignments(Pageable pageable);
+    
     ShiftAssignmentResponseDTO getAssignment(Long assignmentId);
 
     List<ShiftAssignmentResponseDTO> getAssignmentsForShift(Long shiftId);

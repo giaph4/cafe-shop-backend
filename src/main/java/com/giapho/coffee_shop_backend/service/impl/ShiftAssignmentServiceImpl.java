@@ -33,6 +33,8 @@ import com.giapho.coffee_shop_backend.service.ShiftAssignmentService;
 import com.giapho.coffee_shop_backend.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -64,6 +66,12 @@ public class ShiftAssignmentServiceImpl implements ShiftAssignmentService {
     private final ShiftPerformanceAdjustmentRepository adjustmentRepository;
     private final ShiftAssignmentMapper shiftAssignmentMapper;
 
+    @Override
+    public Page<ShiftAssignmentResponseDTO> getAllAssignments(Pageable pageable) {
+        return shiftAssignmentRepository.findAll(pageable)
+                .map(shiftAssignmentMapper::toResponseDTO);
+    }
+    
     @Override
     public ShiftAssignmentResponseDTO getAssignment(Long assignmentId) {
         ShiftAssignment assignment = findAssignment(assignmentId);

@@ -1,5 +1,7 @@
 package com.giapho.coffee_shop_backend.domain.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.giapho.coffee_shop_backend.domain.enums.OrderStatus;
 import com.giapho.coffee_shop_backend.domain.enums.OrderType;
 import jakarta.persistence.*;
@@ -39,6 +41,7 @@ public class Order {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "shift_session_id")
     @ToString.Exclude
+    @JsonBackReference
     private ShiftSession shiftSession;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -49,6 +52,7 @@ public class Order {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @ToString.Exclude
     @Builder.Default
+    @JsonManagedReference
     private Set<OrderDetail> orderDetails = new HashSet<>();
     
     /**

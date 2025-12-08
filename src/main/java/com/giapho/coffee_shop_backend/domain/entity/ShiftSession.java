@@ -1,5 +1,6 @@
 package com.giapho.coffee_shop_backend.domain.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.giapho.coffee_shop_backend.domain.enums.ShiftSessionStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -93,6 +94,7 @@ public class ShiftSession {
     @OneToMany(mappedBy = "shiftSession")
     @Builder.Default
     @ToString.Exclude
+    @JsonManagedReference
     private Set<Order> orders = new HashSet<>();
 
     @PrePersist
