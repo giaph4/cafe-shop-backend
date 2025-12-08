@@ -17,6 +17,7 @@ public interface ShiftSessionRepository extends JpaRepository<ShiftSession, Long
 
     long countByWorkShift_IdAndStatus(Long workShiftId, ShiftSessionStatus status);
 
+    @EntityGraph(attributePaths = {"user", "workShift"})
     List<ShiftSession> findByWorkShift_IdAndStatus(Long workShiftId, ShiftSessionStatus status);
 
     List<ShiftSession> findByStartAtBetween(LocalDateTime start, LocalDateTime end);

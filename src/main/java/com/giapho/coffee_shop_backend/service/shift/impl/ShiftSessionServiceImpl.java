@@ -33,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -188,12 +189,16 @@ public class ShiftSessionServiceImpl implements ShiftSessionService {
     }
 
     private void handleUnpaidOrders(List<Order> orders) {
-        for (Order order : orders) {
-            if (order.getStatus() != OrderStatus.PAID) {
-                order.setShiftSession(null);
-                order.setTransferred(true);
-                orderRepository.save(order);
-            }
+        List<Order> unpaidOrders = orders.stream()
+                .filter(order -> order.getStatus() != OrderStatus.PAID)
+                .peek(order -> {
+                    order.setShiftSession(null);
+                    order.setTransferred(true);
+                })
+                .collect(Collectors.toList());
+
+        if (!unpaidOrders.isEmpty()) {
+            orderRepository.saveAll(unpaidOrders);
         }
     }
 
